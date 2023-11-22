@@ -1,0 +1,25 @@
+There are some python codes due to simulate the evolution and the satellites formation process by using Lagrangian forms.
+Still an incompleted program
+
+core.py: 
+  the core of the program, which describes the disk\particles and system object
+
+disk_properties: 
+  some functions can be used to calculate the properties of the gas in disk
+
+ode.py: 
+  to solve ODE
+
+planets_properties.py:
+  get the evolution properties of planets
+
+functions.py:
+  some functions often used
+  
+userfun.py:
+  some functions needed by user, like figuring some plots and store the data to a csv file
+
+test.py: 
+  use the above file to run a evolution
+
+
