@@ -22,7 +22,21 @@ def Mcp_t(t): #t should begin at tgap
     mass of central body with time (integration of dot_Mg)
     TBD: dot_Mg prescription has changed
     """
-    Mcp = Mcp0 + quad(dot_Mg,0,t)[0]
+    
+    if type(t)==np.ndarray:
+        if len(t.shape)==1:
+            Mcp=np.array([])
+            for time in t:
+                Mcp=np.append(Mcp,Mcp0+quad(dot_Mg,0,time)[0])
+        else:
+            Mcp=np.zeros_like(t)
+            for i in range(len(t)):
+                for j in range(len(t[i])):
+                    print([i,j])
+                    Mcp[i,j]=Mcp0+quad(dot_Mg,0,t[i,j])[0]
+
+    else:
+        Mcp = Mcp0 + quad(dot_Mg,0,t)[0]
     return Mcp
 
 def dotMg_gap():
