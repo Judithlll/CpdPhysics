@@ -77,8 +77,8 @@ class data_process(object):
     
     def plot_stuff(self,disk):
         
-        # [time,loc]=np.meshgrid(self.timeL,np.linspace(disk.rinn/cgs.RJ,disk.rout/cgs.RJ,len(self.timeL)))
-        # sigmag=disk.Sigmag(loc,time)
+        [time,loc]=np.meshgrid(self.timeL,np.linspace(disk.rinn/cgs.RJ,disk.rout/cgs.RJ,len(self.timeL)))
+        sigmag=disk.Sigmag(loc,time)
 
 
         plt.figure(figsize=(12,18))
@@ -102,8 +102,8 @@ class data_process(object):
             plt.plot(self.timeL,self.mL[i])
         
         plt.subplot(211)
-        # plt.contourf(time,loc,sigmag,alpha=0.3)
-        # plt.colorbar()
+        plt.contourf(time,loc,sigmag,alpha=0.3)
+        plt.colorbar()
 
         plt.savefig('test.jpg')
 
