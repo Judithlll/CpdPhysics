@@ -8,6 +8,9 @@ import disk_properties as dp
 import functions as f
 
 class System(object):
+
+    ##are these parameters still used?
+    ##they should anyway not be defined here
     rout=27*cgs.RJ
     alpha=1e-4
     fraction=0.02 
@@ -235,10 +238,12 @@ class Superparticles(object):
         H_g=disk.Hg(r,t)
         dotMd=disk.dotMd(t)
 
+        #obtain Stokes number by iterating on drag law
         St,v_r = f.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd)
 
-        v_dd=np.abs(v_r)/2
-        H_d=H_g*(1+St/disk.alpha*(1+2*St)/(1+St))**(-0.5)
+        #describe what's going on here
+        v_dd = np.abs(v_r)/2
+        H_d = H_g*(1+St/disk.alpha*(1+2*St)/(1+St))**(-0.5)
 
             
 
