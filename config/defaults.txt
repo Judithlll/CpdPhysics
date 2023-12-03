@@ -1,0 +1,4 @@
+#very general default parameters can be stored here
+
+#output parameters
+saveDir = Data

@@ -21,7 +21,8 @@ class System(object):
     mtot1 = 1e24 #total mass a single superparticle represents
     daction={}
 
-    def __init__(self,Rdi,nini,time=0.0):
+    #CWO: please work with default pars
+    def __init__(self,Rdi=1.0,nini=10,time=0.0):
 
         #initialize parameter from txt file // disk.py
 

@@ -48,6 +48,9 @@ bW=0.2898      #Wien's law constant
 yr2s = 31556926.08  #year to seconds
 h2s=86400  #hour to seconds
 
+#I suggest to use "yr" and "hr" instead (chris)
+yr = 31558196.02038122
+
 #speed
 c=2.9979e10  #light speed in cm/s
 

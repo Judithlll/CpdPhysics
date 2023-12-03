@@ -26,3 +26,33 @@ def St_iterate(eta,v_K,v_th,lmfp,rho_g,
                 St=Stn
 
         return Stn, v_r
+
+
+def determine_type (val):
+    """
+    this determines the type of val
+
+    hist
+        [23.12.03]:copied from /NewLagrange by Chris
+    """
+
+    if val=='None':
+        return None
+    #boolean value
+    elif val=='True':
+        return True
+    elif val=='False':
+        return False
+
+    #integer
+    elif val.isdigit():
+        return int(val)
+
+    else:
+        #float/string value
+        try:
+            out = float(val)
+        except:
+            out = val
+
+        return out
