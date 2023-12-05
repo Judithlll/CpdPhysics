@@ -1,4 +1,5 @@
 import numpy as np
+import cgs
 error=1e-8
 
 def St_iterate(eta,v_K,v_th,lmfp,rho_g,
@@ -27,6 +28,16 @@ def St_iterate(eta,v_K,v_th,lmfp,rho_g,
 
         return Stn, v_r
 
+def dotMgTscale(radL,deltaTL):
+    """
+    calculate the time scale of mass flux
+    """
+    v=np.diff(radL*cgs.RJ,axis=1)/deltaTL
+    vTimesr=v*radL[:,0:-1]*cgs.RJ
+    first=np.diff(vTimesr,axis=1)/deltaTL[:-1]
+    second=v[:,:-1]*np.diff(vTimesr,axis=1)/np.diff(radL,axis=1)[:,:-1]/cgs.RJ
+    Tscale=1/((first-second)/v[:,:-1]/radL[:,:-2]/cgs.RJ)
+    return Tscale
 
 def determine_type (val):
     """

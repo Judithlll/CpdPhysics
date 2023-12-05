@@ -1,24 +1,38 @@
+import sys
+sys.path.append('/home/lzx/CpdPhysics/main')
+
+import init
 import core
 import matplotlib.pyplot as plt
 import numpy as np
 import cgs
 import userfun
 import planets_properties as pp
+import functions as f
+
+
+#initialize the simulation
+config_path='/home/lzx/CpdPhysics/'
+pars=init.init_default_pars(config_path)
 
 #initial size pf particles
-Rdi=0.01  
+Rdi=pars.dsystempars['Rdi']
 #initial number of particles
-nini=10
+nini=pars.dsystempars['nini']
+#initial time
+tini=pars.dsystempars['tini']
+#initial planets properties
+Ploca=pars.PlanetsLoca
+Pmass=pars.PlanetsMass
+Ptime=pars.PlanetsTime
 
-system = core.System(Rdi,nini)
 
+system=init.sim_init(Rdi,nini,tini)
 
-time0=1e6
-tEnd=7e9
+system.time=tini
 
-system.time=0.
-
-tmax = 6e9
+tmax = pars.tmax
+import pdb; pdb.set_trace()
 data=userfun.data_process()
 
 data.data_process(system.particles.Y2d,system.time,system.daction)
@@ -44,17 +58,9 @@ while system.time<tmax:
         # import pdb; pdb.set_trace()
     ntime+=1
 
+TimeScale=f.dotMgTscale(data.radL,deltaT)
 
-def dotMgTscale(radL,deltaTL):
-    v=np.diff(radL*cgs.RJ,axis=1)/deltaTL
-    vTimesr=v*radL[:,0:-1]*cgs.RJ
-    first=np.diff(vTimesr,axis=1)/deltaTL[:-1]
-    second=v[:,:-1]*np.diff(vTimesr,axis=1)/np.diff(radL,axis=1)[:,:-1]/cgs.RJ
-    Tscale=1/((first-second)/v[:,:-1]/radL[:,:-2]/cgs.RJ)
-    return Tscale
+planets=pp.Planets(system.disk,system.particles,7*cgs.RJ,3e23)
 
-TimeScale=dotMgTscale(data.radL,deltaT)
-
-planets=pp.Planets(system.disk,system.particles,7*cgs.RJ,3e23,system.time)
-data.plot_stuff(system.disk)
+# data.plot_stuff(system.disk)
 

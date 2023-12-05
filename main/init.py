@@ -1,7 +1,16 @@
-import parameters as pars
+import sys
+sys.path.append('/home/lzx/CpdPhysics/Test/Zhixuan/')
+
+import parameters as pars 
 import functions
 import core
+"""
+We need the parameters in defaults.txt, which is a dict or list.
 
+if it's a dict, should use ';' to split different elements, use ':' to split keys and values.
+
+if it's a list,
+"""
 def init_default_pars (fcall):
     """
     iniitialize parameters to None if they have not been defined 
@@ -10,12 +19,12 @@ def init_default_pars (fcall):
     """
     ix = fcall.rfind('/')
     calldir = fcall[:ix+1]
-    fname = calldir+'../config/defaults.txt'
+    fname = calldir+'/config/defaults.txt'
     with open(fname,'r') as f:
         line = f.readline()
         while line:
             if line[0]!='#' and len(line)>=5:
-                key, sep, val, *dumL = line.split()
+                key, sep, val, *dumL = line.split()  
 
                 #dictionaries
                 if val[0]=='{':
@@ -41,18 +50,19 @@ def init_default_pars (fcall):
 
             line = f.readline()
 
+    #in pars there must be a 'addgasL'
     if hasattr(pars, 'addgasL') is False:
         pars.addgasL = []
 
-    return calldir
+    return pars  #why return calldir? why not pars
 
 
-def sim_init (calldir, dsystempars={}):
+def sim_init (Rdi=0.01,nini=10,tini=0.0,dsystempars={},*args):
     """
     The idea is that the system object is defined here... TBD
     """
 
-    system = core.System(**dsystempars)
+    system = core.System(Rdi,nini,tini)
 
     return system
 

@@ -1,7 +1,9 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import cgs
-
+"""
+some test in disk properties with space and time 
+"""
 def r_Cavity(Bcp,Rcp,Mcp,dotMg):
     '''
     have been assumed to be a constant: 5.89RJ

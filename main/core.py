@@ -5,6 +5,7 @@ import cgs
 import ode
 import matplotlib.pyplot as plt
 import disk_properties as dp 
+import planets_properties as pp
 import functions as f
 
 class System(object):
@@ -20,9 +21,10 @@ class System(object):
     deltaT=0.0
     mtot1 = 1e24 #total mass a single superparticle represents
     daction={}
+    timestepn=10  #how many time points in every ODE solution process
 
     #CWO: please work with default pars
-    def __init__(self,Rdi=1.0,nini=10,time=0.0):
+    def __init__(self,Rdi=1.0,nini=10,time=0.0,PlanetsLoca=[],PlanetsMass=[],PLanetsTime=[]):
 
         #initialize parameter from txt file // disk.py
 
@@ -43,6 +45,14 @@ class System(object):
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
         self.Mcp=self.disk.Mcp_t(self.time)
+
+        #planets/satellites
+        self.planets=[]
+        self.Ploca=PlanetsLoca
+        self.Pmass=PlanetsMass
+        self.Ptime=PLanetsTime
+        self.Peff={}
+        self.idx_Pars={}
 
     def Mcp(self,Mcp0=0.4*cgs.MJ):
 
@@ -69,12 +79,19 @@ class System(object):
             deltaT = tEnd - self.time
 
         #update particle properties
-        Yt=self.particles.update(self.time,self.time+deltaT,self.disk)
+        Yt=self.particles.update(self.time,self.time+deltaT,self.disk,self.timestepn)
         
         #TBD: find better way to integrate (try: scipy.integrate.quad)
         self.Minflux += self.disk.M_influx(self.time,self.time+deltaT)
 
-        
+        if len(self.Ploca)!=0:
+            for i in range(len(self.Ploca)):
+                if self.Ptime[i+1]>self.time>self.Ptime[i]:
+                    self.planets.append(pp.Planets(self.disk,self.particles,self.Ploca[i],self.Pmass[i]))
+
+        if self.planets!=[]:
+            self.P_eff(Yt)
+
         #post_process particles
         self.post_process()
         
@@ -89,11 +106,34 @@ class System(object):
             self.particles.add_particles(self.daction['add'])
             self.nini+=self.daction['add']
 
+        if len(self.idx_Pars)!=0:
+            #how to discribe the effect of planets, TBD
+            pass 
+
+
         self.time += deltaT
         self.deltaT = deltaT
         self.ntime += 1
         
-        return Yt
+        return Yt #maybe need this more detailed Y2d to simulate the planets' accretion
+    
+    def P_eff(self,Yt):
+        """
+        this function aims to get the pebble accretion rate of planets
+
+        When the particles drift into the scale of the planets gravity, part of them will be accreted, but the number of the particles is not enough now, so we can only 
+        1) add the initial number of particles and decrease the total mass of particles, but the code need very long time to run 
+        2) change the total mass according to the accretion rate
+        """
+        self.Peff={}
+        self.idx_Pars={}
+        for i in range(len(Yt)):
+            
+            self.planets[:].time=self.time+self.deltaT/self.timestepn *i
+            
+            for j in range(len(self.planets)):
+                self.idx_Pars[self.planets[j].time]=self.planets[j].get_effective_pebbles_index()
+                self.Peff[self.planets[j].time]=self.planets[j].pebble_accretion_rate()
 
     
     def post_process (self):
@@ -136,6 +176,7 @@ class Disk(object):
         self.alpha = dp.alpha
         self.rout = dp.rout
         self.rinn = dp.rinn
+        self.tgap=dp.tgap
         #self.t=t
 
     def Mcp_t(self,time):

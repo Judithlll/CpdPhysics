@@ -1,4 +1,8 @@
 #very general default parameters can be stored here
 
 #output parameters
-saveDir = Data
+
+initial_paras = {Rdi:0.01;nini:10;time:0.0}
+
+
+#saveDir = Data
