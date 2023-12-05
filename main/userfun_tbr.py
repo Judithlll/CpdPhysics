@@ -1,3 +1,8 @@
+"""
+This module (user functions) should not appear in /main ...
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import cgs

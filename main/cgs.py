@@ -20,6 +20,7 @@ me=9.109e-28  #mass of electron
 
 #radius
 RJ = 6.9911e9 #radius of Jupiter
+rJup = 6.9911e9 #I prefer this notation... 
 Rmo=173800000
 Rme=244000000
 Rve=605200000

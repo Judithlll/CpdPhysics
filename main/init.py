@@ -1,9 +1,10 @@
 import sys
-sys.path.append('/home/lzx/CpdPhysics/Test/Zhixuan/')
-
+#sys.path.append('/home/lzx/CpdPhysics/Test/Zhixuan/') ## This is not a good idea...
 import parameters as pars 
 import functions
 import core
+import userfun
+
 """
 We need the parameters in defaults.txt, which is a dict or list.
 
@@ -19,7 +20,7 @@ def init_default_pars (fcall):
     """
     ix = fcall.rfind('/')
     calldir = fcall[:ix+1]
-    fname = calldir+'/config/defaults.txt'
+    fname = calldir+'../config/defaults.txt'
     with open(fname,'r') as f:
         line = f.readline()
         while line:
@@ -57,12 +58,36 @@ def init_default_pars (fcall):
     return pars  #why return calldir? why not pars
 
 
-def sim_init (Rdi=0.01,nini=10,tini=0.0,dsystempars={},*args):
+def sim_init (dsystempars={},*args):
     """
     The idea is that the system object is defined here... TBD
     """
 
-    system = core.System(Rdi,nini,tini)
+    #let's System be initialized this way with keyword parameters... 
+    #please don't change it again
+    system = core.System(**dsystempars)
+
+
+    #are there any planets
+    if pars.doPlanets is None:
+        pars.doPLanets = False
+    elif pars.doPlanets:
+        tarr, radarr, mplanarr, fcomparr = userfun.init_planets ()
+
+        #TBD: check w/r fcompL is normalized
+
+        nplan = len(radarr)
+
+        planL = []
+        for k in range(nplan):
+            planL.append(core.PLANET (tarr[k], radarr[k], mplanarr[k], fcomparr[k]))
+
+        system.planetL = planL
+        system.nplanet = nplan
+    else:
+        # the planet list
+        system.planetL = [] 
+        system.nplanet = 0
 
     return system
 

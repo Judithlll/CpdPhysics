@@ -4,6 +4,29 @@ import cgs
 import datetime
 import csv
 
+def init_planets ():
+    """
+    this initializes the planets 
+
+    return planet properties: 
+        - time it appears
+        - location
+        - mass
+        - composition
+
+    [23.12.05]:it's probably better to format this as dictionaries (TBD!)
+    """
+    #composition should follow what you have defined in parameters
+    #and be normalized
+
+    #[23.12.05]:let's worry about composition issues later...
+    #fcomp = np.ones_like(pars.composL, dtype=float)
+    #fcomp = fcomp /sum(fcomp)
+
+    #return lists for the N-planets we have
+    return [0.0, 10.0], [2*cgs.rJup, 10*cgs.rJup], [1e23, 1e23], [1.0, 1.0]
+
+
 class data_process(object):
     """
     To store data and process data (convert\plot)

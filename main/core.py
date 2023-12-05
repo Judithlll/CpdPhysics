@@ -358,5 +358,36 @@ class Superparticles(object):
         #self.Y2d=np.append(self.Y2d,np.array([lociL,miL,mtotL]),1)
         #self.Y2d[-1]=mtot
 
-
         return
+
+
+class PLANET ():
+    """
+    Copied over from /NewLagrange
+    """
+    def __init__(self, time, loc, mplanet, fcomp):
+        self.loc = loc          #location
+        self.time = time        #time when it appears
+        self.mass = mplanet     #its mass
+        self.fcomp = fcomp      #its composition
+        self.spCrossTime = [0.0]   #list when particles cross
+        self.spCrossMass = [0.0]   #corresponding mass
+        self.spCrossTau = [-1]   #corresponding stokes number
+        self.ncross = 0
+
+    def record_cross_sp (self, time, sp, idxcross):
+        for k in idxcross:
+            self.spCrossTime.append(time)
+            self.spCrossMass.append(sp.msup[k])
+            self.spCrossTau.append(sp.tau[k])
+            self.ncross += 1
+
+    def calc_mdot (self, time, Nast=15):
+        tlba = time -np.array(self.spCrossTime)[::-1]   #lookback time
+        tast = tlba[:Nast].max()                            #characteristic timescale
+        mdotarr = np.array(self.spCrossMass)[::-1] /tast
+        wi = np.exp(-tlba/tast)     #weights
+        mdot = np.sum(mdotarr *wi)  #mass flux through iceline
+        return mdot
+
+
