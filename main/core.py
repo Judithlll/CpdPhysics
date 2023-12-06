@@ -120,7 +120,7 @@ class System(object):
         #particles that enter the domain
         Nadd = 0
         self.Minflux += self.disk.M_influx(self.time,self.time+self.deltaT)
-        
+
         while self.Minflux>self.mtot1:
             Nadd += 1
             self.Minflux -= self.mtot1
@@ -220,7 +220,7 @@ def advance_planets (system):
 
             #update s-particle properties from sp-crossings
             #assumes all particles are accreted (TBC!!)
-            spN=system.particles.Y2d
+            spN=system.particles
 
             for k, ip in enumerate(idxN):
 
@@ -237,7 +237,7 @@ def advance_planets (system):
                 # planet.fcomp += 0.  #TBD !!
 
                 #spN -> system.particles.Y2d...
-                spN[2,ip] -= delm #decrease mass sp
+                spN.mtotL[ip] -= delm #decrease mass sp
         
 
 #perhaps this class object is not necessary...
@@ -325,11 +325,14 @@ class Superparticles(object):
 
         ndim = 3# location // mass // total mass
 
-        
+        self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
+        self.massL=[mini]*nini
+        self.mtotL=[mtot1]*nini
+
         self.Y2d = np.empty((ndim,nini))
-        self.Y2d[0] = 10**np.linspace(np.log10(rinn),np.log10(rout),nini)
-        self.Y2d[1] = mini
-        self.Y2d[2] = self.mtot1
+        self.Y2d[0] = self.locL
+        self.Y2d[1] = self.massL
+        self.Y2d[2] = self.mtotL
 
     def dY2d_dt (self,Y2d,t,disk):
         """
@@ -390,7 +393,11 @@ class Superparticles(object):
 
         #integrates system to tFi
         Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',disk)
-
+        
+        self.locL=Yt[-1,0,:]
+        self.massL=Yt[-1,1,:]
+        self.mtotL=Yt[-1,2,:]
+        
         self.Y2d = Yt[-1,:,:]
         return Yt
 
