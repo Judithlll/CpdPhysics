@@ -26,7 +26,7 @@ class System(object):
     timestepn=10  #how many time points in every ODE solution process
 
     #CWO: please work with default pars
-    def __init__(self,Rdi=1.0,time=0.0,nini=10,PlanetsLoca=[],PlanetsMass=[],PLanetsTime=[]):
+    def __init__(self,Rdi=1.0,time=0.0,nini=10):
 
         #initialize parameter from txt file // disk.py
 
@@ -79,47 +79,9 @@ class System(object):
         Yt = self.particles.update(self.time,self.time+deltaT,self.disk,self.timestepn)
 
         self.deltaT = deltaT
-
+        self.ntime += 1
         # stop here
         return Yt, deltaT
-
-    
-        self.Minflux += self.disk.M_influx(self.time,self.time+deltaT)
-
-        #TBR
-        if len(self.Ploca)!=0:
-            for i in range(len(self.Ploca)):
-                if self.Ptime[i+1]>self.time>self.Ptime[i]:
-                    self.planets.append(pp.Planets(self.disk,self.particles,self.Ploca[i],self.Pmass[i]))
-
-        if self.planets!=[]:
-            self.P_eff(Yt)
-
-        #post_process particles
-        self.post_process()
-        
-        if 'remove' in self.daction.keys():
-            #remove the particles from Y2d!
-            
-            self.particles.remove_particles(self.daction['remove'])
-            self.nini-=len(self.daction['remove'])
-            # import pdb; pdb.set_trace()
-
-        if 'add' in self.daction.keys():
-            self.particles.add_particles(self.daction['add'])
-            self.nini+=self.daction['add']
-
-        if len(self.idx_Pars)!=0:
-            #how to discribe the effect of planets, TBD
-            pass 
-
-
-        self.time += deltaT
-        #self.deltaT = deltaT
-        self.ntime += 1
-        
-        return Yt #maybe need this more detailed Y2d to simulate the planets' accretion
-
     
     def P_eff(self,Yt):
         """
@@ -157,12 +119,27 @@ class System(object):
         
         #particles that enter the domain
         Nadd = 0
+        self.Minflux += self.disk.M_influx(self.time,self.time+self.deltaT)
+        
         while self.Minflux>self.mtot1:
             Nadd += 1
             self.Minflux -= self.mtot1
         
         if Nadd>0:
             self.daction['add'] = Nadd
+
+        
+        #post_process particles
+        if 'remove' in self.daction.keys():
+            #remove the particles from Y2d!
+            
+            self.particles.remove_particles(self.daction['remove'])
+            self.nini-=len(self.daction['remove'])
+            # import pdb; pdb.set_trace()
+
+        if 'add' in self.daction.keys():
+            self.particles.add_particles(self.daction['add'])
+            self.nini+=self.daction['add']
 
         #particles that are eaten by the planet
         # need to use pebble accretion rate 

@@ -46,7 +46,7 @@ bW=0.2898      #Wien's law constant
  
 
 #time in second
-yr2s = 31556926.08  #year to seconds
+yr2s = 31558196.02038122  #year to seconds
 h2s=86400  #hour to seconds
 
 #I suggest to use "yr" and "hr" instead (chris)

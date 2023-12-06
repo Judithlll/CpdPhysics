@@ -24,7 +24,8 @@ while system.time<pars.tmax:
     #due to crossings and intrinsic evolution
     if system.nplanet>0:
         core.advance_planets (system)
-    
+
+    system.post_process()
     #TBD: postprocess particles (add/remove)
     
     #TBD: change system.time
