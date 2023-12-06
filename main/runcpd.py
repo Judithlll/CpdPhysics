@@ -26,7 +26,7 @@ while system.time<pars.tmax:
         core.advance_planets (system)
 
 
-    #TBD: add postprocess
+    #TBD: postprocess particles (add/remove)
 
     #TBD: change system.time
 
