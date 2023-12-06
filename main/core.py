@@ -10,21 +10,22 @@ import functions as f
 
 class System(object):
 
-    ##are these parameters still used?
+    ##CWO: are these parameters still used?
     ##they should anyway not be defined here
+
     rout=27*cgs.RJ
-    alpha=1e-4
+    #alpha=1e-4 # TBR
     fraction=0.02 
     dgratio=0.01  #dust to gas ratio
-    sigmamol=2e-15
+    #sigmamol=2e-15 #TBR
     rhoint = 1.4
-    deltaT=0.0
+    #deltaT=0.0
     mtot1 = 1e24 #total mass a single superparticle represents
     daction={}
     timestepn=10  #how many time points in every ODE solution process
 
     #CWO: please work with default pars
-    def __init__(self,Rdi=1.0,nini=10,time=0.0,PlanetsLoca=[],PlanetsMass=[],PLanetsTime=[]):
+    def __init__(self,Rdi=1.0,time=0.0,nini=10,PlanetsLoca=[],PlanetsMass=[],PLanetsTime=[]):
 
         #initialize parameter from txt file // disk.py
 

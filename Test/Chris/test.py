@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/home/lzx/CpdPhysics_Chris/main')
+
 import core
 import matplotlib.pyplot as plt
 import numpy as np

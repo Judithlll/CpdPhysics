@@ -15,8 +15,6 @@ calldir = init.init_default_pars (argL[0]) #directory from which this is called 
 #this initializes the system...
 system = init.sim_init (pars.dsystempars)
 
-import pdb; pdb.set_trace()
-
 while system.time<pars.tmax:
 
     Yt = system.update (pars.tmax)

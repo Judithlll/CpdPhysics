@@ -72,6 +72,7 @@ def sim_init (dsystempars={},*args):
     if pars.doPlanets is None:
         pars.doPLanets = False
     elif pars.doPlanets:
+        #TBD: perhaps better to work with dictionaries
         tarr, radarr, mplanarr, fcomparr = userfun.init_planets ()
 
         #TBD: check w/r fcompL is normalized
