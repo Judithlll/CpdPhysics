@@ -177,6 +177,8 @@ def advance_planets (system):
                 for ip in idx:
                     spi = system.Y2dold[:,ip] #makes a superparticle
                     crossL.append(spi)
+
+                
                 # if len(idx)!=0:
                 #     import pdb; pdb.set_trace()
                 #this user-defined function should detail how the
@@ -228,17 +230,23 @@ def advance_planets (system):
 
                 #mass that is being transferred (TBC!!)
                 #need to calculate epsilon (PA efficiency)
-                
-                epsilon = f.epsilon_PA(system.disk,planet.loc,planet.mass,system.time,crossL[k],system.rhoint)
-                delm = epsilon*crossL[k][2]#don't understand this line...
-                
+
+                #calculate critical mass to verify if the pebble accretion can occur
+                Mc=f.M_critical(system,planet.loc,crossL[k])
+                if Mc<planet.mass:                    
+                    epsilon = f.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
+                    delm = epsilon*crossL[k][2]#don't understand this line...
+                    
+                else:
+                    "pebble accretion can not happen"
+                    delm=0
+
                 planet.mass += delm #increase mass (pebble accretion)
-                import pdb; pdb.set_trace()
                 # planet.fcomp += 0.  #TBD !!
 
                 #spN -> system.particles.Y2d...
                 spN.mtotL[ip] -= delm #decrease mass sp
-        
+
 
 #perhaps this class object is not necessary...
 class Disk(object):
@@ -403,21 +411,7 @@ class Superparticles(object):
 
     
     def remove_particles(self,remove_idx):
-        self.Y2d = np.delete(self.Y2d, remove_idx, 1)
-
-    def get_stokes_number(self,disk,t):
-        r, mphy, mtot = self.Y2d
-        Rd=(mphy/(self.rhoint*4/3*np.pi))**(1/3)
-
-        eta=disk.eta(r,t)
-        v_K=disk.vK(r,t)
-        v_th=disk.vth(r,t)
-        lmfp=disk.lmfp(r,t)
-        rho_g=disk.rhog(r,t)
-        Omega_K=disk.OmegaK(r,t)
-
-        St,v_r = f.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd) 
-        return St,v_r      
+        self.Y2d = np.delete(self.Y2d, remove_idx, 1)     
 
     def add_particles(self,Nadd):
 

@@ -28,6 +28,20 @@ def St_iterate(eta,v_K,v_th,lmfp,rho_g,
 
         return Stn, v_r
 
+def get_stokes_number(disk,t,ParticlePL,rhoint):
+    r, mphy, mtot = ParticlePL
+    Rd=(mphy/(rhoint*4/3*np.pi))**(1/3)
+
+    eta=disk.eta(r,t)
+    v_K=disk.vK(r,t)
+    v_th=disk.vth(r,t)
+    lmfp=disk.lmfp(r,t)
+    rho_g=disk.rhog(r,t)
+    Omega_K=disk.OmegaK(r,t)
+
+    St,v_r = St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd) 
+    return St
+
 def dotMgTscale(radL,deltaTL):
     """
     calculate the time scale of mass flux
@@ -69,30 +83,32 @@ def determine_type (val):
         return out
 
 
-def epsilon_PA (disk,PlanetsLoc,PlanetsMass,systemtime,cross_p,rhoint):
+def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
     """
     abnormal now
     
     different particles has different size and so different accretion rate, so maybe should change the total mass of particles???
     """
-    eta=disk.eta(PlanetsLoc,systemtime)
-    v_K=disk.vK(PlanetsLoc,systemtime)
-    v_th=disk.vth(PlanetsLoc,systemtime)
-    lmfp=disk.lmfp(PlanetsLoc,systemtime)
-    rho_g=disk.rhog(PlanetsLoc,systemtime)
-    Omega_K=disk.OmegaK(PlanetsLoc,systemtime)  
 
-    RdL=(cross_p[1]/(rhoint*4/3*np.pi))**(1/3)
-    St,v_r=St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,RdL)
+    St=get_stokes_number(system.disk,system.time,cross_p,system.rhoint)
+    eta=system.disk.eta(PlanetsLoc,system.time)
 
-    mus=PlanetsMass/disk.Mcp_t(systemtime)
+    mus=PlanetsMass/ system.disk.Mcp_t(system.time)
 
-    Hg=disk.Hg(PlanetsLoc,systemtime)
+    Hg= system.disk.Hg(PlanetsLoc,system.time)
     
-    Hp=Hg*(1+St/disk.alpha*(1+2*St)/(1+St))
+    Hp=Hg*(1+St/ system.disk.alpha*(1+2*St)/(1+St))
     hp=Hp/PlanetsLoc
 
     delv_o_vK=0.52*(mus*St)**(1/3)+eta/(1+5.7*(mus/eta**3*St))
     
     P_eff=1/np.sqrt((0.32*np.sqrt(mus*delv_o_vK/ St/ eta**2))**(-2)+(0.39*mus/ eta/hp)**(-2)) #Liu & Ormel 2018
     return P_eff
+
+def M_critical(system,PlanetsLoc,cross_p):
+
+    St=get_stokes_number(system.disk,system.time,cross_p,system.rhoint)
+    eta=system.disk.eta(PlanetsLoc,system.time)
+
+    M_critical=1/8*eta**3*St *system.disk.Mcp_t(system.time) #Shibaike 2019
+    return M_critical   
