@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import disk_properties as dp 
 import planets_properties as pp
 import functions as f
+import copy
 
 class System(object):
 
@@ -60,7 +61,7 @@ class System(object):
         Mcp=self.disk.Mcp_t(self.time)
         return Mcp
 
-    def update(self,tEnd):
+    def update_particles (self,tEnd):
         """
         How to evolving the gas in the disk is still not sure
 
@@ -80,11 +81,20 @@ class System(object):
             deltaT = tEnd - self.time
 
         #update particle properties
-        Yt=self.particles.update(self.time,self.time+deltaT,self.disk,self.timestepn)
+        #make
+        self.Y2dold = copy.deepcopy(self.particles.Y2d)
+        Yt = self.particles.update(self.time,self.time+deltaT,self.disk,self.timestepn)
+
+        self.deltaT = deltaT
+
+        # stop here
+        return Yt, deltaT
+
         
         #TBD: find better way to integrate (try: scipy.integrate.quad)
         self.Minflux += self.disk.M_influx(self.time,self.time+deltaT)
 
+        #TBR
         if len(self.Ploca)!=0:
             for i in range(len(self.Ploca)):
                 if self.Ptime[i+1]>self.time>self.Ptime[i]:
@@ -113,10 +123,11 @@ class System(object):
 
 
         self.time += deltaT
-        self.deltaT = deltaT
+        #self.deltaT = deltaT
         self.ntime += 1
         
         return Yt #maybe need this more detailed Y2d to simulate the planets' accretion
+
     
     def P_eff(self,Yt):
         """
@@ -138,6 +149,10 @@ class System(object):
 
     
     def post_process (self):
+        """
+        returns indices of particles that cross boundaries 
+        (which needs to be removed or added)
+        """
 
         self.daction = {}
 
@@ -165,8 +180,83 @@ class System(object):
         #....
 
 
+def advance_planets (system):
+    """
+    [23.12.06]copied/edited from NewLagrange
+    """
+    for planet in system.planetL:
+
+        sploc = system.particles.Y2d[0]
+        sploc_old = system.Y2dold[0]
+
+        #particles that cross are those that
+        #idx, = np.nonzero( (planet.loc<sp.loc) & (planet.loc>spN.loc) )
+
+        idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
 
 
+        iterate = True
+        niter = 0
+        while iterate:
+
+            crossL = []
+            for ip in idx:
+                spi = sp.get_sp_i(ip) #makes a superparticle
+                crossL.append(spi)
+
+
+            #this user-defined function should detail how the
+            #planet properties (location,mass,composition) change
+            #with time and how the crossed particles are affected... 
+
+
+            #this is about planet migration...
+            #TBD later...
+            if False:
+                loc_t, mass_t, fcomp_t = \
+                userfun.XY_planet (sim.time, planet.loc, planet.mass, planet.fcomp, 
+                        crossL)
+            else:
+                loc_t = 0.0     #migration rate of planet
+                mass_t = 0.0    #gas accretion of planet
+                fcomp_t = 0.0   #how its composition changes
+
+            #update planet properties from rates supplied by user
+            planet_loc_nw = planet.loc + loc_t *system.deltaT
+
+            planet_loc_nw = planet.loc
+
+
+            #particles that cross are those that
+            idxN, = np.nonzero( (planet.loc<sploc_old) & (sploc<planet_loc_nw) )
+
+
+            if set(idxN)!=set(idx):
+                idx = idxN
+                niter += 1
+            else:
+                iterate = False
+
+
+        #update planet properties from rates supplied by user
+        planet.loc += loc_t *system.deltaT
+        planet.mass += mass_t *system.deltaT
+        planet.fcomp += fcomp_t *system.deltaT
+
+
+        #update s-particle properties from sp-crossings
+        #assumes all particles are accreted (TBC!!)
+        for k, ip in enumerate(idxN):
+
+            #mass that is being transferred (TBC!!)
+            #need to calculate epsilon (PA efficiency)
+            delm = spN.msup[ip] - crossL[k].msup #don't understand this line...
+
+            planet.mass += delm #increase mass (pebble accretion)
+            planet.fcomp += 0.  #TBD !!
+
+            #spN -> system.particles.Y2d...
+            spN.msup[ip] -= delm #decrease mass sp
         
 
 #perhaps this class object is not necessary...
@@ -320,8 +410,8 @@ class Superparticles(object):
         Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',disk)
 
         self.Y2d = Yt[-1,:,:]
-
         return Yt
+
     
     def remove_particles(self,remove_idx):
         self.Y2d = np.delete(self.Y2d, remove_idx, 1)

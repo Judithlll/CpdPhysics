@@ -17,7 +17,19 @@ system = init.sim_init (pars.dsystempars)
 
 while system.time<pars.tmax:
 
-    Yt = system.update (pars.tmax)
+    #integrate the super particles
+    Yt = system.update_particles (pars.tmax)
 
+    #change planet and super particle properties
+    #due to crossings and intrinsic evolution
+    if system.nplanet>0:
+        core.advance_planets (system)
+
+
+    #TBD: add postprocess
+
+    #TBD: change system.time
+
+    import pdb; pdb.set_trace()
     print('hello', system.time/cgs.yr)
 
