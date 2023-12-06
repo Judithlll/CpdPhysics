@@ -24,7 +24,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have
-    return [10*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [1e23, 1e23], [1.0, 1.0]
+    return [1*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [1e23, 1e23], [1.0, 1.0]
 
 
 class data_process(object):

@@ -24,10 +24,11 @@ while system.time<pars.tmax:
     #due to crossings and intrinsic evolution
     if system.nplanet>0:
         core.advance_planets (system)
-
-
+    
     #TBD: postprocess particles (add/remove)
-
+    
     #TBD: change system.time
-    print('hello', system.time/cgs.yr)
+    system.time=system.time+system.deltaT
+
+    # print('hello', system.time/cgs.yr)
 

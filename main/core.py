@@ -48,15 +48,8 @@ class System(object):
         self.Minflux = 0
         self.Mcp=self.disk.Mcp_t(self.time)
 
-        #planets/satellites
-        self.planets=[]
-        self.Ploca=PlanetsLoca
-        self.Pmass=PlanetsMass
-        self.Ptime=PLanetsTime
-        self.Peff={}
-        self.idx_Pars={}
 
-    def Mcp(self,Mcp0=0.4*cgs.MJ):
+    def Mcp(self):
 
         Mcp=self.disk.Mcp_t(self.time)
         return Mcp
@@ -90,8 +83,7 @@ class System(object):
         # stop here
         return Yt, deltaT
 
-        
-        #TBD: find better way to integrate (try: scipy.integrate.quad)
+    
         self.Minflux += self.disk.M_influx(self.time,self.time+deltaT)
 
         #TBR
@@ -183,6 +175,8 @@ class System(object):
 def advance_planets (system):
     """
     [23.12.06]copied/edited from NewLagrange
+
+    For now, planet migration and composition is not considered
     """
     for planet in system.planetL:
 
@@ -204,10 +198,10 @@ def advance_planets (system):
 
                 crossL = []
                 for ip in idx:
-                    spi = sp.get_sp_i(ip) #makes a superparticle
+                    spi = system.Y2dold[:,ip] #makes a superparticle
                     crossL.append(spi)
-
-
+                # if len(idx)!=0:
+                #     import pdb; pdb.set_trace()
                 #this user-defined function should detail how the
                 #planet properties (location,mass,composition) change
                 #with time and how the crossed particles are affected... 
@@ -249,19 +243,24 @@ def advance_planets (system):
 
             #update s-particle properties from sp-crossings
             #assumes all particles are accreted (TBC!!)
+            spN=system.particles.Y2d
+
             for k, ip in enumerate(idxN):
 
-                import pdb; pdb.set_trace()
+                
 
                 #mass that is being transferred (TBC!!)
                 #need to calculate epsilon (PA efficiency)
-                delm = spN.msup[ip] - crossL[k].msup #don't understand this line...
-
+                
+                epsilon = f.epsilon_PA(system.disk,planet.loc,planet.mass,system.time,crossL[k],system.rhoint)
+                delm = epsilon*crossL[k][2]#don't understand this line...
+                
                 planet.mass += delm #increase mass (pebble accretion)
-                planet.fcomp += 0.  #TBD !!
+                import pdb; pdb.set_trace()
+                # planet.fcomp += 0.  #TBD !!
 
                 #spN -> system.particles.Y2d...
-                spN.msup[ip] -= delm #decrease mass sp
+                spN[2,ip] -= delm #decrease mass sp
         
 
 #perhaps this class object is not necessary...
@@ -349,6 +348,7 @@ class Superparticles(object):
 
         ndim = 3# location // mass // total mass
 
+        
         self.Y2d = np.empty((ndim,nini))
         self.Y2d[0] = 10**np.linspace(np.log10(rinn),np.log10(rout),nini)
         self.Y2d[1] = mini
