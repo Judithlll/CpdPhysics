@@ -186,77 +186,82 @@ def advance_planets (system):
     """
     for planet in system.planetL:
 
-        sploc = system.particles.Y2d[0]
-        sploc_old = system.Y2dold[0]
+        #planet exists only after planet.time
+        if planet.time<system.time:
 
-        #particles that cross are those that
-        #idx, = np.nonzero( (planet.loc<sp.loc) & (planet.loc>spN.loc) )
-
-        idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
-
-
-        iterate = True
-        niter = 0
-        while iterate:
-
-            crossL = []
-            for ip in idx:
-                spi = sp.get_sp_i(ip) #makes a superparticle
-                crossL.append(spi)
-
-
-            #this user-defined function should detail how the
-            #planet properties (location,mass,composition) change
-            #with time and how the crossed particles are affected... 
-
-
-            #this is about planet migration...
-            #TBD later...
-            if False:
-                loc_t, mass_t, fcomp_t = \
-                userfun.XY_planet (sim.time, planet.loc, planet.mass, planet.fcomp, 
-                        crossL)
-            else:
-                loc_t = 0.0     #migration rate of planet
-                mass_t = 0.0    #gas accretion of planet
-                fcomp_t = 0.0   #how its composition changes
-
-            #update planet properties from rates supplied by user
-            planet_loc_nw = planet.loc + loc_t *system.deltaT
-
-            planet_loc_nw = planet.loc
-
+            sploc = system.particles.Y2d[0]
+            sploc_old = system.Y2dold[0]
 
             #particles that cross are those that
-            idxN, = np.nonzero( (planet.loc<sploc_old) & (sploc<planet_loc_nw) )
+            #idx, = np.nonzero( (planet.loc<sp.loc) & (planet.loc>spN.loc) )
+
+            idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
 
 
-            if set(idxN)!=set(idx):
-                idx = idxN
-                niter += 1
-            else:
-                iterate = False
+            iterate = True
+            niter = 0
+            while iterate:
+
+                crossL = []
+                for ip in idx:
+                    spi = sp.get_sp_i(ip) #makes a superparticle
+                    crossL.append(spi)
 
 
-        #update planet properties from rates supplied by user
-        planet.loc += loc_t *system.deltaT
-        planet.mass += mass_t *system.deltaT
-        planet.fcomp += fcomp_t *system.deltaT
+                #this user-defined function should detail how the
+                #planet properties (location,mass,composition) change
+                #with time and how the crossed particles are affected... 
 
 
-        #update s-particle properties from sp-crossings
-        #assumes all particles are accreted (TBC!!)
-        for k, ip in enumerate(idxN):
+                #this is about planet migration...
+                #TBD later...
+                if False:
+                    loc_t, mass_t, fcomp_t = \
+                    userfun.XY_planet (sim.time, planet.loc, planet.mass, planet.fcomp, 
+                            crossL)
+                else:
+                    loc_t = 0.0     #migration rate of planet
+                    mass_t = 0.0    #gas accretion of planet
+                    fcomp_t = 0.0   #how its composition changes
 
-            #mass that is being transferred (TBC!!)
-            #need to calculate epsilon (PA efficiency)
-            delm = spN.msup[ip] - crossL[k].msup #don't understand this line...
+                #update planet properties from rates supplied by user
+                planet_loc_nw = planet.loc + loc_t *system.deltaT
 
-            planet.mass += delm #increase mass (pebble accretion)
-            planet.fcomp += 0.  #TBD !!
+                planet_loc_nw = planet.loc
 
-            #spN -> system.particles.Y2d...
-            spN.msup[ip] -= delm #decrease mass sp
+
+                #particles that cross are those that
+                idxN, = np.nonzero( (planet.loc<sploc_old) & (sploc<planet_loc_nw) )
+
+
+                if set(idxN)!=set(idx):
+                    idx = idxN
+                    niter += 1
+                else:
+                    iterate = False
+
+
+            #update planet properties from rates supplied by user
+            planet.loc += loc_t *system.deltaT
+            planet.mass += mass_t *system.deltaT
+            planet.fcomp += fcomp_t *system.deltaT
+
+
+            #update s-particle properties from sp-crossings
+            #assumes all particles are accreted (TBC!!)
+            for k, ip in enumerate(idxN):
+
+                import pdb; pdb.set_trace()
+
+                #mass that is being transferred (TBC!!)
+                #need to calculate epsilon (PA efficiency)
+                delm = spN.msup[ip] - crossL[k].msup #don't understand this line...
+
+                planet.mass += delm #increase mass (pebble accretion)
+                planet.fcomp += 0.  #TBD !!
+
+                #spN -> system.particles.Y2d...
+                spN.msup[ip] -= delm #decrease mass sp
         
 
 #perhaps this class object is not necessary...

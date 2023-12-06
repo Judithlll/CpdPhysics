@@ -29,7 +29,5 @@ while system.time<pars.tmax:
     #TBD: postprocess particles (add/remove)
 
     #TBD: change system.time
-
-    import pdb; pdb.set_trace()
     print('hello', system.time/cgs.yr)
 
