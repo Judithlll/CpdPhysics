@@ -8,12 +8,17 @@ import core
 import numpy as np
 import init
 import cgs
+import userfun
 
 argL = sys.argv #maybe use later
 calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
 #this initializes the system...
 system = init.sim_init (pars.dsystempars)
+
+
+#initialize userfun's data class
+userfun.do_stuff(system, init=True)
 
 while system.time<pars.tmax:
 
@@ -29,7 +34,9 @@ while system.time<pars.tmax:
     #TBD: postprocess particles (add/remove)
     
     #TBD: change system.time
-    system.time=system.time+system.deltaT
+    system.time += system.deltaT
+
+    userfun.do_stuff(system)
 
     # print('hello', system.time/cgs.yr)
 

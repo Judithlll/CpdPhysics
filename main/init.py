@@ -67,8 +67,7 @@ def sim_init (dsystempars={},*args):
     #please don't change it again
     system = core.System(**dsystempars)
 
-
-    #are there any planets
+    #add the planets
     if pars.doPlanets is None:
         pars.doPLanets = False
     elif pars.doPlanets:

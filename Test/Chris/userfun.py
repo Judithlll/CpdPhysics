@@ -27,6 +27,20 @@ def init_planets ():
     return [1*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [1e23, 1e23], [1.0, 1.0]
 
 
+def do_stuff (system, init=False):
+    """
+    here you can do user-defined data manipulation
+    given system
+    """
+
+    if init:
+        #initialize the data objects
+        data.init_data()
+    else:
+        #do things based on system
+        pass
+
+
 class data_process(object):
     """
     To store data and process data (convert\plot)
@@ -34,6 +48,9 @@ class data_process(object):
 
     def __init__(self):
 
+        pass
+
+    def init_data(self):
         self.timeL=[]
         self.radL=np.array([])
         self.mL=np.array([])
@@ -136,4 +153,4 @@ class data_process(object):
         Td=disk.T_d(r_Span,time)
 
         
-
+data = data_process()
