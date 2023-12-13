@@ -5,7 +5,7 @@ import cgs
 import ode
 import matplotlib.pyplot as plt
 import disk_properties as dp 
-import planets_properties as pp
+# import planets_properties as pp
 import functions as f
 import copy
 import parameters as pars
@@ -76,12 +76,6 @@ class System(object):
 
         return dum
 
-
-    def Mcp(self):
-
-        Mcp=self.disk.Mcp_t(self.time)
-        return Mcp
-
     def update_particles (self,tEnd):
         """
         How to evolving the gas in the disk is still not sure
@@ -104,7 +98,7 @@ class System(object):
         #update particle properties
         #make
         self.Y2dold = copy.deepcopy(self.particles.Y2d)
-        Yt = self.particles.update(self.time,self.time+deltaT,self.disk,self.timestepn)
+        Yt = self.particles.update(self.time,self.time+deltaT,self.gas,self.timestepn)
 
         self.deltaT = deltaT
         self.ntime += 1
@@ -287,7 +281,7 @@ class DISK (object):
         initialize with key disk properties
         """
         self.loc = loc
-        self.sigmaG = sigmaG
+        self.Sigmag = sigmaG
         self.temp = temp
         self.mu = mu
         self.time = time
@@ -297,65 +291,68 @@ class DISK (object):
         self.tgap=dp.tgap
 
 
-    #def __init__(self):
-    #    
-        #self.t=t
+    def add_auxiliary (self):
+        self.Mcp = self.Mcp_t(self.time)  
+        self.OmegaK=self.Omega_K(self.loc,self.time)       
+        self.dotMg=self.dot_Mg(self.time)
+        
+        self.cs =  dp.c_s(self.temp) #dp.c_s(loc,time)
+        self.vth = dp.v_th(self.cs)
 
-    def add_auxiliary ():
-
-        self.cs =  np.sqrt(cgs.kB*self.temp/(cgs.mp*self.mu)) #dp.c_s(loc,time)
-        self.vth = #(some factor) *self.cs
+        self.dotMd=self.dot_Md()
+        self.vK=self.v_K(self.loc)
+        self.vth=self.v_th()
+        self.Hg=self.H_g()
+        self.nu=self.viscosity()
+        self.rhog=self.rho_g()
+        self.mg=self.m_g()
+        self.lmfp=self.l_mfp()
+        self.eta=self.eta_cal(self.loc)
 
 
     def Mcp_t(self,time):
         return dp.Mcp_t(time)
     
-    def dotMg(self,time):
+    def dot_Mg(self,time):
         return dp.dot_Mg(time)
     
-    def dotMd(self,time):
-        return dp.dot_Md(time)
+    def dot_Md(self):
+        return dp.dot_Md(self.dotMg)
     
     def M_influx(self,t0,tEnd):
         return dp.M_influx(t0,tEnd)
 
-    def Sigmag (self,loc,time):
-        
-        return dp.Sigma_g(loc,time)
+    # def Sigmag (self,loc,time):
+    #     c_s=self.cs(loc,time)
+    #     Sg=dp.Sigma_g(loc,time,c_s)
+    #     return Sg
     
-    def OmegaK(self,loc,time):
-        return dp.Omega_K(loc,time)
+    def Omega_K(self,loc,time):
+        return dp.Omega_K(loc,time,self.Mcp)
+
+    def v_K(self,loc):
+        return self.OmegaK*loc
     
-    def Td(self,loc,time):
-        return self.temp #dp.T_d(loc,time)
+    def v_th(self):
+        return dp.v_th(self.cs)
     
-    def cs(self,loc,time):
-        return np.sqrt(cgs.kB*self.temp/(cgs.mp*self.mu)) #dp.c_s(loc,time)
+    def H_g(self):
+        return dp.H_g(self.cs,self.OmegaK)
     
-    def vth(self,loc,time):
-        return dp.v_th(loc,time)
+    def viscosity(self):
+        return dp.viscosity(self.cs,self.Hg)
     
-    def Hg(self,loc,time):
-        #Hg you get from cs
-        return dp.H_g(loc,time)
+    def rho_g(self):
+        return dp.rho_g(self.Sigmag,self.Hg)
+
+    def m_g(self):
+        return dp.m_g()
+
+    def l_mfp(self):
+        return dp.l_mfp(self.rhog,self.mg)
     
-    def nu(self,loc,time):
-        return dp.viscosity(loc,time)
-    
-    def rhog(self,loc,time):
-        return dp.rho_g(loc,time)
-    
-    def lmfp(self,loc,time):
-        return dp.l_mfp(loc,time)
-    
-    def vK(self,loc,time):
-        return dp.v_K(loc,time)
-    
-    def eta(self,loc,time):
-        return dp.eta(loc,time)
-    
-    def update(self,deltaT):
-        pass
+    def eta_cal(self,loc):
+        return dp.eta(loc,self.Mcp,self.dotMg,self.mg)
 
 
 class Superparticles(object):
@@ -412,16 +409,15 @@ class Superparticles(object):
         disk = DISK (*out, t, r)
         disk.add_auxiliary ()
 
-        import pdb; pdb.set_trace()
+        eta=disk.eta
+        v_K=disk.vK
+        v_th=disk.vth
+        lmfp=disk.lmfp
+        rho_g=disk.rhog
+        Omega_K=disk.OmegaK
+        H_g=disk.Hg
+        dotMd=disk.dotMd
 
-        eta=disk.eta(r,t)
-        v_K=disk.vK(r,t)
-        v_th=disk.vth(r,t)
-        lmfp=disk.lmfp(r,t)
-        rho_g=disk.rhog(r,t)
-        Omega_K=disk.OmegaK(r,t)
-        H_g=disk.Hg(r,t)
-        dotMd=disk.dotMd(t)
 
         #obtain Stokes number by iterating on drag law
         St,v_r = f.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd)
@@ -449,7 +445,7 @@ class Superparticles(object):
         return Y2ddt 
     
     
-    def update(self,t0,tFi,disk,nstep=10):
+    def update(self,t0,tFi,gas,nstep=10):
         """
         this integrate the particles until tFi
         -- d: disk object
@@ -461,7 +457,7 @@ class Superparticles(object):
         Y2copy = np.copy(self.Y2d)
 
         #integrates system to tFi
-        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',disk)
+        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',gas)
         
         self.locL=Yt[-1,0,:]
         self.massL=Yt[-1,1,:]

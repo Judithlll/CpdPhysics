@@ -1,7 +1,8 @@
 import parameters as pars
-import disk_properties as disk
+import disk_properties as dp
 import numpy as np
 import cgs
+import sys
 
 class GAS ():
     """
@@ -45,7 +46,7 @@ class GAS ():
         """
 
         if self.mode=='prescribed':
-            sigmaG, temp, muout = disk.key_disk_properties(loc, time)
+            Sigmag, temp, muout = dp.key_disk_properties(loc, time)
         else:
 
             if self.mode=='gridevolve':
@@ -60,13 +61,13 @@ class GAS ():
 
 
             #now intrapolate to the particle positions!
-            sigmaG = np.interp(loc, self.loc, self.sigma)
+            sigmaG = np.interp(loc, self.loc, self.Sigmag)
             temp = np.interp(loc, self.loc, self.tgas)
             muout = np.interp(loc, self.loc, self.mu)
 
 
         ## return this (perhaps as a class instance??)
-        return sigmaG, temp, muout
+        return Sigmag, temp, muout
 
 
     def update_grid (self, time):
@@ -74,8 +75,8 @@ class GAS ():
         this advances the key properties of the grid to the new time.
         we look for a disk function ...
         """
-        self.sigmaG, self.tgas, self.mu =\
-                disk.key_disk_properties (self.loc, time)
+        self.Sigmag, self.tgas, self.mu =\
+                dp.key_disk_properties (self.loc, time)
 
 
     def advance_grid (self, dt, mode='implicit', split=False, source_func=None, **kwargs):
