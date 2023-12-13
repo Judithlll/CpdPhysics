@@ -3,10 +3,9 @@ import numpy as np
 import cgs
 import ode 
 from scipy.integrate import quad
+import parameters as pars
 
 alpha = 1e-2
-rinn = 6*cgs.RJ
-rout = 27*cgs.RJ
 frac=0.2
 ratio=0.01
 # Mcp=0.4*cgs.MJ
@@ -14,8 +13,21 @@ sigmamol=2e-15
 rgg=1e-7
 Mcp0=0.4*cgs.MJ
 
+rinn = pars.dgasgrid['rinn']
+rout = pars.dgasgrid['rout']
+
 tdep= 3e6*cgs.yr2s  #depletion tiescale of gas (constant: 3e6 yr)
 tgap= 1e6*cgs.yr2s  #time when the gap was built
+  
+
+def key_disk_properties (rad, time):
+
+    sigmaG = Sigma_g(rad,time)
+    Td = T_d(rad,time)
+    mu = 2.34 *np.ones_like(Td)
+
+    return sigmaG, Td, mu
+
 
 def Mcp_t(t): #t should begin at tgap
     """
@@ -48,7 +60,7 @@ def dotMg_gap():
     Mfg=frac*cgs.MJ/1e6/cgs.yr2s
     return Mfg
 
-def dot_Mg(t):
+def dot_Mg (t):
     """
     accretion rate through the disk as fn of time (Shibaike+2019, eq.2)
     """
@@ -67,16 +79,6 @@ def M_influx(t0,tEnd):
     return Minflux
 
 
-def dot_Mg(t):
-    """
-    accretion rate through the disk as fn of time (Shibaike+2019, eq.2)
-    """
-    if np.min(t)>tgap: 
-        dotMg=dotMg_gap()*np.exp(-(t-tgap)/tdep)
-    else:
-        dotMg = dotMg_gap()
-    return dotMg
-
 def dot_Md(t):
     """
     get the solid mass flow
@@ -90,12 +92,14 @@ def v_K(r,t):
     v=np.sqrt(cgs.gC*Mcp_t(t)/r)
     return v
 
+
 def Sigma_g(r,t):
     """
     get the surface density at loc and time 
     """
-    Sg=dot_Mg(t)/2/np.pi/rout*r**(3/2)/viscosity(r,t)*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
+    Sg=dot_Mg(t)/2/np.pi/rout*r**(3/2)/viscosity(r,t) *(-2/9*r**(-1/2) +2/3*rout*r**(-3/2))
     return Sg
+
 
 def T_d(r,t):
     Td=(3*cgs.gC*Mcp_t(t)*dot_Mg(t)/8/np.pi/cgs.sigmaSB/r**3)**(1/4)

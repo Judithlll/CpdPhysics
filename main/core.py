@@ -8,6 +8,8 @@ import disk_properties as dp
 import planets_properties as pp
 import functions as f
 import copy
+import parameters as pars
+from gas import GAS
 
 class System(object):
 
@@ -38,15 +40,41 @@ class System(object):
         self.ntime = 0
 
         # define a disk class
+        self.gas = self.init_gas ()
 
-        self.disk = Disk ()
+        #out = self.gas.get_key_disk_properties (np.array([4*cgs.rJup, 8*cgs.rJup]), time)
+        #self.disk = Disk ()
+
+
 
         # define class of superparticles here
-        self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
+        #self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
+
+        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1)
 
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
-        self.Mcp=self.disk.Mcp_t(self.time)
+        #self.Mcp=self.disk.Mcp_t(self.time)
+
+
+    def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
+        """
+        init_gas is called at initialization. It adds an instance of the GAS class
+
+        history
+        [23.12.13]:this is copied from /NewLagrange code base...
+                  :for the moment gasL and dcomposL are put to None
+
+        """
+        #also initializes a gas class (nested class)
+        if pars.gasmodel=='grid':
+            dgas = pars.dgasgrid
+        else:
+            dgas = {}
+
+        dum = GAS (gasL, dcomposL, mode=pars.gasmodel, time=self.time, **dgas)
+
+        return dum
 
 
     def Mcp(self):
@@ -63,7 +91,7 @@ class System(object):
         """
 
         #time derivative of particles
-        dydtP = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.disk)
+        dydtP = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.gas)
             
         #timescale
         tscaleArr = np.abs(self.particles.Y2d/dydtP)
@@ -249,15 +277,35 @@ def advance_planets (system):
 
 
 #perhaps this class object is not necessary...
-class Disk(object):
+class DISK (object):
+    """
+    ther
+    """
 
-    def __init__(self):
-        
+    def __init__ (self, sigmaG, temp, mu, time, loc):
+        """
+        initialize with key disk properties
+        """
+        self.loc = loc
+        self.sigmaG = sigmaG
+        self.temp = temp
+        self.mu = mu
+        self.time = time
         self.alpha = dp.alpha
         self.rout = dp.rout
         self.rinn = dp.rinn
         self.tgap=dp.tgap
+
+
+    #def __init__(self):
+    #    
         #self.t=t
+
+    def add_auxiliary ():
+
+        self.cs =  np.sqrt(cgs.kB*self.temp/(cgs.mp*self.mu)) #dp.c_s(loc,time)
+        self.vth = #(some factor) *self.cs
+
 
     def Mcp_t(self,time):
         return dp.Mcp_t(time)
@@ -279,15 +327,16 @@ class Disk(object):
         return dp.Omega_K(loc,time)
     
     def Td(self,loc,time):
-        return dp.T_d(loc,time)
+        return self.temp #dp.T_d(loc,time)
     
     def cs(self,loc,time):
-        return dp.c_s(loc,time)
+        return np.sqrt(cgs.kB*self.temp/(cgs.mp*self.mu)) #dp.c_s(loc,time)
     
     def vth(self,loc,time):
         return dp.v_th(loc,time)
     
     def Hg(self,loc,time):
+        #Hg you get from cs
         return dp.H_g(loc,time)
     
     def nu(self,loc,time):
@@ -342,7 +391,8 @@ class Superparticles(object):
         self.Y2d[1] = self.massL
         self.Y2d[2] = self.mtotL
 
-    def dY2d_dt (self,Y2d,t,disk):
+
+    def dY2d_dt (self,Y2d,t,gas):
         """
         input:
             Y2d -- state vector
@@ -354,6 +404,15 @@ class Superparticles(object):
         r, mphy, mtot = self.Y2d   #maybe the total mass needn't to be put in Y2d
 
         Rd=(mphy/(self.rhoint*4/3*np.pi))**(1/3)
+
+        #get disk object instance from gas
+        #maybe like this???
+
+        out = gas.get_key_disk_properties (r, t)
+        disk = DISK (*out, t, r)
+        disk.add_auxiliary ()
+
+        import pdb; pdb.set_trace()
 
         eta=disk.eta(r,t)
         v_K=disk.vK(r,t)
@@ -371,6 +430,8 @@ class Superparticles(object):
         v_dd = np.abs(v_r)/2
         H_d = H_g*(1+St/disk.alpha*(1+2*St)/(1+St))**(-0.5)
 
+        #this becomes...
+        H_d = disk.Hg *(1+St/disk.alpha*(1+2*St)/(1+St))**(-0.5)
             
 
         drdt = v_r

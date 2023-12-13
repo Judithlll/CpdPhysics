@@ -3,6 +3,7 @@
 #output parameters
 
 initial_paras = {Rdi:0.01;nini:10;time:0.0}
+gasmodel = prescribed
 
 doPlanets = False
 
