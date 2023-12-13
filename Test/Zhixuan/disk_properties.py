@@ -145,7 +145,7 @@ def key_disk_properties (r,t):
         #   print(n,'diff_Td=',diff)
             n+=1
     mu=2.34
-    return Td,sigG,mu
+    return sigG,Td,mu
 
 def T_d(sigmag,kapa,Mcp,dotMg,loc):
     '''

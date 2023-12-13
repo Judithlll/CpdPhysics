@@ -171,6 +171,24 @@ class System(object):
         #particles that have become too big
         #....
 
+    
+    def iceline_loc(self):
+        """
+        get location of iceline, whose temperature is assumped as 160K
+        """
+        locL=np.linspace(dp.rinn,dp.rout,1000)
+        diffold=1e5
+        
+        for i in range(len(locL)):
+            Td=self.gas.get_key_disk_properties(locL[i],self.time)[1]
+            diffn=abs(Td-160)
+            if diffn>diffold:
+                print(diffn)
+                self.icelineLoc=locL[i-1]
+                break
+            else:
+                diffold=diffn
+
 
 def advance_planets (system):
     """
