@@ -5,7 +5,7 @@ import cgs
 import ode
 import matplotlib.pyplot as plt
 import disk_properties as dp 
-# import planets_properties as pp
+import planets_properties as pp
 import functions as f
 import copy
 import parameters as pars
@@ -26,6 +26,7 @@ class System(object):
     mtot1 = 1e24 #total mass a single superparticle represents
     daction={}
     timestepn=10  #how many time points in every ODE solution process
+    rhoPlanet=1.9
 
     #CWO: please work with default pars
     def __init__(self,Rdi=1.0,time=0.0,nini=10):
@@ -215,7 +216,7 @@ def advance_planets (system):
                     userfun.XY_planet (sim.time, planet.loc, planet.mass, planet.fcomp, 
                             crossL)
                 else:
-                    loc_t = 0.0     #migration rate of planet
+                    loc_t = -pp.planet_migration(system.gas,system.planetL[0].loc,system.planetL[0].mass,system.time,system.rhoPlanet)     #migration rate of planet
                     mass_t = 0.0    #gas accretion of planet
                     fcomp_t = 0.0   #how its composition changes
 
