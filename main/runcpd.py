@@ -26,7 +26,7 @@ while system.time<pars.tmax:
     #integrate the super particles
     Yt = system.update_particles (pars.tmax)
 
-    # import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
@@ -41,5 +41,5 @@ while system.time<pars.tmax:
 
     userfun.do_stuff(system)
 
-    # print('hello', system.time/cgs.yr)
+    #print('hello', system.time/cgs.yr)
 

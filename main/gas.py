@@ -26,9 +26,9 @@ class GAS ():
         if mode=='gridstatic':
             #need to initialize the grid
             self.loc = 10**np.linspace(np.log10(rinn),np.log10(rout), ngrid)
-
+            
             #adds the key properties
-            update_grid (self,time)
+            #update_grid (self,time)
 
         else:
             #no structure is made
@@ -55,19 +55,20 @@ class GAS ():
             elif self.mode=='gridstatic':
                 self.update_grid(time)
 
+
             else:
                 print('No valid mode specified')
                 sys.exit()
 
 
             #now intrapolate to the particle positions!
-            sigmaG = np.interp(loc, self.loc, self.Sigmag)
-            temp = np.interp(loc, self.loc, self.tgas)
+            sigmaG = np.interp(loc, self.loc, self.sigmaG)
+            temp = np.interp(loc, self.loc, self.temp)
             muout = np.interp(loc, self.loc, self.mu)
 
 
         ## return this (perhaps as a class instance??)
-        return Sigmag, temp, muout
+        return sigmaG, temp, muout
 
 
     def update_grid (self, time):
@@ -75,7 +76,7 @@ class GAS ():
         this advances the key properties of the grid to the new time.
         we look for a disk function ...
         """
-        self.Sigmag, self.tgas, self.mu =\
+        self.sigmaG, self.temp, self.mu =\
                 dp.key_disk_properties (self.loc, time)
 
 

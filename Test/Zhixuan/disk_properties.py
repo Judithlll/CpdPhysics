@@ -91,6 +91,10 @@ def key_disk_properties (r,t):
         Ti=np.ones_like(r)
         n=1
         
+        Mcp=Mcp_t(t)
+        OmegaK=Omega_K(r,t,Mcp)
+        dotMg=dot_Mg(t)
+
         while n<20:
             if np.min(Ti)<0:
                 print('Something wrong! T=',Ti,'<0')
@@ -101,19 +105,16 @@ def key_disk_properties (r,t):
             #kapa[Ti<160]=450*(Ti[Ti<160]/160)**2*rgg
             #kapa[Ti>=160]=450*rgg
 
-            kapa = np.where(Ti<160, 450*(Ti/160)**2, 450) *rgg
-            
-            cs=c_s(Ti)
-            Mcp=Mcp_t(t)
-            OmegaK=Omega_K(r,t,Mcp)
-            dotMg=dot_Mg(t)
+            kapa = np.where(Ti<160, 450*(Ti/160)**2, 450) *rgg  
+            cs = c_s(Ti)
+
             sigG = Sigma_g(r,cs,OmegaK,dotMg)
             tau = kapa*sigG
 
             g = (3/8*tau+1/4.8/tau)**(1/4)
             Td = (3*cgs.gC*Mcp_t(t)*dot_Mg(t)/8/np.pi/cgs.sigmaSB/r**3)**(1/4)*g #Shibaike 2019 equation (5)
             diff= abs(Ti/Td-1)
-            Ti=Td
+            Ti = Td
             # print(n,'diff_Td=',diff.max())
             if diff.max()<1e-4:
                 break
@@ -144,7 +145,7 @@ def key_disk_properties (r,t):
             Ti=Td
         #   print(n,'diff_Td=',diff)
             n+=1
-    mu=2.34
+    mu = 2.34*np.ones_like(sigG)
     return sigG,Td,mu
 
 def T_d(sigmag,kapa,Mcp,dotMg,loc):

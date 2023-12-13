@@ -68,7 +68,7 @@ class System(object):
 
         """
         #also initializes a gas class (nested class)
-        if pars.gasmodel=='grid':
+        if pars.gasmodel=='gridstatic':
             dgas = pars.dgasgrid
         else:
             dgas = {}
