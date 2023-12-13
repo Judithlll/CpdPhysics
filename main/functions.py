@@ -1,5 +1,6 @@
 import numpy as np
 import cgs
+import core 
 error=1e-8
 
 def St_iterate(eta,v_K,v_th,lmfp,rho_g,
@@ -32,12 +33,13 @@ def get_stokes_number(disk,t,ParticlePL,rhoint):
     r, mphy, mtot = ParticlePL
     Rd=(mphy/(rhoint*4/3*np.pi))**(1/3)
 
-    eta=disk.eta(r,t)
-    v_K=disk.vK(r,t)
-    v_th=disk.vth(r,t)
-    lmfp=disk.lmfp(r,t)
-    rho_g=disk.rhog(r,t)
-    Omega_K=disk.OmegaK(r,t)
+
+    eta=disk.eta
+    v_K=disk.vK
+    v_th=disk.vth
+    lmfp=disk.lmfp
+    rho_g=disk.rhog
+    Omega_K=disk.OmegaK
 
     St,v_r = St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd) 
     return St
@@ -89,15 +91,18 @@ def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
     
     different particles has different size and so different accretion rate, so maybe should change the total mass of particles???
     """
+    out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
+    disk = core.DISK (*out, PlanetsLoc, system.time)
+    disk.add_auxiliary ()
 
-    St=get_stokes_number(system.disk,system.time,cross_p,system.rhoint)
-    eta=system.disk.eta(PlanetsLoc,system.time)
+    St=get_stokes_number(disk,system.time,cross_p,system.rhoint)
+    eta=disk.eta
 
-    mus=PlanetsMass/ system.disk.Mcp_t(system.time)
+    mus=PlanetsMass/disk.Mcp
 
-    Hg= system.disk.Hg(PlanetsLoc,system.time)
+    Hg= disk.Hg
     
-    Hp=Hg*(1+St/ system.disk.alpha*(1+2*St)/(1+St))
+    Hp=Hg*(1+St/ disk.alpha*(1+2*St)/(1+St))
     hp=Hp/PlanetsLoc
 
     delv_o_vK=0.52*(mus*St)**(1/3)+eta/(1+5.7*(mus/eta**3*St))
@@ -107,8 +112,12 @@ def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
 
 def M_critical(system,PlanetsLoc,cross_p):
 
-    St=get_stokes_number(system.disk,system.time,cross_p,system.rhoint)
-    eta=system.disk.eta(PlanetsLoc,system.time)
+    out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
+    disk = core.DISK (*out, PlanetsLoc, system.time)
+    disk.add_auxiliary ()
 
-    M_critical=1/8*eta**3*St *system.disk.Mcp_t(system.time) #Shibaike 2019
+    St=get_stokes_number(disk,system.time,cross_p,system.rhoint)
+    eta=disk.eta
+
+    M_critical=1/8*eta**3*St *disk.Mcp#Shibaike 2019
     return M_critical   

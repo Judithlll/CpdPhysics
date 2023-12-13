@@ -135,13 +135,13 @@ class System(object):
         loc = self.particles.Y2d[0]
 
         #particles that cross the inner disk edge
-        idx, = (loc<self.disk.rinn).nonzero()
+        idx, = (loc<dp.rinn).nonzero()
         if len(idx)>0:
             self.daction['remove'] = idx
         
         #particles that enter the domain
         Nadd = 0
-        self.Minflux += self.disk.M_influx(self.time,self.time+self.deltaT)
+        self.Minflux += dp.M_influx(self.time,self.time+self.deltaT)
 
         while self.Minflux>self.mtot1:
             Nadd += 1
@@ -276,7 +276,7 @@ class DISK (object):
     ther
     """
 
-    def __init__ (self, sigmaG, temp, mu, time, loc):
+    def __init__ (self, sigmaG, temp, mu, loc, time):
         """
         initialize with key disk properties
         """
@@ -406,7 +406,7 @@ class Superparticles(object):
         #maybe like this???
 
         out = gas.get_key_disk_properties (r, t)
-        disk = DISK (*out, t, r)
+        disk = DISK (*out, r, t)
         disk.add_auxiliary ()
 
         eta=disk.eta
