@@ -43,15 +43,12 @@ class System(object):
         # define a disk class
         self.gas = self.init_gas ()
 
-        #out = self.gas.get_key_disk_properties (np.array([4*cgs.rJup, 8*cgs.rJup]), time)
-        #self.disk = Disk ()
-
-
+        self.iceline_loc()
 
         # define class of superparticles here
         #self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
 
-        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1)
+        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineLoc)
 
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
@@ -164,6 +161,8 @@ class System(object):
             self.particles.add_particles(self.daction['add'])
             self.nini+=self.daction['add']
 
+        advance_iceline(self)
+
         #particles that are eaten by the planet
         # need to use pebble accretion rate 
         #....
@@ -189,6 +188,25 @@ class System(object):
             else:
                 diffold=diffn
 
+def advance_iceline(system,ice_frac=0.5):
+
+    sploc=system.particles.Y2d[0]
+    sploc_old=system.Y2dold[0]
+    
+    if 'add' in system.daction.keys() and 'remove' in system.daction.keys():
+        idx,=np.nonzero((system.icelineLoc<sploc_old[1:]) & (system.icelineLoc>sploc[:-1]))
+    elif 'remove' in system.daction.keys():
+        idx,=np.nonzero((system.icelineLoc<sploc_old[1:]) & (system.icelineLoc>sploc))
+    elif 'add' in system.daction.keys():
+        idx,=np.nonzero((system.icelineLoc<sploc_old) & (system.icelineLoc>sploc[:-1]))
+    else:
+        idx,=np.nonzero((system.icelineLoc<sploc_old) & (system.icelineLoc>sploc))
+    
+    if len(idx)!=0:     
+        for id in idx:
+            system.particles.Y2d[2,id]*=ice_frac
+
+
 
 def advance_planets (system):
     """
@@ -205,8 +223,6 @@ def advance_planets (system):
             sploc_old = system.Y2dold[0]
 
             #particles that cross are those that
-            #idx, = np.nonzero( (planet.loc<sp.loc) & (planet.loc>spN.loc) )
-
             idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
 
 
@@ -240,9 +256,6 @@ def advance_planets (system):
 
                 #update planet properties from rates supplied by user
                 planet_loc_nw = planet.loc + loc_t *system.deltaT
-
-                planet_loc_nw = planet.loc
-
 
                 #particles that cross are those that
                 idxN, = np.nonzero( (planet.loc<sploc_old) & (sploc<planet_loc_nw) )
@@ -381,7 +394,7 @@ class Superparticles(object):
     error=1e-8
 
 
-    def __init__(self,nini,mini,rinn,rout,mtot1):
+    def __init__(self,nini,mini,rinn,rout,mtot1,icelineLoc,ice_frac=0.5):
         """
         systems initial properties
 
@@ -400,7 +413,7 @@ class Superparticles(object):
 
         self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
         self.massL=[mini]*nini
-        self.mtotL=[mtot1]*nini
+        self.mtotL=np.where(self.locL<icelineLoc, mtot1*0.5, mtot1)
 
         self.Y2d = np.empty((ndim,nini))
         self.Y2d[0] = self.locL

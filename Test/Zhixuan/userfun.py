@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import cgs
 import datetime
 import csv
+import copy
 
 def init_planets ():
     """
@@ -23,40 +24,39 @@ def init_planets ():
     #fcomp = np.ones_like(pars.composL, dtype=float)
     #fcomp = fcomp /sum(fcomp)
 
-    #return lists for the N-planets we have
-    return [1*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [1e23, 1e23], [1.0, 1.0]
+    #return lists for the N-planets we have 
+    return [1*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [3e23, 3e23], [1.0, 1.0]
 
 
-def do_stuff (system, init=False):
-    """
-    here you can do user-defined data manipulation
-    given system
-    """
-
+def do_stuff (sys, init=False):
+    #data class is available...
+    system=copy.deepcopy(sys)
+    # import pdb; pdb.set_trace()
     if init:
-        #initialize the data objects
-        data.init_data()
+        data.data_process(system.particles.Y2d,system.time,system.daction,system.planetL)
+        #initialize your data class
     else:
-        #do things based on system
-        pass
+        data.data_process(system.particles.Y2d,system.time,system.daction,system.planetL)
+        #data object should be available...
 
 
-class data_process(object):
+
+class Data(object):
     """
     To store data and process data (convert\plot)
     """
 
     def __init__(self):
 
-        pass
-
-    def init_data(self):
         self.timeL=[]
         self.radL=np.array([])
         self.mL=np.array([])
+        self.mtotL=np.array([])
         self.radD={}
         self.mD={}
+        self.mtotD={}
         self.cumulative_change={'remove':[],'add':0}
+        self.planetL=[]
         
     def update_cumulative_change(self,daction):
         if 'remove' in daction.keys():
@@ -64,7 +64,7 @@ class data_process(object):
         if 'add' in daction.keys():
             self.cumulative_change['add']+=daction['add']
     
-    def data_process(self,Y2d,time,daction):
+    def data_process(self,Y2d,time,daction,planetL):
         """
         time: the system.time 
         Y2d: the particles properties' list
@@ -79,14 +79,18 @@ class data_process(object):
         if len(self.cumulative_change['remove'])>0:
             rL=np.insert(Y2d[0],0,np.full(len(self.cumulative_change['remove']),np.nan))
             mL=np.insert(Y2d[1],0,np.full(len(self.cumulative_change['remove']),np.nan))
+            mtL=np.insert(Y2d[2],0,np.full(len(self.cumulative_change['remove']),np.nan))
 
         else:
 
             rL=Y2d[0]
             mL=Y2d[1]
+            mtL=Y2d[2]
 
         self.radD.setdefault(time/cgs.yr2s,rL/cgs.RJ)
         self.mD.setdefault(time/cgs.yr2s,mL)
+        self.mtotD.setdefault(time/cgs.yr2s,mtL)
+
         max_len=max(len(v) for v in self.radD.values())
 
         # want to make the data dict in the same length
@@ -96,18 +100,22 @@ class data_process(object):
             if len(v)< max_len:
                 self.radD[k]=np.pad(v, (0, max_len - len(v)), constant_values=np.nan)
                 self.mD[k]=np.pad(self.mD[k], (0, max_len - len(v)), constant_values=np.nan)
-        self.get_particles_plot_list()
+                self.mtotD[k]=np.pad(self.mtotD[k], (0, max_len - len(v)), constant_values=np.nan)
         
+        self.get_particles_plot_list()
+        self.planetL=planetL
+
 
     def get_particles_plot_list(self):
         self.radL=np.array(list(self.radD.values())).T
         self.mL=  np.array(list(self.mD.values())).T
+        self.mtotL=np.array(list(self.mtotD.values())).T
 
-    def data_store(self):
-        with open(str(datetime.datetime.now())+'data_location.csv', 'w', newline='') as csvfile:
+    def data_store(self,path):
+        with open(path+str(datetime.datetime.now())+'data_particles.csv', 'w', newline='') as csvfile:
             writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
             writer.writeheader()
-            writer.writerows([self.radD,self.mD])
+            writer.writerows([self.radD,self.mD,self.mtotD])
 
         # with open(str(datetime.datetime.now())+'data_mass.csv', 'w', newline='') as csvfile:
         #     writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
@@ -118,7 +126,7 @@ class data_process(object):
     def plot_stuff(self,disk):
         
         [time,loc]=np.meshgrid(self.timeL,np.linspace(disk.rinn/cgs.RJ,disk.rout/cgs.RJ,len(self.timeL)))
-        sigmag=disk.Sigmag(loc,time)
+        sigmag=disk.update_disk_prop(loc,time)
 
 
         plt.figure(figsize=(12,18))
@@ -152,5 +160,28 @@ class data_process(object):
         Sigmag=disk.Sigma_g(r_Span,time)
         Td=disk.T_d(r_Span,time)
 
-        
-data = data_process()
+    def plot_planets_accretion(self,planet,system):
+            
+        keysL=list(self.radD.keys())
+
+        for i in range(len(self.radD)):
+            if planet.time/cgs.RJ<keysL[i]:
+                plt.figure()
+                plt.ylim((6,28))
+                plt.figure('pebble accretion')
+
+                particle_index=np.argwhere(np.isnan(self.radD[keysL[i]])==False)
+                pn= particle_index.size
+                particles=np.linspace(0,pn,pn)
+                sizeL=self.mtotD[keysL[i]][particle_index]/system.mtot1 *5
+                plt.scatter(particles, self.radD[keysL[i]][particle_index],s=sizeL,label='totally'+str(pn)+'are in disk')
+                
+                plt.plot(particles,np.linspace(planet.loc,planet.loc,pn)/cgs.RJ,linewidth=1,label='Planets Location')
+
+                plt.legend(fontsize=5)
+                print (pn)
+                # import pdb ; pdb.set_trace()
+                plt.savefig('/home/lzx/CpdPhysics_Chris/Test/Zhixuan/planets&pebbles/'+str(self.timeL[i])+'.jpg') 
+                plt.close()
+
+data = Data() #sets it up

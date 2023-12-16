@@ -40,6 +40,10 @@ while system.time<pars.tmax:
     system.time += system.deltaT
 
     userfun.do_stuff(system)
+    system.iceline_loc()
+    idx=np.array([])
+    idx=core.advance_iceline(system)
+    
 
     #print('hello', system.time/cgs.yr)
 
