@@ -1,63 +1,47 @@
-import sys
-sys.path.append('/home/lzx/CpdPhysics_Chris/main')
-
+#!/usr/bin/env python
+import sys, os   #these lines are needed 
+sys.path.append('../../main/') #on my desktop (I don't know why)
+import parameters as pars
 import core
-import matplotlib.pyplot as plt
 import numpy as np
+import init
 import cgs
 import userfun
-import planets_properties as pp
 
-#initial size pf particles
-Rdi=0.01  
-#initial number of particles
-nini=10
+argL = sys.argv #maybe use later
+calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
-system = core.System(Rdi,nini)
+#this initializes the system...
+system = init.sim_init (pars.dsystempars)
 
 
-time0=1e6
-tEnd=7e9
+#initialize userfun's data class
+userfun.do_stuff(system, init=True)
 
-system.time=0.
 
-tmax = 6e9
-data=userfun.data_process()
+while system.time<pars.tmax:
 
-data.data_process(system.particles.Y2d,system.time,system.daction)
+    #integrate the super particles
+    Yt = system.update_particles (pars.tmax)
 
-St0=[]
-v_r0=[]
-deltaT=[]
-ntime=1
-while system.time<tmax:
+    #import pdb; pdb.set_trace()
 
-    Yt = system.update(tmax)
+    #change planet and super particle properties
+    #due to crossings and intrinsic evolution
+    if system.nplanet>0:
+        core.advance_planets (system)
 
-    # import pdb; pdb.set_trace()
-    data.data_process(system.particles.Y2d,system.time,system.daction)
-    v_r0.append(system.particles.get_stokes_number(system.disk,system.time)[1])
-    deltaT.append(system.deltaT)
-
-    # if 'add' in system.daction:
-    #     import pdb; pdb.set_trace()
+    system.post_process()
+    #TBD: postprocess particles (add/remove)
     
-    # if system.ntime%10==0:
-    #     data.plot_stuff(system.disk)
-        # import pdb; pdb.set_trace()
-    ntime+=1
+    #TBD: change system.time
+    system.time += system.deltaT
 
+    userfun.do_stuff(system)
+    system.iceline_loc()
+    idx=np.array([])
+    idx=core.advance_iceline(system)
+    
 
-def dotMgTscale(radL,deltaTL):
-    v=np.diff(radL*cgs.RJ,axis=1)/deltaTL
-    vTimesr=v*radL[:,0:-1]*cgs.RJ
-    first=np.diff(vTimesr,axis=1)/deltaTL[:-1]
-    second=v[:,:-1]*np.diff(vTimesr,axis=1)/np.diff(radL,axis=1)[:,:-1]/cgs.RJ
-    Tscale=1/((first-second)/v[:,:-1]/radL[:,:-2]/cgs.RJ)
-    return Tscale
-
-TimeScale=dotMgTscale(data.radL,deltaT)
-
-planets=pp.Planets(system.disk,system.particles,7*cgs.RJ,3e23,system.time)
-data.plot_stuff(system.disk)
+    #print('hello', system.time/cgs.yr)
 

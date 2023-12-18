@@ -29,7 +29,7 @@ class System(object):
     rhoPlanet=1.9
 
     #CWO: please work with default pars
-    def __init__(self,Rdi=1.0,time=0.0,nini=10):
+    def __init__(self,Rdi=0.01,time=0.0,nini=10,ice_frac=0.5):
 
         #initialize parameter from txt file // disk.py
 
@@ -45,10 +45,12 @@ class System(object):
 
         self.iceline_loc()
 
+        self.ice_frac=ice_frac
+
         # define class of superparticles here
         #self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
 
-        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineLoc)
+        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineLoc,ice_frac)
 
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
@@ -189,6 +191,9 @@ class System(object):
                 diffold=diffn
 
 def advance_iceline(system,ice_frac=0.5):
+    """
+    for now particles directly lose the mass of water without any other effect
+    """
 
     sploc=system.particles.Y2d[0]
     sploc_old=system.Y2dold[0]
