@@ -13,27 +13,21 @@ from gas import GAS
 
 class System(object):
 
-    ##CWO: are these parameters still used?
-    ##they should anyway not be defined here
+    """
+    SYSTEM: integrate the every part of the PPD (or CPD) and update them with time.
+    """
 
-    rout=27*cgs.RJ
-    #alpha=1e-4 # TBR
     fraction=0.02 
     dgratio=0.01  #dust to gas ratio
-    #sigmamol=2e-15 #TBR
     rhoint = 1.4
-    #deltaT=0.0
     mtot1 = 1e24 #total mass a single superparticle represents
     daction={}
     timestepn=10  #how many time points in every ODE solution process
     rhoPlanet=1.9
 
-    #CWO: please work with default pars
     def __init__(self,Rdi=0.01,time=0.0,nini=10,ice_frac=0.5):
-
+        
         #initialize parameter from txt file // disk.py
-
-
         self.Rdi=Rdi  #initial radius of particles
         self.nini=nini
         self.mini = 4*np.pi/3*self.rhoint *Rdi**3
@@ -105,25 +99,6 @@ class System(object):
         # stop here
         return Yt, deltaT
     
-    def P_eff(self,Yt):
-        """
-        this function aims to get the pebble accretion rate of planets
-
-        When the particles drift into the scale of the planets gravity, part of them will be accreted, but the number of the particles is not enough now, so we can only 
-        1) add the initial number of particles and decrease the total mass of particles, but the code need very long time to run 
-        2) change the total mass according to the accretion rate
-        """
-        self.Peff={}
-        self.idx_Pars={}
-        for i in range(len(Yt)):
-            
-            self.planets[:].time=self.time+self.deltaT/self.timestepn *i
-            
-            for j in range(len(self.planets)):
-                self.idx_Pars[self.planets[j].time]=self.planets[j].get_effective_pebbles_index()
-                self.Peff[self.planets[j].time]=self.planets[j].pebble_accretion_rate()
-
-    
     def post_process (self):
         """
         returns indices of particles that cross boundaries 
@@ -164,13 +139,6 @@ class System(object):
             self.nini+=self.daction['add']
 
         advance_iceline(self)
-
-        #particles that are eaten by the planet
-        # need to use pebble accretion rate 
-        #....
-
-        #particles that have become too big
-        #....
 
     
     def iceline_loc(self):
@@ -310,7 +278,7 @@ def advance_planets (system):
 #perhaps this class object is not necessary...
 class DISK (object):
     """
-    ther
+    Disk object including every disk properperties use the methods definded in the disk_properties.py
     """
 
     def __init__ (self, sigmaG, temp, mu, loc, time):
@@ -517,7 +485,9 @@ class Superparticles(object):
             print('[core]Error:can only add 1 particle // reduce timestep')
             sys.exit()
 
-    
+
+        # For the situation where not only one particles will be added, maybe useful in future
+             
         #for moment put the implemented particles all at the outmost edge
         #lociL=np.linspace(self.rout,self.rout,add_number)
         #miL=np.linspace(self.mini,self.mini,add_number)
