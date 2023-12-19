@@ -43,7 +43,12 @@ while system.time<pars.tmax:
     system.iceline_loc()
     idx=np.array([])
     idx=core.advance_iceline(system)
-    
+
+# calculate the planet mass growth time scale    
+times=system.time/cgs.RJ//100
+PmassTscale=[]
+for planet in system.planetL:
+    PmassTscale.append(planet.mass/(planet.mass-3e23)*system.time)
 
     #print('hello', system.time/cgs.yr)
 

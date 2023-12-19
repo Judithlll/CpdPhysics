@@ -256,7 +256,7 @@ def advance_planets (system):
                             crossL)
                 else:
                     loc_t = -pp.planet_migration(system.gas,system.planetL[0].loc,system.planetL[0].mass,system.time,system.rhoPlanet)     #migration rate of planet
-                    mass_t = 0.0    #gas accretion of planet
+                    mass_t = 0.0    #gas accretion of planet, TBD
                     fcomp_t = 0.0   #how its composition changes
 
                 #update planet properties from rates supplied by user
