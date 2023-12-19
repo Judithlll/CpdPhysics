@@ -184,7 +184,7 @@ class System(object):
             Td=self.gas.get_key_disk_properties(locL[i],self.time)[1]
             diffn=abs(Td-160)
             if diffn>diffold:
-                print(diffn)
+                # print(diffn)
                 self.icelineLoc=locL[i-1]
                 break
             else:

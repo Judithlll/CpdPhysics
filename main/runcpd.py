@@ -9,7 +9,9 @@ import numpy as np
 import init
 import cgs
 import userfun
+import time 
 
+start=time.time()
 argL = sys.argv #maybe use later
 calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
@@ -44,11 +46,20 @@ while system.time<pars.tmax:
     idx=np.array([])
     idx=core.advance_iceline(system)
 
-# calculate the planet mass growth time scale    
+    end=time.time()
+    runTime=end-start
+    if runTime>5*60:
+        print("it takes"+ str(runTime/60)+" now")
+        
+
+# calculate the planet mass growth time scale  
+initLoc=[7*cgs.RJ,10*cgs.RJ] 
+initTime=[1*cgs.yr,1e3*cgs.yr] 
 times=system.time/cgs.RJ//100
 PmassTscale=[]
-for planet in system.planetL:
-    PmassTscale.append(planet.mass/(planet.mass-3e23)*system.time)
-
+PlocaTscale=[]
+for i in range(len(system.planetL)):
+    if system.time>initTime[i]:
+        PmassTscale.append(system.planetL[i].mass/(system.planetL[i].mass-3e23)*system.time)
+        PlocaTscale.append(system.planetL[i].loc/(initLoc[i]-system.planetL[i].loc)*system.time)
     #print('hello', system.time/cgs.yr)
-
