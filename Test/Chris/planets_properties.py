@@ -29,8 +29,8 @@ def planet_migration(gas,planetLoc,planetMass,time,rhopl):
     qr=-0.14493*dotMg*cgs.gC*Mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(dotMg*cgs.gC*Mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/mg) #pressure gradient
 
     CI=0.1
-    bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
-    vt1=bt1*(planetMass/Mcp)*(Sigmag*planetLoc**2/Mcp)*(v_K/cs)**2*v_K
+    bt1 = CI*(2.7+1.1*qr)   #a constant Ogihara 2014
+    vt1 = bt1*(planetMass/Mcp)*(Sigmag*planetLoc**2/Mcp)*(v_K/cs)**2*v_K
 
     v_mig=vt1+vd
 
@@ -86,9 +86,9 @@ class Planets(object):
 
         self.effective_particleP=self.particles.Y2d[:,index]
         
-        self.RdL=(self.effective_particleP[1]/(self.particles.rhoint*4/3*np.pi))**(1/3)
+        self.RdL = (self.effective_particleP[1]/(self.particles.rhoint*4/3*np.pi))**(1/3)
         
-        self.St,self.v_r=f.St_iterate(self.eta,self.v_K,self.v_th,self.lmfp,self.rho_g,self.Omega_K,self.RdL)
+        self.St,self.v_r = f.St_iterate(self.eta,self.v_K,self.v_th,self.lmfp,self.rho_g,self.Omega_K,self.RdL)
 
 
     def Sigma_p(self):
