@@ -138,6 +138,7 @@ class System(object):
             self.particles.add_particles(self.daction['add'])
             self.nini+=self.daction['add']
 
+        #not sure to do this here
         advance_iceline(self)
 
     
@@ -163,8 +164,8 @@ def advance_iceline(system,ice_frac=0.5):
     for now particles directly lose the mass of water without any other effect
     """
 
-    sploc=system.particles.Y2d[0]
-    sploc_old=system.Y2dold[0]
+    sploc = system.particles.Y2d[0]
+    sploc_old = system.Y2dold[0]
     
     if 'add' in system.daction.keys() and 'remove' in system.daction.keys():
         idx,=np.nonzero((system.icelineLoc<sploc_old[1:]) & (system.icelineLoc>sploc[:-1]))
@@ -176,8 +177,9 @@ def advance_iceline(system,ice_frac=0.5):
         idx,=np.nonzero((system.icelineLoc<sploc_old) & (system.icelineLoc>sploc))
     
     if len(idx)!=0:     
-        for id in idx:
-            system.particles.Y2d[2,id]*=ice_frac
+        for ix in idx:
+            #system.particles.msup =
+            system.particles.Y2d[2,ix] *= ice_frac
 
 
 
@@ -253,8 +255,6 @@ def advance_planets (system):
             spN=system.particles
 
             for k, ip in enumerate(idxN):
-
-                
 
                 #mass that is being transferred (TBC!!)
                 #need to calculate epsilon (PA efficiency)
@@ -400,10 +400,11 @@ class Superparticles(object):
 
         ndim = 3# location // mass // total mass
 
+        #TBD this (=location, mphys, mtot, ... of initial particles) should become user defined...
         self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
         self.massL=[mini]*nini
-        self.mtot1 = diskmass/(len(np.where(self.locL<icelineLoc))*ice_frac+len(np.where(self.locL>=icelineLoc)))
-        self.mtotL=np.where(self.locL<icelineLoc, self.mtot1*0.5, self.mtot1)
+        self.mtot1 = diskmass /(len(np.where(self.locL<icelineLoc))*ice_frac+len(np.where(self.locL>=icelineLoc)))
+        self.mtotL = np.where(self.locL<icelineLoc, self.mtot1*0.5, self.mtot1)
 
         self.Y2d = np.empty((ndim,nini))
         self.Y2d[0] = self.locL
@@ -461,7 +462,7 @@ class Superparticles(object):
 
         sigD = dotMd /(-2*r*self.pi*v_r) #v_r<0
         
-        dmdt=2*np.sqrt(np.pi)*Rd**2*v_dd/H_d*sigD  #eq. 5 of Shibaike et al. 2017
+        dmdt = 2*np.sqrt(np.pi)*Rd**2*v_dd/H_d*sigD  #eq. 5 of Shibaike et al. 2017
 
         Y2ddt = np.zeros_like(self.Y2d)
         Y2ddt[0] = drdt
@@ -471,7 +472,7 @@ class Superparticles(object):
         return Y2ddt 
     
     
-    def update(self,t0,tFi,gas,nstep=10):
+    def update (self,t0,tFi,gas,nstep=10):
         """
         this integrate the particles until tFi
         -- d: disk object

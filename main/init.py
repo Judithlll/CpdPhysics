@@ -78,6 +78,7 @@ def sim_init (dsystempars={},*args):
 
         nplan = len(radarr)
 
+        #planet list
         planL = []
         for k in range(nplan):
             planL.append(core.PLANET (tarr[k], radarr[k], mplanarr[k], fcomparr[k]))
@@ -88,6 +89,16 @@ def sim_init (dsystempars={},*args):
         # the planet list
         system.planetL = [] 
         system.nplanet = 0
+
+
+    #TBD: add icelines to system...
+    #
+    #returns: icelines species, condensation temperature...
+    #
+    #diceline = userfun.init_icelines ()
+
+
+    #Then assign particle properties
 
     return system
 

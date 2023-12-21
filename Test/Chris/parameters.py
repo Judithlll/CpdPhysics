@@ -11,4 +11,6 @@ gasmodel = 'prescribed'
 
 tmax = 1e2 *cgs.yr
 
-doPlanets = False
+doPlanets = True
+doIcelines = False
+

@@ -35,6 +35,11 @@ while system.time<pars.tmax:
     if system.nplanet>0:
         core.advance_planets (system)
 
+    #TBD
+    #change particle properties due to iceline crossing
+    #if system.niceline>0:
+    #    core.advance_iceline (system)
+
     system.post_process()
     #TBD: postprocess particles (add/remove)
     
