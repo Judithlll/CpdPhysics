@@ -5,7 +5,6 @@ import cgs
 import ode
 import matplotlib.pyplot as plt
 import disk_properties as dp 
-import planets_properties as pp
 import functions as f
 import copy
 import parameters as pars
@@ -183,6 +182,7 @@ def advance_iceline(system,ice_frac=0.5):
 
 
 def advance_planets (system):
+    import planets_properties as pp
     """
     [23.12.06]copied/edited from NewLagrange
 
@@ -295,24 +295,36 @@ class DISK (object):
         self.rout = dp.rout
         self.rinn = dp.rinn
         self.tgap=dp.tgap
+        self.sigmol = dp.sigmol
 
 
     def add_auxiliary (self):
+        """
+        this add auxiliary disk properties that directly follow
+        from the key disk properties
+        """
         self.Mcp = self.Mcp_t(self.time)  
-        self.OmegaK=self.Omega_K(self.loc,self.time)       
-        self.dotMg=self.dot_Mg(self.time)
-        
-        self.cs =  dp.c_s(self.temp) #dp.c_s(loc,time)
-        self.vth = dp.v_th(self.cs)
+        self.OmegaK = self.Omega_K(self.loc,self.time)       
 
-        self.dotMd=self.dot_Md()
-        self.vK=self.v_K(self.loc)
-        self.vth=self.v_th()
-        self.Hg=self.H_g()
-        self.nu=self.viscosity()
-        self.rhog=self.rho_g()
-        self.mg=self.m_g()
-        self.lmfp=self.l_mfp()
+        #move to user-defined
+        self.dotMg = self.dot_Mg(self.time)
+        
+        self.cs =  self.c_s() #dp.c_s(self.temp) #dp.c_s(loc,time)
+        self.vth = dp.v_th(self.cs)  #... *self.cs 
+
+        #not sure about this one... // move to user-defined
+        self.dotMd = self.dot_Md()
+
+        self.vK = self.loc *self.OmegaK #self.v_K(self.loc)
+        #self.vth = self.v_th()
+        self.Hg = self.cs/self.OmegaK #self.H_g()
+        self.nu = self.viscosity() #...
+        self.rhog = self.rho_g() #...
+        #self.mg = self.m_g()
+        self.lmfp = self.mu*cgs.mp/(self.sigmol*self.rhog) #self.l_mfp() #... f(mu*mp,rho, mol.cross)
+
+        #not sure if I like this one here...
+        #move to user-defined
         self.eta=self.eta_cal(self.loc)
 
 
@@ -334,7 +346,11 @@ class DISK (object):
     #     return Sg
     
     def Omega_K(self,loc,time):
-        return dp.Omega_K(loc,time,self.Mcp)
+        return np.sqrt(cgs.gC *self.Mcp/loc**3)
+        #return dp.Omega_K(loc,time,self.Mcp)
+
+    def c_s (self):
+        return np.sqrt(cgs.kB*self.temp/(self.mu*cgs.mp))
 
     def v_K(self,loc):
         return self.OmegaK*loc
@@ -357,8 +373,8 @@ class DISK (object):
     def l_mfp(self):
         return dp.l_mfp(self.rhog,self.mg)
     
-    def eta_cal(self,loc):
-        return dp.eta(loc,self.Mcp,self.dotMg,self.mg)
+    def eta_cal (self,loc):
+        return dp.eta(loc,self.Mcp,self.dotMg,self.mu*cgs.mp)
 
 
 class Superparticles(object):
@@ -411,8 +427,12 @@ class Superparticles(object):
         #get disk object instance from gas
         #maybe like this???
 
+        #(1) provides key properties (T,mu,Sigma)
+        #(2) make disk objects
+        #(3) add additional properties, which follow from (1) to disk object
+        #(4) add user-defined disk properties to disk class
         out = gas.get_key_disk_properties (r, t)
-        disk = DISK (*out, r, t)
+        disk = DISK (*out, r, t) #pro
         disk.add_auxiliary ()
 
         eta=disk.eta

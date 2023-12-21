@@ -46,7 +46,7 @@ class GAS ():
         """
 
         if self.mode=='prescribed':
-            Sigmag, temp, muout = dp.key_disk_properties(loc, time)
+            sigmaG, temp, muout = dp.key_disk_properties(loc, time)
         else:
 
             if self.mode=='gridevolve':
