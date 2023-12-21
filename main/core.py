@@ -25,7 +25,7 @@ class System(object):
     timestepn=10  #how many time points in every ODE solution process
     rhoPlanet=1.9
 
-    def __init__(self,Rdi=0.01,time=0.0,nini=10,ice_frac=0.5):
+    def __init__(self,Rdi=0.01,time=0.0,nini=10,ice_frac=0.5,diskmass=0.01*cgs.MJ):
         
         #initialize parameter from txt file // disk.py
         self.Rdi=Rdi  #initial radius of particles
@@ -40,11 +40,12 @@ class System(object):
         self.iceline_loc()
 
         self.ice_frac=ice_frac
+        
 
         # define class of superparticles here
         #self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
 
-        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineLoc,ice_frac)
+        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineLoc,ice_frac,diskmass)
 
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
@@ -367,7 +368,7 @@ class Superparticles(object):
     error=1e-8
 
 
-    def __init__(self,nini,mini,rinn,rout,mtot1,icelineLoc,ice_frac=0.5):
+    def __init__(self,nini,mini,rinn,rout,mtot1,icelineLoc,ice_frac=0.5,diskmass=0.01*cgs.MJ):
         """
         systems initial properties
 
@@ -380,13 +381,13 @@ class Superparticles(object):
         self.mini=mini #physical mass
         self.rinn=rinn
         self.rout=rout
-        self.mtot1 = mtot1
 
         ndim = 3# location // mass // total mass
 
         self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
         self.massL=[mini]*nini
-        self.mtotL=np.where(self.locL<icelineLoc, mtot1*0.5, mtot1)
+        self.mtot1 = diskmass/(len(np.where(self.locL<icelineLoc))*ice_frac+len(np.where(self.locL>=icelineLoc)))
+        self.mtotL=np.where(self.locL<icelineLoc, self.mtot1*0.5, self.mtot1)
 
         self.Y2d = np.empty((ndim,nini))
         self.Y2d[0] = self.locL
