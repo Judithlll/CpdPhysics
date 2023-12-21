@@ -4,13 +4,13 @@ import cgs
 
 #parameters fed into System
 dsystempars = {'Rdi':0.01,  #initial size pf particles
-                'nini':100,
+                'nini':12,
                 'ice_frac':0.5,
                 'diskmass':0.01*cgs.MJ}  #initial number of particles
 
-dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
+dgasgrid = {'rinn':5.89*cgs.RJ,'rout':27*cgs.RJ}
 gasmodel = 'gridstatic' #'prescribed'
 
-tmax = 1e2 *cgs.yr
+tmax = 1.2e2 *cgs.yr
 
 doPlanets = True

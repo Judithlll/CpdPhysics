@@ -10,6 +10,7 @@ import init
 import cgs
 import userfun
 import time 
+import functions as f
 
 start=time.time()
 argL = sys.argv #maybe use later
@@ -47,9 +48,15 @@ while system.time<pars.tmax:
 
     end=time.time()
     runTime=end-start
-    if runTime>5*60:
-        print("it takes"+ str(runTime/60)+" now")
+    print([system.time/cgs.yr,runTime])
+    # if runTime>5*60:
+    #     print("it takes"+ str(runTime/60)+" now")
         
+
+#get Peff propfile
+PAeff=[]
+for cp in system.particles.Y2d.T:
+    PAeff.append(f.epsilon_PA(system,system.planetL[0].loc,system.planetL[0].mass,cp))
 
 # calculate the planet mass growth time scale  
 initLoc=[7*cgs.RJ,10*cgs.RJ] 

@@ -87,13 +87,12 @@ def Sigma_g(r,cs,OmegaK,dotMg):
 def key_disk_properties (r,t):
     
     #add a judgement if r is an array, because there is a comparison
+    Mcp=Mcp_t(t)
+    OmegaK=Omega_K(r,t,Mcp)
+    dotMg=dot_Mg(t)
     if type(r)==np.ndarray:
         Ti=np.ones_like(r)
         n=1
-        
-        Mcp=Mcp_t(t)
-        OmegaK=Omega_K(r,t,Mcp)
-        dotMg=dot_Mg(t)
 
         while n<20:
             if np.min(Ti)<0:
@@ -133,9 +132,6 @@ def key_disk_properties (r,t):
                 kapa=450*rgg
 
             cs=c_s(Ti)
-            Mcp=Mcp_t(t)
-            OmegaK=Omega_K(r,t,Mcp)
-            dotMg=dot_Mg(t)
             sigG = Sigma_g(r,cs,OmegaK,dotMg)
             tau = kapa*sigG
 

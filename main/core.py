@@ -22,7 +22,7 @@ class System(object):
     rhoint = 1.4
     mtot1 = 1e24 #total mass a single superparticle represents
     daction={}
-    timestepn=10  #how many time points in every ODE solution process
+    timestepn=3  #how many time points in every ODE solution process
     rhoPlanet=1.9
 
     def __init__(self,Rdi=0.01,time=0.0,nini=10,ice_frac=0.5,diskmass=0.01*cgs.MJ):
