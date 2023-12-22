@@ -14,3 +14,4 @@ gasmodel = 'gridstatic' #'prescribed'
 tmax = 1.2e2 *cgs.yr
 
 doPlanets = True
+doIcelines = True

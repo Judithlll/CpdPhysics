@@ -90,6 +90,25 @@ def sim_init (dsystempars={},*args):
         system.planetL = [] 
         system.nplanet = 0
 
+    if pars.doIcelines is None:
+        pars.doIcelines = False
+    elif pars.doIcelines:
+        speciesarr,temparr = userfun.init_icelines()
+        icelineL = []
+        icelineLocL=[]
+        niceline = len(speciesarr)
+        for i in range (niceline):
+            iceline=core.ICELINE (speciesarr[i], temparr[i])
+            iceline.get_icelines_location(system.gas,system.time)
+            icelineL.append(iceline)
+
+        system.icelineL = icelineL
+        system.niceline = niceline
+        
+    else:
+        system.icelineL = []
+        system.niceline = 0
+    # core.ICELINE.get_icelines_location(system)
 
     #TBD: add icelines to system...
     #

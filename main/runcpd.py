@@ -18,7 +18,9 @@ calldir = init.init_default_pars (argL[0]) #directory from which this is called 
 
 #this initializes the system...
 system = init.sim_init (pars.dsystempars)
-# import pdb;pdb.set_trace()
+
+system.init_particles()
+# import pdb ; pdb.set_trace()
 #initialize userfun's data class
 userfun.do_stuff(system, init=True)
 
@@ -35,21 +37,19 @@ while system.time<pars.tmax:
     if system.nplanet>0:
         core.advance_planets (system)
 
-    #TBD
-    #change particle properties due to iceline crossing
-    #if system.niceline>0:
-    #    core.advance_iceline (system)
+    if system.niceline>0:
+        idx=core.advance_iceline(system,system.ice_frac)
+
+    #update the location of the icelines, when time pass the gap opening time
+    if system.time>system.tgap:
+        for il in system.icelineL:
+            il.get_icelines_location(system.gas,system.time)
 
     system.post_process()
-    #TBD: postprocess particles (add/remove)
     
-    #TBD: change system.time
     system.time += system.deltaT
 
     userfun.do_stuff(system)
-    system.iceline_loc()
-    idx=np.array([])
-    idx=core.advance_iceline(system)
 
     end=time.time()
     runTime=end-start

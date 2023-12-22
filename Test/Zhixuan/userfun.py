@@ -27,6 +27,12 @@ def init_planets ():
     #return lists for the N-planets we have 
     return [1*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [3e23, 3e23], [1.0, 1.0]
 
+def init_icelines():
+    """
+    these quantities are not sure
+    """
+    return ['H20', 'CO'], [160, 100]
+
 
 def do_stuff (sys, init=False):
     #data class is available...

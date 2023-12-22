@@ -36,19 +36,20 @@ class System(object):
         # define a disk class
         self.gas = self.init_gas ()
 
-        self.iceline_loc()
-
         self.ice_frac=ice_frac
-        
+        self.diskmass=diskmass
 
         # define class of superparticles here
         #self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
-
-        self.particles = Superparticles(nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineLoc,ice_frac,diskmass)
-
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
         #self.Mcp=self.disk.Mcp_t(self.time)
+    
+    def init_particles(self):
+        """
+        because we need to consider iceline, so separatly initiallize the particles, for now just water iceline is considered  
+        """
+        self.particles = Superparticles(self.nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineL[0].loc,self.ice_frac,self.diskmass)
 
 
     def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
@@ -124,7 +125,6 @@ class System(object):
         
         if Nadd>0:
             self.daction['add'] = Nadd
-
         
         #post_process particles
         if 'remove' in self.daction.keys():
@@ -138,26 +138,7 @@ class System(object):
             self.particles.add_particles(self.daction['add'])
             self.nini+=self.daction['add']
 
-        #not sure to do this here
-        advance_iceline(self)
 
-    
-    def iceline_loc(self):
-        """
-        get location of iceline, whose temperature is assumped as 160K
-        """
-        locL=np.linspace(dp.rinn,dp.rout,1000)
-        diffold=1e5
-        
-        for i in range(len(locL)):
-            Td=self.gas.get_key_disk_properties(locL[i],self.time)[1]
-            diffn=abs(Td-160)
-            if diffn>diffold:
-                # print(diffn)
-                self.icelineLoc=locL[i-1]
-                break
-            else:
-                diffold=diffn
 
 def advance_iceline(system,ice_frac=0.5):
     """
@@ -166,15 +147,8 @@ def advance_iceline(system,ice_frac=0.5):
 
     sploc = system.particles.Y2d[0]
     sploc_old = system.Y2dold[0]
-    
-    if 'add' in system.daction.keys() and 'remove' in system.daction.keys():
-        idx,=np.nonzero((system.icelineLoc<sploc_old[1:]) & (system.icelineLoc>sploc[:-1]))
-    elif 'remove' in system.daction.keys():
-        idx,=np.nonzero((system.icelineLoc<sploc_old[1:]) & (system.icelineLoc>sploc))
-    elif 'add' in system.daction.keys():
-        idx,=np.nonzero((system.icelineLoc<sploc_old) & (system.icelineLoc>sploc[:-1]))
-    else:
-        idx,=np.nonzero((system.icelineLoc<sploc_old) & (system.icelineLoc>sploc))
+
+    idx,=np.nonzero((system.icelineL[0].loc<sploc_old) & (system.icelineL[0].loc>sploc))
     
     if len(idx)!=0:     
         for ix in idx:
@@ -296,6 +270,7 @@ class DISK (object):
         self.rinn = dp.rinn
         self.tgap=dp.tgap
         self.sigmol = dp.sigmol
+        self.tgap=dp.tgap
 
 
     def add_auxiliary (self):
@@ -379,7 +354,7 @@ class Superparticles(object):
     error=1e-8
 
 
-    def __init__(self,nini,mini,rinn,rout,mtot1,icelineLoc,ice_frac=0.5,diskmass=0.01*cgs.MJ):
+    def __init__(self,nini,mini,rinn,rout,mtot1,icelineLoc=None,ice_frac=0.5,diskmass=0.01*cgs.MJ):
         """
         systems initial properties
 
@@ -546,4 +521,25 @@ class PLANET ():
         mdot = np.sum(mdotarr *wi)  #mass flux through iceline
         return mdot
 
+class ICELINE(object):
+    def __init__(self,species,temp):
+        self.species=species
+        self.temp=temp
+
+    def get_icelines_location(self,gas,time):
+        """
+        get location of iceline, whose temperature is assumped as 160K
+        """
+        locL = np.linspace(dp.rinn,dp.rout,1000)
+        diffold = 1e5
+    
+        for i in range(len(locL)):
+            Td=gas.get_key_disk_properties(locL[i],time)[1]
+            diffn=abs(Td-160)
+            if diffn>diffold:
+                # print(diffn)
+                self.loc=locL[i-1]
+                break
+            else:
+                diffold=diffn
 
