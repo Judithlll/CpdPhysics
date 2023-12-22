@@ -4,6 +4,7 @@ import parameters as pars
 import functions
 import core
 import userfun
+import os
 
 """
 We need the parameters in defaults.txt, which is a dict or list.
@@ -55,10 +56,82 @@ def init_default_pars (fcall):
     if hasattr(pars, 'addgasL') is False:
         pars.addgasL = []
 
-    return pars  #why return calldir? why not pars
+    return calldir  #why return calldir? why not pars
 
 
-def sim_init (dsystempars={},*args):
+def Z_fixed (val):
+    def Z_compos (rad):
+        return val *np.ones_like(rad)
+    return Z_compos
+
+
+def construct_mask_icl (rice):
+    def mask_icl (rad):
+        return np.where(rad>rice, 1.0, -1.0)
+    return mask_icl
+
+
+def load_composdata (calldir, composL):
+    """
+    loads the composition data as dictionary
+
+        dcompos
+
+    The default is to load parameters from /config
+    BUT this can be overwritten by:
+
+        dcompos = userfuncs.init_compos()
+
+    In particular, iceline [locations] must be explicitly specified by the user
+
+    Finally, we construct a function Z_init(rad) which provides the initial composition. 
+    The default is a constant, based on dcompos['Zinit']
+    But this can also be specified by userfuncs.init_compos()
+    """
+
+    dcomposL = []
+    for compos in composL:
+        #look/load materials file
+        fname = calldir+'../config/'+compos+'.txt'
+        if os.path.isfile(fname):
+            dcompos = functions.load_dict_from_file (fname)
+        else:
+            dcompos = {}
+
+        if 'iceline' not in dcompos:
+            dcompos['iceline'] = False #default
+
+        #now look for user initializations...
+        #(which will overwrite the default)
+        if hasattr(userfun, 'init_compos'):
+            dadd = userfun.init_compos(compos)
+            dcompos.update(dadd)
+
+        if 'Z_init' not in dcompos:
+            try:
+                dcompos['Z_init'] = Z_fixed(dcompos['Zinit'])
+            except:
+                print('[init.py]:initialization of >>', compos.upper(), '<< abundances unclear. Specify in userfuncs?' )
+                print('[init.py]:aborting')
+                sys.exit()
+
+        if dcompos['iceline'] == True:
+            rice = dcompos['iceline_init']
+        elif dcompos['iceline'] == 'None': #all vapor
+            rice = np.inf
+        elif dcompos['iceline'] == False: #all refractory
+            rice = 0.0
+
+        dcompos['mask_icl'] = construct_mask_icl (rice)
+
+        dcomposL.append(dcompos)
+
+    return dcomposL
+
+
+
+
+def sim_init (calldir, dsystempars={},*args):
     """
     The idea is that the system object is defined here... TBD
     """
@@ -66,6 +139,12 @@ def sim_init (dsystempars={},*args):
     #let's System be initialized this way with keyword parameters... 
     #please don't change it again
     system = core.System(**dsystempars)
+
+
+    #load composition data
+    #this is being copied from /NewLagrange
+    dcomposL = load_composdata (calldir, pars.composL)
+
 
     #add the planets
     if pars.doPlanets is None:

@@ -27,6 +27,20 @@ def init_planets ():
     return [1*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [1e23, 1e23], [1.0, 1.0]
 
 
+def init_compos (material):
+    dcompos = {}
+    if material=='silicates':
+        dcompos['Zinit'] = 0.01
+    elif material=='H2O':
+        dcompos['name'] = 'H2O'
+        dcompos['Zinit'] = 0.01
+        dcompos['iceline'] = True
+        dcompos['rhoint'] = 1.0
+        dcompos['iceline_init'] = 2.0 *cgs.AU
+
+    return dcompos
+
+
 def do_stuff (system, init=False):
     """
     here you can do user-defined data manipulation

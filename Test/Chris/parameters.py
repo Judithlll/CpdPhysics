@@ -1,6 +1,8 @@
 import cgs
 
 #put all parameters in this file
+composL = ['silicates', 'H2O']
+intrhoL = [3.0, 1.0]
 
 #parameters fed into System
 dsystempars = {'Rdi':0.01,  #initial size pf particles

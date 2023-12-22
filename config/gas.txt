@@ -1,0 +1,5 @@
+name = gas
+mu = 2.34
+Zinit = 1.0
+iceline = None
+Sc = 1.0

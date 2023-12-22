@@ -3,6 +3,35 @@ import cgs
 import core 
 error=1e-8
 
+
+def load_dict_from_file (fname):
+    dout = {}
+    with open(fname,'r') as f:
+        line = f.readline()
+        while line:
+            if line[0]!='#' and len(line)>=5:
+                key, sep, val, *dumL = line.split()
+
+                #boolean
+                if val=='True':
+                    dout[key] = True
+                elif val=='False':
+                    dout[key] = False
+
+                elif val.isalnum():
+                    dout[key] = val
+
+                else:
+                    try:
+                        dout[key] = int(val)
+                    except:
+                        dout[key] = float(val)
+
+            line = f.readline()
+    return dout
+
+
+
 def St_iterate(eta,v_K,v_th,lmfp,rho_g,
                 Omega_K,R_d,rhoint=1.4,Sto=0.001):
         """
