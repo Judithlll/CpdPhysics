@@ -287,7 +287,7 @@ class DISK (object):
         initialize with key disk properties
         """
         self.loc = loc
-        self.Sigmag = sigmaG
+        self.sigmaG = sigmaG
         self.temp = temp
         self.mu = mu
         self.time = time
@@ -304,29 +304,24 @@ class DISK (object):
         from the key disk properties
         """
         self.Mcp = self.Mcp_t(self.time)  
-        self.OmegaK = self.Omega_K(self.loc,self.time)       
+        self.OmegaK = np.sqrt(cgs.gC *self.Mcp/self.loc**3)      
+        
+        self.cs =  np.sqrt(cgs.kB*self.temp/(self.mu*cgs.mp))
+        self.vth = np.sqrt(8/np.pi)*self.cs 
 
+        self.vK = self.loc *self.OmegaK
+        self.Hg = self.cs/self.OmegaK 
+        self.nu = self.alpha*self.cs*self.Hg
+        self.rhog = self.sigmaG/(2*np.pi)**0.5/self.Hg
+        self.lmfp = self.mu*cgs.mp/(self.sigmol*self.rhog)
+        
+
+    def user_difined(self):
         #move to user-defined
         self.dotMg = self.dot_Mg(self.time)
-        
-        self.cs =  self.c_s() #dp.c_s(self.temp) #dp.c_s(loc,time)
-        self.vth = dp.v_th(self.cs)  #... *self.cs 
-
-        #not sure about this one... // move to user-defined
         self.dotMd = self.dot_Md()
-
-        self.vK = self.loc *self.OmegaK #self.v_K(self.loc)
-        #self.vth = self.v_th()
-        self.Hg = self.cs/self.OmegaK #self.H_g()
-        self.nu = self.viscosity() #...
-        self.rhog = self.rho_g() #...
-        #self.mg = self.m_g()
-        self.lmfp = self.mu*cgs.mp/(self.sigmol*self.rhog) #self.l_mfp() #... f(mu*mp,rho, mol.cross)
-
-        #not sure if I like this one here...
-        #move to user-defined
         self.eta=self.eta_cal(self.loc)
-
+        
 
     def Mcp_t(self,time):
         return dp.Mcp_t(time)
@@ -345,8 +340,8 @@ class DISK (object):
     #     Sg=dp.Sigma_g(loc,time,c_s)
     #     return Sg
     
-    def Omega_K(self,loc,time):
-        return np.sqrt(cgs.gC *self.Mcp/loc**3)
+    # def Omega_K(self,loc,time):
+    #     return np.sqrt(cgs.gC *self.Mcp/loc**3)
         #return dp.Omega_K(loc,time,self.Mcp)
 
     def c_s (self):
@@ -435,6 +430,7 @@ class Superparticles(object):
         out = gas.get_key_disk_properties (r, t)
         disk = DISK (*out, r, t) #pro
         disk.add_auxiliary ()
+        disk.user_difined ()
 
         eta=disk.eta
         v_K=disk.vK

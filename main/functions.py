@@ -94,6 +94,7 @@ def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
     out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
     disk = core.DISK (*out, PlanetsLoc, system.time)
     disk.add_auxiliary ()
+    disk.user_difined ()
 
     St=get_stokes_number(disk,system.time,cross_p,system.rhoint)
     eta=disk.eta
@@ -115,6 +116,7 @@ def M_critical(system,PlanetsLoc,cross_p):
     out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
     disk = core.DISK (*out, PlanetsLoc, system.time)
     disk.add_auxiliary ()
+    disk.user_difined ()
 
     St=get_stokes_number(disk,system.time,cross_p,system.rhoint)
     eta=disk.eta

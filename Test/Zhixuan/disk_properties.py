@@ -10,7 +10,7 @@ rout = 27*cgs.RJ
 frac=0.2
 ratio=0.01
 # Mcp=0.4*cgs.MJ
-sigmamol=2e-15
+sigmol=2e-15
 rgg=1e-7
 Mcp0=0.4*cgs.MJ
 
@@ -84,6 +84,9 @@ def Sigma_g(r,cs,OmegaK,dotMg):
 #     Td=(3*cgs.gC*Mcp_t(t)*dot_Mg(t)/8/np.pi/cgs.sigmaSB/r**3)**(1/4)
 #     return Td
 
+def MeanMolecularWeight():
+    return 2.34
+
 def key_disk_properties (r,t):
     
     #add a judgement if r is an array, because there is a comparison
@@ -141,7 +144,7 @@ def key_disk_properties (r,t):
             Ti=Td
         #   print(n,'diff_Td=',diff)
             n+=1
-    mu = 2.34*np.ones_like(sigG)
+    mu = MeanMolecularWeight()*np.ones_like(sigG)
     return sigG,Td,mu
 
 def T_d(sigmag,kapa,Mcp,dotMg,loc):
@@ -166,7 +169,7 @@ def m_g():
     """
     get the mean molecular mass of disk
     """
-    MeanMolecularMass=2.34*cgs.mp
+    MeanMolecularMass=MeanMolecularWeight()*cgs.mp
     return MeanMolecularMass
 
 # def c_s(r,t):
@@ -182,41 +185,41 @@ def Omega_K(r,t,Mcp):
     OK=np.sqrt(cgs.gC*Mcp/r**3)
     return OK
 
-def H_g(cs,OmegaK):
-    """
-    get scale height
-    """    
-    GasScaleHeight=cs/OmegaK
-    return GasScaleHeight
+# def H_g(cs,OmegaK):
+#     """
+#     get scale height
+#     """    
+#     GasScaleHeight=cs/OmegaK
+#     return GasScaleHeight
 
-def viscosity(cs,Hg):
-    """
-    get viscosity
-    """
-    nu=alpha*cs*Hg
-    return nu
+# def viscosity(cs,Hg):
+#     """
+#     get viscosity
+#     """
+#     nu=alpha*cs*Hg
+#     return nu
 
-def v_th(cs):
-    """
-    get the thermal velocity 
-    """
-    thermal_velocity=np.sqrt(8/np.pi)*cs
-    return thermal_velocity
+# def v_th(cs):
+#     """
+#     get the thermal velocity 
+#     """
+#     thermal_velocity=np.sqrt(8/np.pi)*cs
+#     return thermal_velocity
 
-def l_mfp(rhog,mg):
-    """
-    get the mean free path
+# def l_mfp(rhog,mg):
+#     """
+#     get the mean free path
 
-    """
-    MeanFreePath=mg/sigmamol/rhog
-    return MeanFreePath
+#     """
+#     MeanFreePath=mg/sigmamol/rhog
+#     return MeanFreePath
 
-def rho_g(Sigmag,Hg):
-    """
-    get the density of gas
-    """
-    rhogas=Sigmag/(2*np.pi)**0.5/Hg
-    return rhogas
+# def rho_g(Sigmag,Hg):
+#     """
+#     get the density of gas
+#     """
+#     rhogas=Sigmag/(2*np.pi)**0.5/Hg
+#     return rhogas
 
 
 def eta(r,Mcp,dotMg,mg):

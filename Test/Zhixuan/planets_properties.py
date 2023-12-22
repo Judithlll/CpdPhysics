@@ -8,6 +8,7 @@ def planet_migration(gas,planetLoc,planetMass,time,rhopl):
     out = gas.get_key_disk_properties (planetLoc, time)
     disk = core.DISK (*out, planetLoc, time)
     disk.add_auxiliary ()
+    disk.user_difined ()
 
     eta=disk.eta
     v_K=disk.vK
@@ -17,8 +18,8 @@ def planet_migration(gas,planetLoc,planetMass,time,rhopl):
     Omega_K=disk.OmegaK
     dotMg=disk.dotMg
     Mcp=disk.Mcp
-    mg=disk.mg
-    Sigmag=disk.Sigmag
+    mg=disk.mu*cgs.mp
+    Sigmag=disk.sigmaG
     cs=disk.cs
     
     Rpl=(planetMass/(4/3*np.pi*rhopl))**(1/3)
