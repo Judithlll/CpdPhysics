@@ -140,20 +140,23 @@ class System(object):
 
 
 
-def advance_iceline(system,ice_frac=0.5):
+def advance_iceline(system):
     """
     for now particles directly lose the mass of water without any other effect
     """
 
     sploc = system.particles.Y2d[0]
     sploc_old = system.Y2dold[0]
+    for k,iceline in enumerate(system.icelineL):
+        idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
+        frac=1
+        for i in range(k+1):
+            frac-=system.icelineL[i].frac
 
-    idx,=np.nonzero((system.icelineL[0].loc<sploc_old) & (system.icelineL[0].loc>sploc))
-    
-    if len(idx)!=0:     
-        for ix in idx:
-            #system.particles.msup =
-            system.particles.Y2d[2,ix] *= ice_frac
+        if len(idx)!=0:     
+            for ix in idx:
+                #system.particles.msup =
+                system.particles.Y2d[2,ix] *= system.particles.mtot1*frac
 
 
 

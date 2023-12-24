@@ -20,7 +20,7 @@ calldir = init.init_default_pars (argL[0]) #directory from which this is called 
 system = init.sim_init (calldir, pars.dsystempars)
 
 system.init_particles()
-import pdb ;pdb.set_trace()
+
 # import pdb ; pdb.set_trace()
 #initialize userfun's data class
 userfun.do_stuff(system, init=True)
@@ -39,8 +39,8 @@ while system.time<pars.tmax:
         core.advance_planets (system)
 
     if system.niceline>0:
-        idx=core.advance_iceline(system,system.ice_frac)
-
+        idx=core.advance_iceline(system)
+    import pdb ;pdb.set_trace()
     #update the location of the icelines, when time pass the gap opening time
     if system.time>system.tgap:
         for il in system.icelineL:
