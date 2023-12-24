@@ -47,7 +47,8 @@ class System(object):
     
     def init_particles(self):
         """
-        because we need to consider iceline, so separatly initiallize the particles, for now just water iceline is considered  
+        because we need to consider iceline, so separatly 
+        initiallize the particles, for now just water iceline is considered  
         """
         self.particles = Superparticles(self.nini,self.mini,dp.rinn,dp.rout,self.icelineL,self.diskmass)
 

@@ -103,11 +103,13 @@ def load_composdata (calldir, composL):
             dcompos['iceline'] = False #default
 
         #now look for user initializations...
-        #(which will overwrite the default)
+        #that will overwrite the default parameters
         if hasattr(userfun, 'init_compos'):
             dadd = userfun.init_compos(compos)
             dcompos.update(dadd)
-        # import pdb; pdb.set_trace()
+        #   import pdb; pdb.set_trace()
+
+        #Z_init is some function that determines the initial abundance
         if 'Z_init' not in dcompos:
             try:
                 dcompos['Z_init'] = Z_fixed(dcompos['Zinit'])
@@ -116,6 +118,7 @@ def load_composdata (calldir, composL):
                 print('[init.py]:aborting')
                 sys.exit()
 
+        #(initial) position of iceline
         if dcompos['iceline'] == True:
             rice = dcompos['iceline_init']
         elif dcompos['iceline'] == 'None': #all vapor
@@ -135,6 +138,14 @@ def load_composdata (calldir, composL):
 def sim_init (calldir, dsystempars={},*args):
     """
     The idea is that the system object is defined here... TBD
+
+    ...
+    it also defines a composition list of dictionaries
+        >> dcomposL <<
+
+    which consists of:
+        [species in composL] + [noncondensible gas] + [species in addgasL]
+
     """
 
     #let's System be initialized this way with keyword parameters... 
@@ -146,6 +157,18 @@ def sim_init (calldir, dsystempars={},*args):
     #this is being copied from /NewLagrange
     dcomposL = load_composdata (calldir, pars.composL)
 
+    #next, my /NewLagrange initialization has some routines
+    #that initialize the surface density, also accounting for icelines 
+    #we can add them later (TBD)
+    #(actually this should be merged with your superparticles initialization)
+
+    #now add gas and additional vapor components to the composition object
+    dcomposL += load_composdata (calldir, ['gas'] +pars.addgasL)
+
+    #construct the gas species we need to follow
+    gasL = [dcomp['name'] for dcomp in dcomposL if dcomp['iceline']==True]
+    gasL.append('gas')      #always
+    gasL += pars.addgasL    #specified by user
 
     #add the planets
     if pars.doPlanets is None:
@@ -170,6 +193,7 @@ def sim_init (calldir, dsystempars={},*args):
         system.planetL = [] 
         system.nplanet = 0
 
+    #add the icelines
     if pars.doIcelines is None:
         pars.doIcelines = False
     elif pars.doIcelines:
