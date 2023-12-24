@@ -31,7 +31,7 @@ def init_icelines():
     """
     these quantities are not sure
     """
-    return ['H20', 'CO'], [160, 100]
+    return ['H20', 'CO'], [160, 150], [0.5, 0.1]
 
 
 def do_stuff (sys, init=False):

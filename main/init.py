@@ -5,6 +5,7 @@ import functions
 import core
 import userfun
 import os
+import numpy as np
 
 """
 We need the parameters in defaults.txt, which is a dict or list.
@@ -56,7 +57,7 @@ def init_default_pars (fcall):
     if hasattr(pars, 'addgasL') is False:
         pars.addgasL = []
 
-    return calldir  #why return calldir? why not pars
+    return calldir
 
 
 def Z_fixed (val):
@@ -106,7 +107,7 @@ def load_composdata (calldir, composL):
         if hasattr(userfun, 'init_compos'):
             dadd = userfun.init_compos(compos)
             dcompos.update(dadd)
-
+        # import pdb; pdb.set_trace()
         if 'Z_init' not in dcompos:
             try:
                 dcompos['Z_init'] = Z_fixed(dcompos['Zinit'])
@@ -172,12 +173,12 @@ def sim_init (calldir, dsystempars={},*args):
     if pars.doIcelines is None:
         pars.doIcelines = False
     elif pars.doIcelines:
-        speciesarr,temparr = userfun.init_icelines()
+        speciesarr,temparr,fracarr = userfun.init_icelines()
         icelineL = []
-        icelineLocL=[]
+        # icelineLocL=[]
         niceline = len(speciesarr)
         for i in range (niceline):
-            iceline=core.ICELINE (speciesarr[i], temparr[i])
+            iceline=core.ICELINE (speciesarr[i], temparr[i], fracarr[i])
             iceline.get_icelines_location(system.gas,system.time)
             icelineL.append(iceline)
 

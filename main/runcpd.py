@@ -20,6 +20,7 @@ calldir = init.init_default_pars (argL[0]) #directory from which this is called 
 system = init.sim_init (calldir, pars.dsystempars)
 
 system.init_particles()
+import pdb ;pdb.set_trace()
 # import pdb ; pdb.set_trace()
 #initialize userfun's data class
 userfun.do_stuff(system, init=True)

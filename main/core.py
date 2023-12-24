@@ -23,8 +23,9 @@ class System(object):
     daction={}
     timestepn=3  #how many time points in every ODE solution process
     rhoPlanet=1.9
+    tgap=dp.tgap
 
-    def __init__(self,Rdi=0.01,time=0.0,nini=10,ice_frac=0.5,diskmass=0.01*cgs.MJ):
+    def __init__(self,Rdi=0.01,time=0.0,nini=10,diskmass=0.01*cgs.MJ):
         
         #initialize parameter from txt file // disk.py
         self.Rdi=Rdi  #initial radius of particles
@@ -36,7 +37,6 @@ class System(object):
         # define a disk class
         self.gas = self.init_gas ()
 
-        self.ice_frac=ice_frac
         self.diskmass=diskmass
 
         # define class of superparticles here
@@ -49,7 +49,7 @@ class System(object):
         """
         because we need to consider iceline, so separatly initiallize the particles, for now just water iceline is considered  
         """
-        self.particles = Superparticles(self.nini,self.mini,dp.rinn,dp.rout,self.mtot1,self.icelineL[0].loc,self.ice_frac,self.diskmass)
+        self.particles = Superparticles(self.nini,self.mini,dp.rinn,dp.rout,self.icelineL,self.diskmass)
 
 
     def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
@@ -270,7 +270,7 @@ class DISK (object):
         self.rinn = dp.rinn
         self.tgap=dp.tgap
         self.sigmol = dp.sigmol
-        self.tgap=dp.tgap
+        # self.tgap=dp.tgap
 
 
     def add_auxiliary (self):
@@ -354,7 +354,7 @@ class Superparticles(object):
     error=1e-8
 
 
-    def __init__(self,nini,mini,rinn,rout,mtot1,icelineLoc=None,ice_frac=0.5,diskmass=0.01*cgs.MJ):
+    def __init__(self,nini,mini,rinn,rout,icelineL=None,diskmass=0.01*cgs.MJ):
         """
         systems initial properties
 
@@ -362,6 +362,8 @@ class Superparticles(object):
         mini: initial mass for every particles
         rinn: inner edge of the disk
         rout: outer edge of the disk
+        icelineLoc: the location of icelines from inner to outer
+        ice_frac  : the coresponding ice fraction of every iceline
         """
         self.nini=nini
         self.mini=mini #physical mass
@@ -372,9 +374,46 @@ class Superparticles(object):
 
         #TBD this (=location, mphys, mtot, ... of initial particles) should become user defined...
         self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
-        self.massL=[mini]*nini
-        self.mtot1 = diskmass /(len(np.where(self.locL<icelineLoc))*ice_frac+len(np.where(self.locL>=icelineLoc)))
-        self.mtotL = np.where(self.locL<icelineLoc, self.mtot1*0.5, self.mtot1)
+        self.massL=np.array([mini]*nini)
+        # if icelineLoc==None:
+        #     self.mtot1=diskmass/nini
+        #     self.mtotL=self.mtot1*np.ones_like(self.locL)
+        # if len(icelineLoc)==1:
+        #     self.mtot1 = diskmass /(len(np.where(self.locL<icelineLoc))*ice_frac+len(np.where(self.locL>=icelineLoc)))
+        #     self.mtotL = np.where(self.locL<icelineLoc[0], self.mtot1*0.5, self.mtot1)
+        # if len(icelineLoc)==2:
+        #     self.mtot1 = diskmass /()
+        if len(icelineL)!= 0:
+            niceline=len(icelineL)
+            fracs=[]
+            nsum=0
+            ns=[]
+            for i in range(niceline):
+                n=len(self.locL[self.locL<icelineL[i].loc])-nsum
+                nsum+=n
+                ns.append(n)
+                frac=1
+                for j in range(i):
+                    frac-=icelineL[-j].frac  #looking notes in Pad
+                fracs.append(frac)
+            ns.append(len(self.locL)-nsum)
+            f=1
+
+            for k in range(niceline):
+                f-=icelineL[k].frac
+            fracs.append(f)
+
+            fracs.reverse()
+            
+            factors=np.array(ns)*np.array(fracs)
+            self.mtot1=diskmass/np.sum(factors)
+            self.mtotL=np.array([])
+            
+            for k in range(len(icelineL)+1):
+                self.mtotL=np.append(self.mtotL,np.ones(ns[k])*self.mtot1*fracs[k])
+        else:
+            self.mtot1=diskmass/nini
+            self.mtotL=np.array([self.mtot1]*nini)
 
         self.Y2d = np.empty((ndim,nini))
         self.Y2d[0] = self.locL
@@ -522,9 +561,10 @@ class PLANET ():
         return mdot
 
 class ICELINE(object):
-    def __init__(self,species,temp):
+    def __init__(self,species,temp,frac):
         self.species=species
         self.temp=temp
+        self.frac=frac
 
     def get_icelines_location(self,gas,time):
         """
@@ -535,7 +575,7 @@ class ICELINE(object):
     
         for i in range(len(locL)):
             Td=gas.get_key_disk_properties(locL[i],time)[1]
-            diffn=abs(Td-160)
+            diffn=abs(Td-self.temp)
             if diffn>diffold:
                 # print(diffn)
                 self.loc=locL[i-1]

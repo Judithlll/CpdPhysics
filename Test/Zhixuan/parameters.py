@@ -1,17 +1,18 @@
 import cgs
 
 #put all parameters in this file
+composL = ['silicates', 'H2O']
+intrhoL = [3.0, 1.0]
 
 #parameters fed into System
 dsystempars = {'Rdi':0.01,  #initial size pf particles
-                'nini':12,
-                'ice_frac':0.5,
-                'diskmass':0.01*cgs.MJ}  #initial number of particles
+                'nini':100}  #initial number of particles
 
-dgasgrid = {'rinn':5.89*cgs.RJ,'rout':27*cgs.RJ}
-gasmodel = 'gridstatic' #'prescribed'
+dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
+gasmodel = 'prescribed'
 
-tmax = 1.2e2 *cgs.yr
+tmax = 1e2 *cgs.yr
 
 doPlanets = True
 doIcelines = True
+
