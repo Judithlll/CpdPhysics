@@ -2,5 +2,5 @@ name = silicates
 rhoint = 1.0
 iceline = False
 Zinit = 0.01
-mu = 60.0
+mu = 18
 Sc = 1.0
