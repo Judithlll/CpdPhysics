@@ -164,11 +164,14 @@ def sim_init (calldir, dsystempars={},*args):
 
     #now add gas and additional vapor components to the composition object
     dcomposL += load_composdata (calldir, ['gas'] +pars.addgasL)
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     #construct the gas species we need to follow
     gasL = [dcomp['name'] for dcomp in dcomposL if dcomp['iceline']==True]
     gasL.append('gas')      #always
     gasL += pars.addgasL    #specified by user
+
+    system.dcomposL = dcomposL
+    system.gasL = gasL
 
     #add the planets
     if pars.doPlanets is None:
@@ -200,18 +203,24 @@ def sim_init (calldir, dsystempars={},*args):
         speciesarr,temparr,fracarr = userfun.init_icelines()
         icelineL = []
         # icelineLocL=[]
-        niceline = len(speciesarr)
-        for i in range (niceline):
-            iceline=core.ICELINE (speciesarr[i], temparr[i], fracarr[i])
-            iceline.get_icelines_location(system.gas,system.time)
-            icelineL.append(iceline)
 
+        for dcompos in dcomposL:
+            if dcompos['iceline']==True:
+                iceline = core.ICELINE (dcompos['name'], dcompos['iceline_temp'])  
+                iceline.get_icelines_location(system.gas,system.time)      
+                icelineL.append(iceline)
+
+        #niceline = len(speciesarr)
+        #for i in range (niceline):
+        #    iceline=core.ICELINE (speciesarr[i], temparr[i], fracarr[i])
+        #    
         system.icelineL = icelineL
-        system.niceline = niceline
+        system.niceline = len(icelineL)
         
     else:
         system.icelineL = []
         system.niceline = 0
+
     # core.ICELINE.get_icelines_location(system)
 
     #TBD: add icelines to system...

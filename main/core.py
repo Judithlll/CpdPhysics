@@ -38,6 +38,7 @@ class System(object):
         # define a disk class
         self.gas = self.init_gas ()
 
+        #TBD: put this in dparticleprops
         self.diskmass=diskmass
 
         # define class of superparticles here
@@ -46,12 +47,12 @@ class System(object):
         self.Minflux = 0
         #self.Mcp=self.disk.Mcp_t(self.time)
     
-    def init_particles(self):
+    def init_particles(self, dparticleprops={}):
         """
         because we need to consider iceline, so separatly 
         initiallize the particles, for now just water iceline is considered  
         """
-        self.particles = Superparticles(self.nini,self.mini,dp.rinn,dp.rout,self.icelineL,self.diskmass)
+        self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.diskmass, **dparticleprops)
 
 
     def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
@@ -373,7 +374,7 @@ class Superparticles(object):
     error=1e-8
 
 
-    def __init__(self,nini,mini,rinn,rout,icelineL=None,diskmass=0.01*cgs.MJ):
+    def __init__(self,rinn,rout,dcomposL,diskmass=0.01*cgs.MJ,nini=10,Rdi=0.1):
         """
         systems initial properties
 
@@ -384,8 +385,12 @@ class Superparticles(object):
         icelineLoc: the location of icelines from inner to outer
         ice_frac  : the coresponding ice fraction of every iceline
         """
+
+        #import pdb; pdb.set_trace()
+
         self.nini=nini
-        self.mini=mini #physical mass
+        #self.mini=mini #physical mass
+        mini = Rdi**3 *4*np.pi/3 *1.0
         self.rinn=rinn
         self.rout=rout
 
@@ -592,10 +597,10 @@ class PLANET ():
         return mdot
 
 class ICELINE(object):
-    def __init__(self,species,temp,frac):
+    def __init__(self,species,temp):
         self.species=species
         self.temp=temp
-        self.frac=frac
+        #self.frac=frac
     
     def find_iceline (self,rad, time, gas):
         Tice = self.temp

@@ -33,6 +33,19 @@ def init_icelines():
     """
     return ['H20', 'CO'], [160, 150], [0.5, 0.1]
 
+def init_compos (material):
+    dcompos = {}
+    if material=='silicates':
+        dcompos['Zinit'] = 0.01
+    elif material=='H2O':
+        dcompos['name'] = 'H2O'
+        dcompos['Zinit'] = 0.01
+        dcompos['iceline'] = True
+        dcompos['rhoint'] = 1.0
+        dcompos['iceline_temp'] = 160
+        dcompos['iceline_init'] = 2*cgs.RJ
+
+    return dcompos
 
 def do_stuff (sys, init=False):
     #data class is available...

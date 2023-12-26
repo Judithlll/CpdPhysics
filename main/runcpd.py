@@ -17,9 +17,8 @@ argL = sys.argv #maybe use later
 calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
 #this initializes the system...
-system ,gas = init.sim_init (calldir, pars.dsystempars)
-
-system.init_particles()
+system, gas = init.sim_init (calldir, pars.dsystempars)
+system.init_particles(pars.dparticleprops)
 
 # import pdb ; pdb.set_trace()
 #initialize userfun's data class
