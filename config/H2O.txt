@@ -1,4 +1,4 @@
-name = silicates
+name = H2O
 rhoint = 1.0
 iceline = False
 Zinit = 0.01

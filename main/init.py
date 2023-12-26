@@ -164,7 +164,7 @@ def sim_init (calldir, dsystempars={},*args):
 
     #now add gas and additional vapor components to the composition object
     dcomposL += load_composdata (calldir, ['gas'] +pars.addgasL)
-
+    import pdb; pdb.set_trace()
     #construct the gas species we need to follow
     gasL = [dcomp['name'] for dcomp in dcomposL if dcomp['iceline']==True]
     gasL.append('gas')      #always
@@ -223,5 +223,5 @@ def sim_init (calldir, dsystempars={},*args):
 
     #Then assign particle properties
 
-    return system
+    return system,gasL
 
