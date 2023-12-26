@@ -15,4 +15,3 @@ tmax = 1e2 *cgs.yr
 
 doPlanets = True
 doIcelines = True
-

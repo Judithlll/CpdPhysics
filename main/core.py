@@ -9,6 +9,7 @@ import functions as f
 import copy
 import parameters as pars
 from gas import GAS
+import scipy.optimize as sciop
 
 class System(object):
 
@@ -81,8 +82,11 @@ class System(object):
         """
 
         #time derivative of particles
+
+        #TBD: make an Y2d array...
+        
         dydtP = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.gas)
-            
+
         #timescale
         tscaleArr = np.abs(self.particles.Y2d/dydtP)
         deltaT = np.nanmin(0.2*tscaleArr)
@@ -93,14 +97,23 @@ class System(object):
 
         #update particle properties
         #make
-        self.Y2dold = copy.deepcopy(self.particles.Y2d)
+        
+        self.back_up_last_data()
         Yt = self.particles.update(self.time,self.time+deltaT,self.gas,self.timestepn)
 
         self.deltaT = deltaT
         self.ntime += 1
-        # stop here
+        # print(self.particles.locL, self.time)
+        if self.time==np.nan or self.deltaT==np.nan:
+            print('hello')
+            import pdb;pdb.set_trace()
         return Yt, deltaT
     
+    def back_up_last_data(self):
+        self.locLold=copy.deepcopy(self.particles.locL)
+        self.massLold=copy.deepcopy(self.particles.massL)
+        self.mtotLold=copy.deepcopy(self.particles.mtotL)
+
     def post_process (self):
         """
         returns indices of particles that cross boundaries 
@@ -146,8 +159,8 @@ def advance_iceline(system):
     for now particles directly lose the mass of water without any other effect
     """
 
-    sploc = system.particles.Y2d[0]
-    sploc_old = system.Y2dold[0]
+    sploc = system.particles.locL
+    sploc_old = system.locLold
     for k,iceline in enumerate(system.icelineL):
         idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
         frac=1
@@ -155,9 +168,9 @@ def advance_iceline(system):
             frac-=system.icelineL[i].frac
 
         if len(idx)!=0:     
-            for ix in idx:
-                #system.particles.msup =
-                system.particles.Y2d[2,ix] *= system.particles.mtot1*frac
+            # for ix in idx:
+            #     #system.particles.msup =
+            system.particles.mtotL[idx] *= frac
 
 
 
@@ -173,8 +186,8 @@ def advance_planets (system):
         #planet exists only after planet.time
         if planet.time<system.time:
 
-            sploc = system.particles.Y2d[0]
-            sploc_old = system.Y2dold[0]
+            sploc = system.particles.locL
+            sploc_old = system.locLold
 
             #particles that cross are those that
             idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
@@ -186,8 +199,10 @@ def advance_planets (system):
 
                 crossL = []
                 for ip in idx:
-                    spi = system.Y2dold[:,ip] #makes a superparticle
+                    #makes a superparticle
+                    spi = np.array([system.locLold[ip],system.massLold[ip],system.mtotLold[ip]])
                     crossL.append(spi)
+                crossL=np.array(crossL)
 
                 
                 # if len(idx)!=0:
@@ -231,9 +246,8 @@ def advance_planets (system):
             #update s-particle properties from sp-crossings
             #assumes all particles are accreted (TBC!!)
             spN=system.particles
-
+            
             for k, ip in enumerate(idxN):
-
                 #mass that is being transferred (TBC!!)
                 #need to calculate epsilon (PA efficiency)
 
@@ -246,10 +260,11 @@ def advance_planets (system):
                 else:
                     "pebble accretion can not happen"
                     delm=0
-
-                planet.mass += delm #increase mass (pebble accretion)
+                
+                planet.mass += delm #in crease mass (pebble accretion)
                 # planet.fcomp += 0.  #TBD !!
-
+                
+                # import pdb; pdb.set_trace()
                 #spN -> system.particles.Y2d...
                 spN.mtotL[ip] -= delm #decrease mass sp
 
@@ -419,11 +434,15 @@ class Superparticles(object):
             self.mtot1=diskmass/nini
             self.mtotL=np.array([self.mtot1]*nini)
 
-        self.Y2d = np.empty((ndim,nini))
-        self.Y2d[0] = self.locL
-        self.Y2d[1] = self.massL
-        self.Y2d[2] = self.mtotL
+        self.generate_Y2d()   #get a Y2d used to integrate
+        #TBR
+        # self.Y2d = np.empty((ndim,nini))
+        # self.Y2d[0] = self.locL
+        # self.Y2d[1] = self.massL
+        # self.Y2d[2] = self.mtotL
 
+    def generate_Y2d(self):
+        self.Y2d=np.array([self.locL, self.massL])
 
     def dY2d_dt (self,Y2d,t,gas):
         """
@@ -434,7 +453,7 @@ class Superparticles(object):
         """
 
         #unpack the state vector
-        r, mphy, mtot = self.Y2d   #maybe the total mass needn't to be put in Y2d
+        r, mphy = self.Y2d   #maybe the total mass needn't to be put in Y2d
 
         Rd=(mphy/(self.rhoint*4/3*np.pi))**(1/3)
 
@@ -481,7 +500,7 @@ class Superparticles(object):
         Y2ddt = np.zeros_like(self.Y2d)
         Y2ddt[0] = drdt
         Y2ddt[1] = dmdt
-        Y2ddt[2] = 0.0
+        # Y2ddt[2] = 0.0
 
         return Y2ddt 
     
@@ -502,20 +521,28 @@ class Superparticles(object):
         
         self.locL=Yt[-1,0,:]
         self.massL=Yt[-1,1,:]
-        self.mtotL=Yt[-1,2,:]
-        
-        self.Y2d = Yt[-1,:,:]
+        # self.mtotL=Yt[-1,2,:] #no longer updated
+        #TBR
+        self.generate_Y2d()  #update Y2d for next step integration
         return Yt
 
     
     def remove_particles(self,remove_idx):
-        self.Y2d = np.delete(self.Y2d, remove_idx, 1)     
+        #TBD: remove self.loc, self.mphys...
+        self.mtotL =  np.delete(self.mtotL, remove_idx) 
+        self.locL = np.delete(self.locL, remove_idx)
+        self.massL = np.delete(self.massL, remove_idx)   
+        
+        self.generate_Y2d()  #get a new Y2d, update.
 
     def add_particles(self,Nadd):
+        #TBD: no longer works with Y2d
 
-        ynew = np.array([[self.rout],[self.mini],[self.mtot1]])
+        self.locL = np.append(self.locL, self.rout)
+        self.massL = np.append(self.massL, self.mini)
+        self.mtotL = np.append(self.mtotL, self.mtot1)
 
-        self.Y2d = np.append(self.Y2d, ynew,1)
+        self.generate_Y2d()  #update Y2d
 
         if Nadd!=1:
             print('[core]Error:can only add 1 particle // reduce timestep')
@@ -569,6 +596,11 @@ class ICELINE(object):
         self.species=species
         self.temp=temp
         self.frac=frac
+    
+    def find_iceline (self,rad, time, gas):
+        Tice = self.temp
+        Tdisk = gas.get_key_disk_properties(rad,time)[1]
+        return Tdisk -Tice
 
     def get_icelines_location(self,gas,time):
         """
@@ -576,14 +608,9 @@ class ICELINE(object):
         """
         locL = np.linspace(dp.rinn,dp.rout,1000)
         diffold = 1e5
-    
-        for i in range(len(locL)):
-            Td=gas.get_key_disk_properties(locL[i],time)[1]
-            diffn=abs(Td-self.temp)
-            if diffn>diffold:
-                # print(diffn)
-                self.loc=locL[i-1]
-                break
-            else:
-                diffold=diffn
+
+        #change the bounds to make it general
+        self.loc = sciop.brentq(self.find_iceline, cgs.RJ, 20*cgs.RJ, args=(time,gas))
+        # import pdb; pdb.set_trace()
+
 

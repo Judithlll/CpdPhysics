@@ -58,8 +58,8 @@ def St_iterate(eta,v_K,v_th,lmfp,rho_g,
 
         return Stn, v_r
 
-def get_stokes_number(disk,t,ParticlePL,rhoint):
-    r, mphy, mtot = ParticlePL
+def get_stokes_number(disk,t,sPLmtot,rhoint):
+    mphy = sPLmtot
     Rd=(mphy/(rhoint*4/3*np.pi))**(1/3)
 
 
@@ -125,7 +125,7 @@ def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
     disk.add_auxiliary ()
     disk.user_difined ()
 
-    St=get_stokes_number(disk,system.time,cross_p,system.rhoint)
+    St=get_stokes_number(disk,system.time,cross_p[1],system.rhoint)
     eta=disk.eta
 
     mus=PlanetsMass/disk.Mcp
@@ -147,7 +147,7 @@ def M_critical(system,PlanetsLoc,cross_p):
     disk.add_auxiliary ()
     disk.user_difined ()
 
-    St=get_stokes_number(disk,system.time,cross_p,system.rhoint)
+    St=get_stokes_number(disk,system.time,cross_p[1],system.rhoint)
     eta=disk.eta
 
     M_critical=1/8*eta**3*St *disk.Mcp#Shibaike 2019

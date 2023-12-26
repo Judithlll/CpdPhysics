@@ -181,8 +181,14 @@ def m_g():
 
 #     return cs
 
-def Omega_K(r,t,Mcp):
-    OK=np.sqrt(cgs.gC*Mcp/r**3)
+def Omega_K(loc,t,Mcp):
+    
+    OK=np.sqrt(cgs.gC*Mcp/loc**3)
+    # print(OK)
+    # if type(OK) !=np.ndarray:
+    #     if OK==np.nan:
+    #         import pdb;pdb.set_trace()
+    # print(Mcp,r)
     return OK
 
 # def H_g(cs,OmegaK):

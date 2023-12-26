@@ -39,10 +39,10 @@ def do_stuff (sys, init=False):
     system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()
     if init:
-        data.data_process(system.particles.Y2d,system.time,system.daction,system.planetL)
+        data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #initialize your data class
     else:
-        data.data_process(system.particles.Y2d,system.time,system.daction,system.planetL)
+        data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #data object should be available...
 
 
@@ -70,7 +70,7 @@ class Data(object):
         if 'add' in daction.keys():
             self.cumulative_change['add']+=daction['add']
     
-    def data_process(self,Y2d,time,daction,planetL):
+    def data_process(self,locL,massL,mtotL,time,daction,planetL):
         """
         time: the system.time 
         Y2d: the particles properties' list
@@ -83,15 +83,15 @@ class Data(object):
         # if particles ware removed, then put a np.nan into this location. 
         # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
         if len(self.cumulative_change['remove'])>0:
-            rL=np.insert(Y2d[0],0,np.full(len(self.cumulative_change['remove']),np.nan))
-            mL=np.insert(Y2d[1],0,np.full(len(self.cumulative_change['remove']),np.nan))
-            mtL=np.insert(Y2d[2],0,np.full(len(self.cumulative_change['remove']),np.nan))
+            rL=np.insert(locL,0,np.full(len(self.cumulative_change['remove']),np.nan))
+            mL=np.insert(massL,0,np.full(len(self.cumulative_change['remove']),np.nan))
+            mtL=np.insert(mtotL,0,np.full(len(self.cumulative_change['remove']),np.nan))
 
         else:
 
-            rL=Y2d[0]
-            mL=Y2d[1]
-            mtL=Y2d[2]
+            rL=locL
+            mL=massL
+            mtL=mtotL
 
         self.radD.setdefault(time/cgs.yr2s,rL/cgs.RJ)
         self.mD.setdefault(time/cgs.yr2s,mL)
