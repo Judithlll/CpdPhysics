@@ -159,7 +159,7 @@ class System(object):
 
 
 
-def advance_iceline(system):
+def advance_iceline (system):
     """
     for now particles directly lose the mass of water without any other effect
     """
@@ -168,14 +168,27 @@ def advance_iceline(system):
     sploc_old = system.locLold
     for k,iceline in enumerate(system.icelineL):
         idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
-        frac=1
-        for i in range(k+1):
-            frac-=system.icelineL[i].frac
 
+        ##[23.12.30]CWO: I have no idea what this does... can be removed, I think
+        #frac=1
+        #for i in range(k+1):
+        #    frac-=system.icelineL[i].frac
+
+        ic = pars.composL.index(iceline.species) #refers to species index
         if len(idx)!=0:     
             # for ix in idx:
             #     #system.particles.msup =
-            system.particles.mtotL[idx] *= frac
+
+
+            fice = system.particles.fcomp[idx,ic]  #mass fraction in ice
+            fremain = (1-fice)          #remain fraction
+            fremain[fremain<1e-15] = 0  #loss of numbers (!!)
+            system.particles.mtotL[idx] *= fremain    #reduce masses accordingly
+            system.particles.massL[idx] *= fremain
+            system.particles.fcomp[idx,ic] = 0.      #gone is the ice!
+
+            #renormalize
+            system.particles.fcomp[idx,:] = (system.particles.fcomp[idx,:].T /(system.particles.fcomp[idx,:].sum(1)+1e-100)).T
 
 
 
@@ -257,7 +270,7 @@ def advance_planets (system):
                 #need to calculate epsilon (PA efficiency)
 
                 #calculate critical mass to verify if the pebble accretion can occur
-                Mc=f.M_critical(system,planet.loc,crossL[k])
+                Mc = ff.M_critical(system,planet.loc,crossL[k])
                 if Mc<planet.mass:                    
                     epsilon = ff.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
                     delm = epsilon*crossL[k][2]#don't understand this line...
@@ -401,12 +414,13 @@ class Superparticles(object):
         #import pdb; pdb.set_trace()
 
         self.nini=nini
-        #self.mini=mini #physical mass
         mini = Rdi**3 *4*np.pi/3 *1.0
+
+        #[23.12.30]this was commented out; now uncommented
+        self.mini=mini #physical mass
+
         self.rinn=rinn
         self.rout=rout
-
-        ndim = 3# location // mass // total mass
 
         #TBD this (=location, mphys, mtot, ... of initial particles) should become user defined...
         self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
@@ -481,6 +495,18 @@ class Superparticles(object):
         self.locL = np.array(radL)
         self.mtotL = np.array(msup)
         self.mtot1 = msup[-1] #??
+
+        #[23.12.30]NEW:add composition data (fcomp)
+        #[23.12.30]this looks a bit ugly...
+        self.fcomp = np.empty((nini,len(pars.composL)))
+        for k,rad in enumerate(radL):
+            Zcomp = []
+            for ic,scomp in enumerate(pars.composL):
+                Zcomp.append(dcomposL[ic]['Z_init'](rad)*max(0,dcomposL[ic]['mask_icl'](rad)))
+            Zcomp = np.array(Zcomp)
+
+            #Zcomp = np.array([dcompos['Z_init'](rad)*max(0,dcompos['mask_icl'](rad)) for dcompos in dcomposL])
+            self.fcomp[k,:] = Zcomp/sum(Zcomp)
 
         #[23.12.30]old stuff... this can be removed
         #TBR
