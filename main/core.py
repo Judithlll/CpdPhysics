@@ -5,11 +5,13 @@ import cgs
 import ode
 import matplotlib.pyplot as plt
 import disk_properties as dp 
-import functions as f
+import functions as ff
 import copy
 import parameters as pars
 from gas import GAS
 import scipy.optimize as sciop
+import scipy.integrate as sciint
+import time
 
 class System(object):
 
@@ -51,8 +53,10 @@ class System(object):
         """
         because we need to consider iceline, so separatly 
         initiallize the particles, for now just water iceline is considered  
+
+        [23.12.30]CWO:instead of forwarding diskmass, I supply self.gas to the superparticle class
         """
-        self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.diskmass, **dparticleprops)
+        self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
 
 
     def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
@@ -255,7 +259,7 @@ def advance_planets (system):
                 #calculate critical mass to verify if the pebble accretion can occur
                 Mc=f.M_critical(system,planet.loc,crossL[k])
                 if Mc<planet.mass:                    
-                    epsilon = f.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
+                    epsilon = ff.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
                     delm = epsilon*crossL[k][2]#don't understand this line...
                     
                 else:
@@ -368,15 +372,23 @@ class DISK (object):
 
 
 class Superparticles(object):
+
+    #CWO: these parameters look ugly here..
     rhoint=1.4
     pi=np.pi
     Sto=0.0001  
     error=1e-8
 
 
-    def __init__(self,rinn,rout,dcomposL,diskmass=0.01*cgs.MJ,nini=10,Rdi=0.1):
+    def __init__(self,rinn,rout,dcomposL,gas,nini=10,Rdi=0.1,
+            initrule='equalmass'):
         """
         systems initial properties
+
+        initrule:[equalmass,equallogspace]
+                :how initial parameters are distributed
+
+        gas     :gas object (needed to get gas surface density)   
 
         nini: initial number of the particles
         mini: initial mass for every particles
@@ -407,39 +419,107 @@ class Superparticles(object):
         #     self.mtotL = np.where(self.locL<icelineLoc[0], self.mtot1*0.5, self.mtot1)
         # if len(icelineLoc)==2:
         #     self.mtot1 = diskmass /()
-        if len(icelineL)!= 0:
-            niceline=len(icelineL)
-            fracs=[]
-            nsum=0
-            ns=[]
-            for i in range(niceline):
-                n=len(self.locL[self.locL<icelineL[i].loc])-nsum
-                nsum+=n
-                ns.append(n)
-                frac=1
-                for j in range(i):
-                    frac-=icelineL[-j].frac  #looking notes in Pad
-                fracs.append(frac)
-            ns.append(len(self.locL)-nsum)
-            f=1
 
-            for k in range(niceline):
-                f-=icelineL[k].frac
-            fracs.append(f)
+        
+        #[23.12.30]:copied from /NewLagrance
+        def construct_farr (dcomposL):
+            fnL = []; miL = []
+            for dcompos in dcomposL: 
+                fnL.append(dcompos['Z_init'])
+                miL.append(dcompos['mask_icl'])
 
-            fracs.reverse()
+            def f_arr (rad):
+                farr = [fn(rad) for fn in fnL]
+                mirr = [mi(rad) for mi in miL]
+                return np.array(farr) * np.maximum(0, mirr)
             
-            factors=np.array(ns)*np.array(fracs)
-            self.mtot1=diskmass/np.sum(factors)
-            self.mtotL=np.array([])
-            
-            for k in range(len(icelineL)+1):
-                self.mtotL=np.append(self.mtotL,np.ones(ns[k])*self.mtot1*fracs[k])
-        else:
-            self.mtot1=diskmass/nini
-            self.mtotL=np.array([self.mtot1]*nini)
+            return f_arr
+
+        #function gives the initial abundance of species in disk
+        f_arr = construct_farr (dcomposL)
+
+        #[23.12.30]:copied from /NewLagrance
+        def f_sample (r):
+            #samples the initial solid mass distribution
+            Zcom = f_arr(r)
+
+            #get the initial surface density
+            sigini, *dum = gas.get_key_disk_properties(r,0.0)
+            return 2*np.pi*r*sigini *Zcom.sum()
+
+
+        print('[core.Superparticles.init]:initialization superparticles under rule:', initrule)
+        if initrule=='equallogspace':
+            #put sp at equal distances in log space
+
+            xarr = np.linspace(1/nini, 1, nini)
+            radL = rinn *(rout/rinn)**xarr
+
+            msup = np.zeros_like(radL)
+            r0 = rinn
+            for k,r1 in enumerate(radL):
+                msup[k], err = sciint.quad(f_sample, r0, r1)
+                r0 = r1
+
+        elif initrule=='equalmass':
+            #puts superparticles at location such that they have
+            #equald mass
+
+            Mtot, err = sciint.quad(f_sample, rinn, rout)
+            t0 = time.time()
+            print('[core.Superparticles.init]:calling rout.sample_equal... this may take a while')
+            radL = ff.sample_equal (f_sample, rinn, rout, nini)
+            radL = np.array(radL)
+            radL = np.sqrt(radL[1:]*radL[:-1])
+            t1 = time.time()
+            print('[core.Superparticles.init]:sampling done ({:4.1f} sec)'.format(t1-t0))
+
+            #the mass of the super-particles are equally spread through
+            msup = np.ones_like(radL) *Mtot/nini
+
+        #[23.12.30]:I don't know why/how mtot1 should be defined
+        self.locL = np.array(radL)
+        self.mtotL = np.array(msup)
+        self.mtot1 = msup[-1] #??
+
+        #[23.12.30]old stuff... this can be removed
+        #TBR
+        if False:
+            if len(icelineL)!= 0:
+                niceline=len(icelineL)
+                fracs=[]
+                nsum=0
+                ns=[]
+                for i in range(niceline):
+                    n=len(self.locL[self.locL<icelineL[i].loc])-nsum
+                    nsum+=n
+                    ns.append(n)
+                    frac=1
+                    for j in range(i):
+                        frac-=icelineL[-j].frac  #looking notes in Pad
+                    fracs.append(frac)
+                ns.append(len(self.locL)-nsum)
+                f=1
+
+                for k in range(niceline):
+                    f-=icelineL[k].frac
+                fracs.append(f)
+
+                fracs.reverse()
+                
+                factors=np.array(ns)*np.array(fracs)
+                self.mtot1=diskmass/np.sum(factors)
+                self.mtotL=np.array([])
+                
+                for k in range(len(icelineL)+1):
+                    self.mtotL=np.append(self.mtotL,np.ones(ns[k])*self.mtot1*fracs[k])
+            else:
+                self.mtot1=diskmass/nini
+                self.mtotL=np.array([self.mtot1]*nini)
+
 
         self.generate_Y2d()   #get a Y2d used to integrate
+
         #TBR
         # self.Y2d = np.empty((ndim,nini))
         # self.Y2d[0] = self.locL
@@ -447,7 +527,7 @@ class Superparticles(object):
         # self.Y2d[2] = self.mtotL
 
     def generate_Y2d(self):
-        self.Y2d=np.array([self.locL, self.massL])
+        self.Y2d = np.array([self.locL, self.massL])
 
     def dY2d_dt (self,Y2d,t,gas):
         """
@@ -485,7 +565,7 @@ class Superparticles(object):
 
 
         #obtain Stokes number by iterating on drag law
-        St,v_r = f.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd)
+        St,v_r = ff.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd)
 
         #describe what's going on here
         v_dd = np.abs(v_r)/2

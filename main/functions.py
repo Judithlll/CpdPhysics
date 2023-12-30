@@ -1,7 +1,49 @@
 import numpy as np
 import cgs
 import core 
-error=1e-8
+import scipy.integrate as sciint
+import scipy.optimize as sciop
+
+error=1e-8 #CWO: what is this?
+
+
+def sample_equal (fx, x0, xf, Nsample=100, ttol=1e-5):
+    """
+    [23.12.30]: function copied from /NewLagrance by CWO
+
+    samples the CDF of fx(x) equally over [x0,xf] 
+    by Nsample points
+
+    NOTE: I use brentq with a for-loop, which is probably VERY SLOW
+    """
+
+    Fnorm, err = sciint.quad(fx, x0, xf)
+
+    def y_root (x,yaim=0,xold=x0,yold=0):
+        """
+        y:  y-value in range (0,1)
+        x:  root
+        """
+        Fy, err = sciint.quad(fx, xold, x)
+        return Fy/Fnorm +yold -yaim
+
+
+    xL = [x0]; xold = x0; xE = xf; yold=0.
+    for k in range(Nsample):
+        y = (k+0.5) /Nsample
+        xr, info = sciop.brentq(y_root, xold, xE, args=(y,xold,yold), full_output=True)
+        xL.append(xr)
+
+        #[22.12.13]some strange bug, perhaps related to non-continuity?!
+        yck = y_root(xr,0,x0)
+        if abs(y-yck)>ttol:
+            xr, info = sciop.brentq(y_root, xold, xE, args=(y,x0,0), full_output=True)
+
+        xE = xf
+        xold = xr*1.0
+        yold = y*1.0
+
+    return xL
 
 
 def load_dict_from_file (fname):
