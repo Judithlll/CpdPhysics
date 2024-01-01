@@ -27,8 +27,11 @@ userfun.do_stuff(system, init=True)
 
 while system.time<pars.tmax:
 
+    #[24.01.01]:determines the timestep for this step
+    system.new_timestep (pars.tmax)
+
     #integrate the super particles
-    Yt = system.update_particles (pars.tmax)
+    Yt = system.update_particles ()
 
     #import pdb; pdb.set_trace()
 
@@ -39,7 +42,8 @@ while system.time<pars.tmax:
 
     if system.niceline>0:
         idx=core.advance_iceline(system)
-    # import pdb ;pdb.set_trace()
+
+    ## CWO: What is this ?!
     #update the location of the icelines, when time pass the gap opening time
     if system.time>system.tgap:
         for il in system.icelineL:
@@ -51,12 +55,17 @@ while system.time<pars.tmax:
 
     userfun.do_stuff(system)
 
-    end=time.time()
-    runTime=end-start
+    end = time.time()
+    runTime = end-start
+
+    #TBD: you should put your print statements in userfun.do_stuff
     print([system.time/cgs.yr,runTime])
     # if runTime>5*60:
     #     print("it takes"+ str(runTime/60)+" now")
         
+
+
+#CWO: what is all this (below) and why do we need it here?
 
 #get Peff propfile
 PAeff=[]

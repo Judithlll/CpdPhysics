@@ -19,7 +19,10 @@ class System(object):
     SYSTEM: integrate the every part of the PPD (or CPD) and update them with time.
     """
 
-    fraction=0.02 
+    ## CWO: These parameters should be initialized with pars.dsystempars; not hard-coded like this..
+
+    ## CWO: Many of these par also no longer used... please, clean up 
+    fraction=0.02 #CWO -- what's this?
     dgratio=0.01  #dust to gas ratio
     rhoint = 1.4
     mtot1 = 1e24 #total mass a single superparticle represents
@@ -78,46 +81,55 @@ class System(object):
 
         return dum
 
-    def update_particles (self,tEnd):
+
+    def update_particles (self):
         """
+        Integrate the particles forward by amount deltaT
+
         How to evolving the gas in the disk is still not sure
+        CWO: tell what is "not sure"
 
         Evolving system to the self.time
-
         """
 
         #time derivative of particles
 
         #TBD: make an Y2d array...
         
-        dydtP = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.gas)
-
+        #dydtP = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.gas)
         #timescale
-        tscaleArr = np.abs(self.particles.Y2d/dydtP)
-        deltaT = np.nanmin(0.2*tscaleArr)
-        # import pdb; pdb.set_trace()
+        #tscaleArr = np.abs(self.particles.Y2d/dydtP)
+        #deltaT = np.nanmin(0.2*tscaleArr)
 
-        if self.time+deltaT>tEnd:
-            deltaT = tEnd - self.time
+        #if self.time+deltaT>tEnd:
+        #    deltaT = tEnd - self.time
+
+        ## CWO: self.deltaT is now determined separately
 
         #update particle properties
-        #make
-        
         self.back_up_last_data()
-        Yt = self.particles.update(self.time,self.time+deltaT,self.gas,self.timestepn)
+        Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,self.timestepn)
 
-        self.deltaT = deltaT
+        #self.deltaT = deltaT
         self.ntime += 1
         # print(self.particles.locL, self.time)
         if self.time==np.nan or self.deltaT==np.nan:
             print('hello')
             import pdb;pdb.set_trace()
-        return Yt, deltaT
+
+        ## CWO: why do we return stuff?
+        return Yt
+
     
     def back_up_last_data(self):
+        """
+        copies present state to "old" 
+        CWO: would it be good also to copy the time?
+        """
         self.locLold=copy.deepcopy(self.particles.locL)
         self.massLold=copy.deepcopy(self.particles.massL)
         self.mtotLold=copy.deepcopy(self.particles.mtotL)
+
 
     def post_process (self):
         """
@@ -158,6 +170,40 @@ class System(object):
             self.nini+=self.daction['add']
 
 
+    def new_timestep (self, tEnd):
+        """
+        chooses a timestep
+        """
+        fp = 0.2 #The 0.2 should become a parameter...
+
+        #organize the procedure a bit (for quasi-steady evolution... later!)
+        mintimeL = []
+
+        Y2d = self.particles.make_Y2d()
+        Y2dp = self.particles.dY2d_dt(Y2d,self.time,self.gas)
+
+        #timescale for the particles
+        #I dont think there's need to use np.nanmin
+        tpart = np.abs(Y2d/Y2dp)
+        mintimeL.append({'name':'particles', 'tmin': fp*tpart.min(), 
+                                'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
+
+        #TBD: now we can add other mintime:
+        # - planets (migration, growth)
+        # - icelines (change in position)
+
+        deltaT = np.inf
+        for ddum in mintimeL:
+            if ddum['tmin'] < deltaT:
+                deltaT = ddum['tmin']
+            
+
+        if self.time+deltaT>tEnd:
+            deltaT = tEnd - self.time
+
+        self.deltaT = deltaT
+
+
 
 def advance_iceline (system):
     """
@@ -176,20 +222,18 @@ def advance_iceline (system):
 
         ic = pars.composL.index(iceline.species) #refers to species index
         if len(idx)!=0:     
-            # for ix in idx:
-            #     #system.particles.msup =
+            #CWO: WHY was this left commented out?
+            for ix in idx:
 
+                fice = system.particles.fcomp[idx,ic]  #mass fraction in ice
+                fremain = (1-fice)          #remain fraction
+                fremain[fremain<1e-15] = 0  #loss of numbers (!!)
+                system.particles.mtotL[idx] *= fremain    #reduce masses accordingly
+                system.particles.massL[idx] *= fremain
+                system.particles.fcomp[idx,ic] = 0.      #gone is the ice!
 
-            fice = system.particles.fcomp[idx,ic]  #mass fraction in ice
-            fremain = (1-fice)          #remain fraction
-            fremain[fremain<1e-15] = 0  #loss of numbers (!!)
-            system.particles.mtotL[idx] *= fremain    #reduce masses accordingly
-            system.particles.massL[idx] *= fremain
-            system.particles.fcomp[idx,ic] = 0.      #gone is the ice!
-
-            #renormalize
-            system.particles.fcomp[idx,:] = (system.particles.fcomp[idx,:].T /(system.particles.fcomp[idx,:].sum(1)+1e-100)).T
-
+                #renormalize
+                system.particles.fcomp[idx,:] = (system.particles.fcomp[idx,:].T /(system.particles.fcomp[idx,:].sum(1)+1e-100)).T
 
 
 def advance_planets (system):
@@ -421,10 +465,12 @@ class Superparticles(object):
 
         self.rinn=rinn
         self.rout=rout
+        self.massL = np.array([mini]*nini)
 
+        ## TBR: no longer necessary
+        #
         #TBD this (=location, mphys, mtot, ... of initial particles) should become user defined...
-        self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
-        self.massL=np.array([mini]*nini)
+        #self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
         # if icelineLoc==None:
         #     self.mtot1=diskmass/nini
         #     self.mtotL=self.mtot1*np.ones_like(self.locL)
@@ -508,6 +554,9 @@ class Superparticles(object):
             #Zcomp = np.array([dcompos['Z_init'](rad)*max(0,dcompos['mask_icl'](rad)) for dcompos in dcomposL])
             self.fcomp[k,:] = Zcomp/sum(Zcomp)
 
+        #[24.01.01]this is a bit ugly... but necessary for adding particles
+        self.fcompini = self.fcomp[-1]
+
         #[23.12.30]old stuff... this can be removed
         #TBR
         if False:
@@ -552,8 +601,15 @@ class Superparticles(object):
         # self.Y2d[1] = self.massL
         # self.Y2d[2] = self.mtotL
 
+    ## CWO: I'm not sure if we need to attach Y2d to self
+    #       since Y2d is no longer fundamental...
+    #       perhaps just "make_Y2d" is sufficient?
     def generate_Y2d(self):
         self.Y2d = np.array([self.locL, self.massL])
+
+    def make_Y2d (self):
+        return np.array([self.locL, self.massL])
+
 
     def dY2d_dt (self,Y2d,t,gas):
         """
@@ -643,7 +699,10 @@ class Superparticles(object):
         self.mtotL =  np.delete(self.mtotL, remove_idx) 
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)   
+        self.fcomp = np.delete(self.fcomp, remove_idx, axis=0) #[24.01.01] added
+
         
+        #TBR: not necessary... only generate when you need it!
         self.generate_Y2d()  #get a new Y2d, update.
 
     def add_particles(self,Nadd):
@@ -652,6 +711,8 @@ class Superparticles(object):
         self.locL = np.append(self.locL, self.rout)
         self.massL = np.append(self.massL, self.mini)
         self.mtotL = np.append(self.mtotL, self.mtot1)
+        self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
+
 
         self.generate_Y2d()  #update Y2d
 
