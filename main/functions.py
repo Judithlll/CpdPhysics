@@ -4,9 +4,6 @@ import core
 import scipy.integrate as sciint
 import scipy.optimize as sciop
 
-error=1e-8 #CWO: what is this?
-
-
 def sample_equal (fx, x0, xf, Nsample=100, ttol=1e-5):
     """
     [23.12.30]: function copied from /NewLagrance by CWO
@@ -74,31 +71,43 @@ def load_dict_from_file (fname):
 
 
 
-def St_iterate(eta,v_K,v_th,lmfp,rho_g,
-                Omega_K,R_d,rhoint=1.4,Sto=0.001):
-        """
-        obtain Stokes number and drift velocity by fixed-point iteration
-        """
-        #put in physics.py
-    
-        St=Sto
-        nither=1
-        while(nither<40):
-            nither += 1
-            v_r=-2*St/(St**2+1)*eta*v_K
-            v_dg=np.abs(v_r)
-            Rep=4*R_d*v_dg/v_th/lmfp
-            #following Shibaike, eq....
-            CD=24/Rep*(1+0.27*Rep)**0.43+0.47*(1-np.exp(-0.04*Rep**0.38))
-            Stn=8/3/CD*rhoint*R_d/rho_g/v_dg*Omega_K
-            delta_St=abs(St-Stn)
-            
-            if np.max(delta_St)<error:
-                break
-            else:
-                St=Stn
+def St_iterate (eta,v_K,v_th,lmfp,rho_g,
+                Omega_K,R_d,rhoint=1.4,Sto=0.001, errorX=1e-4, nmax=100):
+    """
+    obtain Stokes number and drift velocity by fixed-point iteration
+    """
+    #put in physics.py
 
-        return Stn, v_r
+    if Sto is None:
+        St = 1e-4
+    elif type(eta)==np.ndarray and type(Sto)==np.ndarray and len(eta)==len(Sto):
+        St = Sto
+    else:
+        St = 1e-4
+
+    niter = 1
+    while niter<nmax:
+        niter += 1
+        v_r=-2*St/(St**2+1)*eta*v_K
+        v_dg=np.abs(v_r)
+        Rep=4*R_d*v_dg/v_th/lmfp
+        #following Shibaike, eq....
+        CD=24/Rep*(1+0.27*Rep)**0.43+0.47*(1-np.exp(-0.04*Rep**0.38))
+        Stn=8/3/CD*rhoint*R_d/rho_g/v_dg*Omega_K
+
+        #better to do relative error 
+        error = abs(St/Stn-1)
+        
+        if error.max()<errorX:
+            break
+        else:
+            St = Stn
+
+    #print('# iterations:', niter)
+    #if niter>50 and type(eta)==np.ndarray: import pdb; pdb.set_trace()
+
+    return Stn, v_r
+
 
 def get_stokes_number(disk,t,sPLmtot,rhoint):
     mphy = sPLmtot

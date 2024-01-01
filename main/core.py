@@ -466,6 +466,7 @@ class Superparticles(object):
         self.rinn=rinn
         self.rout=rout
         self.massL = np.array([mini]*nini)
+        self.stokesOld = None
 
         ## TBR: no longer necessary
         #
@@ -647,7 +648,9 @@ class Superparticles(object):
 
 
         #obtain Stokes number by iterating on drag law
-        St,v_r = ff.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd)
+        St,v_r = ff.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd,Sto=self.stokesOld)
+        self.stokesOld = St
+
 
         #describe what's going on here
         v_dd = np.abs(v_r)/2
