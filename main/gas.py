@@ -21,6 +21,7 @@ class GAS ():
                         grid*; can accounts for source terms.
         """
         self.mode = mode
+        self.oldkeyprop = None
 
 
         if mode=='gridstatic':
@@ -46,7 +47,9 @@ class GAS ():
         """
 
         if self.mode=='prescribed':
-            sigmaG, temp, muout = dp.key_disk_properties(loc, time)
+            sigmaG, temp, muout = dp.key_disk_properties(loc, time, dold=self.oldkeyprop)
+            if type(temp)==np.ndarray:
+                self.oldkeyprop = {'sigmaG':sigmaG, 'temp':temp, 'muout':muout}
         else:
 
             if self.mode=='gridevolve':

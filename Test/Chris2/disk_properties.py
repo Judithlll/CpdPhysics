@@ -87,65 +87,86 @@ def Sigma_g(r,cs,OmegaK,dotMg):
 def MeanMolecularWeight():
     return 2.34
 
-def key_disk_properties (r,t):
+
+def key_disk_properties (rad, t, dold=None):
+    """
+    This returns the key disk properties
+        - surface density
+        - temperature
+        - mean molecular weight
+
+    at location rad and time t
+    """
+    ## CWO: what would really help in the iteration is to provide estimated solutions
+
+    #turn into array if necessary
+    if type(rad) in [float, np.float64]:
+        r = np.array([rad])
+        returnfloat = True
+    else:
+        r = rad
+        returnfloat = False
     
     #add a judgement if r is an array, because there is a comparison
-    Mcp=Mcp_t(t)
+    Mcp = Mcp_t(t)
     OmegaK=Omega_K(r,t,Mcp)
-    dotMg=dot_Mg(t)
-    if type(r)==np.ndarray:
-        Ti=np.ones_like(r)
-        n=1
+    dotMg = dot_Mg(t)
 
-        while n<20:
-            if np.min(Ti)<0:
-                print('Something wrong! T=',Ti,'<0')
-                break
+    nmax = 10
+    nn = 1
 
-            #kapa=np.zeros_like(r)
+    #active indices
+    ii = np.ones_like(r, dtype=bool)
 
-            #kapa[Ti<160]=450*(Ti[Ti<160]/160)**2*rgg
-            #kapa[Ti>=160]=450*rgg
-
-            kapa = np.where(Ti<160, 450*(Ti/160)**2, 450) *rgg  
-            cs = c_s(Ti)
-
-            sigG = Sigma_g(r,cs,OmegaK,dotMg)
-            tau = kapa*sigG
-
-            g = (3/8*tau+1/4.8/tau)**(1/4)
-            Td = (3*cgs.gC*Mcp_t(t)*dot_Mg(t)/8/np.pi/cgs.sigmaSB/r**3)**(1/4)*g #Shibaike 2019 equation (5)
-            diff= abs(Ti/Td-1)
-            Ti = Td
-            # print(n,'diff_Td=',diff.max())
-            if diff.max()<1e-4:
-                break
-            n+=1
+    #start from the guess solution
+    if dold is not None and len(r)==len(dold['temp']):
+        Td = dold['temp']
+        sigG = dold['sigmaG']
     else:
-        Ti=100
-        n=1
-        while n<20:
-            kapa=np.zeros_like
-            if 0<Ti<160:
-                kapa=450*(Ti/160)**2*rgg
-            elif Ti.any()<0:
-                print('Something wrong! T=',Ti,'<0')
-                break
-            else:
-                kapa=450*rgg
+        Td = 10*np.ones_like(r)
+        sigG = np.ones_like(r)
 
-            cs=c_s(Ti)
-            sigG = Sigma_g(r,cs,OmegaK,dotMg)
-            tau = kapa*sigG
+    while nn<nmax:
+        if np.min(Td)<0:
+            print('Something wrong! T=', Ti, '<0')
+            break
 
-            g=(3/8*tau+1/4.8/tau)**(1/4)
-            Td=(3*cgs.gC*Mcp_t(t)*dot_Mg(t)/8/np.pi/cgs.sigmaSB/r**3)**(1/4)*g #Shibaike 2019 equation (5)
-            diff= abs(Ti-Td)
-            Ti=Td
-        #   print(n,'diff_Td=',diff)
-            n+=1
+        #kapa=np.zeros_like(r)
+
+        #kapa[Ti<160]=450*(Ti[Ti<160]/160)**2*rgg
+        #kapa[Ti>=160]=450*rgg
+
+        Ti = Td[ii]
+
+        kapa = np.where(Ti<160, 450*(Ti/160)**2, 450) *rgg  
+        cs = c_s(Ti)
+
+        sigG[ii] = Sigma_g(r[ii],cs,OmegaK[ii],dotMg)
+        tau = kapa*sigG[ii]
+
+        g = (3/8*tau+1/4.8/tau)**(1/4)
+        Td[ii] = (3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/r[ii]**3)**(1/4)*g #Shibaike 2019 equation (5)
+
+        diff = abs(Ti/Td[ii]-1)
+        #Ti = Td
+        # print(n,'diff_Td=',diff.max())
+        #if diff.max()<1e-4: break
+
+        #this inserts more False if condition is met
+        ii[ii==True] = diff>1e-4
+
+        if np.all(ii==False):
+            break
+
+        nn += 1
+
     mu = MeanMolecularWeight()*np.ones_like(sigG)
-    return sigG,Td,mu
+
+    if returnfloat:
+        return sigG[0],Td[0],mu[0]
+    else:
+        return sigG,Td,mu
+
 
 def T_d(sigmag,kapa,Mcp,dotMg,loc):
     '''
@@ -162,7 +183,9 @@ def T_d(sigmag,kapa,Mcp,dotMg,loc):
     Td=(3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/loc**3)**(1/4)*g
     return Td
 
-def c_s(T):
+def c_s (T):
+    ## CWO: sound speed depends on mean molecular weight, as well!
+    #       you need to address this...
     return np.sqrt(cgs.kB*T/m_g())
 
 def m_g():
