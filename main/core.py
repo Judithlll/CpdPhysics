@@ -13,6 +13,17 @@ import scipy.optimize as sciop
 import scipy.integrate as sciint
 import time
 
+class COPY (object):
+    """
+    this copies certain attributes over 
+    """
+
+    def __init__ (self, state, attributeL):
+
+        for attr in attributeL:
+            setattr(self, attr, copy.deepcopy(getattr(state,attr)))
+
+
 class System(object):
 
     """
@@ -120,12 +131,18 @@ class System(object):
         ## CWO: why do we return stuff?
         return Yt
 
-    
     def back_up_last_data(self):
         """
         copies present state to "old" 
         CWO: would it be good also to copy the time?
         """
+        ## CWO: This does not seem the best programming practice...
+        #       I think you need to return an object which you call >>oldstate<<
+        #       and methods that are the same
+        #       but not sure how to do this elegantly... perhaps:
+
+        oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL'])
+
         #particles properties
         self.locLold=copy.deepcopy(self.particles.locL)
         self.massLold=copy.deepcopy(self.particles.massL)
@@ -285,6 +302,10 @@ def advance_planets (system):
     [23.12.06]copied/edited from NewLagrange
 
     For now, planet migration and composition is not considered
+
+    TBD:
+        - add composition changes to planets
+        - add migration rate
     """
     for planet in system.planetL:
 
@@ -302,9 +323,13 @@ def advance_planets (system):
             niter = 0
             while iterate:
 
+
                 crossL = []
                 for ip in idx:
                     #makes a superparticle
+
+                    ## CWO: perhaps nicer to make a particle object (instead of this array)
+                    #       such that we can have spi.loc, spi.mphy, spi.msup, spi.fcomp
                     spi = np.array([system.locLold[ip],system.massLold[ip],system.mtotLold[ip]])
                     crossL.append(spi)
                 crossL=np.array(crossL)
@@ -350,7 +375,7 @@ def advance_planets (system):
 
             #update s-particle properties from sp-crossings
             #assumes all particles are accreted (TBC!!)
-            spN=system.particles
+            spN = system.particles
             
             for k, ip in enumerate(idxN):
                 #mass that is being transferred (TBC!!)
@@ -360,8 +385,12 @@ def advance_planets (system):
                 Mc = ff.M_critical(system,planet.loc,crossL[k])
                 if Mc<planet.mass:                    
                     epsilon = ff.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
-                    delm = epsilon*crossL[k][2]#don't understand this line...
-                    
+
+                    #don't understand this line...
+                    #2nd index refers to total particle mass
+                    delm = epsilon*crossL[k][2]
+                    import pdb; pdb.set_trace()
+
                 else:
                     "pebble accretion can not happen"
                     delm=0
@@ -369,7 +398,6 @@ def advance_planets (system):
                 planet.mass += delm #in crease mass (pebble accretion)
                 # planet.fcomp += 0.  #TBD !!
                 
-                # import pdb; pdb.set_trace()
                 #spN -> system.particles.Y2d...
                 spN.mtotL[ip] -= delm #decrease mass sp
 
