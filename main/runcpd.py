@@ -20,10 +20,8 @@ calldir = init.init_default_pars (argL[0]) #directory from which this is called 
 system, gasL = init.sim_init (calldir, pars.dsystempars)
 system.init_particles(pars.dparticleprops)
 
-# import pdb ; pdb.set_trace()
 #initialize userfun's data class
 userfun.do_stuff(system, init=True)
-
 
 while system.time<pars.tmax:
 
@@ -37,15 +35,14 @@ while system.time<pars.tmax:
     #integrate the super particles
     Yt = system.update_particles ()
 
-    #import pdb; pdb.set_trace()
-
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
     if system.nplanet>0:
         core.advance_planets (system)
 
     if system.niceline>0:
-        idx=core.advance_iceline(system)
+        ## CWO: removed "idx"
+        core.advance_iceline(system)
 
     ## CWO: What is this ?!
     #update the location of the icelines, when time pass the gap opening time

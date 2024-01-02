@@ -205,6 +205,8 @@ class System(object):
         PmassTscale=np.inf*np.ones_like(self.planetL)
         PlocaTscale=np.inf*np.ones_like(self.planetL)
         
+        #[24.01.02]CWO: I think it's possible to have an dm/dt & da/dt to planet objects?
+        #               whay you do here is a bit ugly...
         for i in range(len(self.planetL)):
             if self.time>self.planetL[i].time:
                 # import pdb ;pdb.set_trace()
