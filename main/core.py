@@ -541,7 +541,7 @@ class Superparticles(object):
         #[23.12.30]:I don't know why/how mtot1 should be defined
         self.locL = np.array(radL)
         self.mtotL = np.array(msup)
-        self.mtot1 = msup[-1] #??
+        self.mtot1 = msup[-1] #?? I also don't know, maybe we don't need this now
 
         #[23.12.30]NEW:add composition data (fcomp)
         #[23.12.30]this looks a bit ugly...
@@ -557,7 +557,7 @@ class Superparticles(object):
 
         #[24.01.01]this is a bit ugly... but necessary for adding particles
         self.fcompini = self.fcomp[-1]
-
+        # import pdb ;pdb.set_trace()
         #[23.12.30]old stuff... this can be removed
         #TBR
         if False:

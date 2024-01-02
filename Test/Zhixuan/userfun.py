@@ -4,6 +4,9 @@ import cgs
 import datetime
 import csv
 import copy
+import parameters as pars
+import imageio.v2 as imageio
+import os
 
 def init_planets ():
     """
@@ -142,12 +145,12 @@ class Data(object):
         #     writer.writerows(self.mD)       
 
     
-    def plot_stuff(self,disk):
+    def plot_stuff(self,gas):
         
-        [time,loc]=np.meshgrid(self.timeL,np.linspace(disk.rinn/cgs.RJ,disk.rout/cgs.RJ,len(self.timeL)))
-        sigmag=disk.update_disk_prop(loc,time)
+        [time,loc]=np.meshgrid(self.timeL,np.linspace(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ,len(self.timeL)))
+        sigmag=gas.get_key_disk_properties(loc,time)[0]
 
-
+        # import pdb; pdb.set_trace()
         plt.figure(figsize=(12,18))
         plt.subplot(211)
         plt.title('Particles Location')
@@ -174,10 +177,18 @@ class Data(object):
 
         plt.savefig('test.jpg')
 
-    def plot_disk(self,time,disk):
-        r_Span=np.linspace(disk.rinn,disk.rout)
-        Sigmag=disk.Sigma_g(r_Span,time)
-        Td=disk.T_d(r_Span,time)
+    def plot_disk(self,time,gas):
+        r_Span=np.linspace(pars.dgasgrid['rinn'],pars.dgasgrid['rout'])
+        Sigmag=gas.get_key_disk_properties(r_Span,time)[0]
+        Td=gas.get_key_disk_properties(r_Span,time)[1]
+        plt.figure(figsize=(24,9))
+        plt.subplot(121)
+        plt.title('Surface dencity $[g/cm^2]$')
+        plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time/cgs.yr))
+        plt.subplot(122)
+        plt.title('Midplane Temperature $[K]$')
+        plt.plot(r_Span/cgs.RJ,Td,label=str(time/cgs.yr))
+        plt.savefig('diskproperties.jpg')
 
     def plot_planets_accretion(self,planet,system):
             
@@ -185,22 +196,39 @@ class Data(object):
 
         for i in range(len(self.radD)):
             if planet.time/cgs.RJ<keysL[i]:
-                plt.figure()
+                plt.figure(figsize=(6,15))
                 plt.ylim((6,28))
-                plt.figure('pebble accretion')
+                # plt.yticks([5,10,15,20,25,30])
+                plt.title('pebble accretion')
 
                 particle_index=np.argwhere(np.isnan(self.radD[keysL[i]])==False)
                 pn= particle_index.size
-                particles=np.linspace(0,pn,pn)
-                sizeL=self.mtotD[keysL[i]][particle_index]/system.mtot1 *5
-                plt.scatter(particles, self.radD[keysL[i]][particle_index],s=sizeL,label='totally'+str(pn)+'are in disk')
+                particles=np.linspace(pn,pn,pn)
+                lines=np.linspace(0,2*pn,pn)
+                sizeL=self.mtotD[keysL[i]][particle_index]/system.mtot1 *0.3
+                plt.scatter(particles, self.radD[keysL[i]][particle_index],s=6,c=sizeL,cmap='rainbow',label='totally'+str(pn)+'are in disk')
+                for iceline in system.icelineL:
+                    plt.plot(lines, iceline.loc*np.ones(pn)/cgs.RJ,linewidth=3,label='water iceline')
+                    plt.plot(lines, iceline.loc*np.ones(pn)/cgs.RJ,linewidth=3,label='CO iceline')
                 
-                plt.plot(particles,np.linspace(planet.loc,planet.loc,pn)/cgs.RJ,linewidth=1,label='Planets Location')
+                for planet in system.planetL:
+                    plt.plot(lines, planet.loc*np.ones(pn)/cgs.RJ,linewidth=3,label='Planets Location')
 
-                plt.legend(fontsize=5)
+                plt.legend(fontsize=12)
                 print (pn)
                 # import pdb ; pdb.set_trace()
-                plt.savefig('/home/lzx/CpdPhysics_Chris/Test/Zhixuan/planets&pebbles/'+str(self.timeL[i])+'.jpg') 
+                plt.savefig('planets&pebbles/'+str(self.timeL[i])+'.jpg') 
                 plt.close()
+
+def make_animation(path='pebbles&planets'):
+    save_name_gif =  "Cpd.gif"
+    pic_list = []
+    pics=os.listdir(path)
+    pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
+    # import pdb;pdb.set_trace()
+    for pic in pics_sorted:
+        im = imageio.imread(path+"/"+pic)
+        pic_list.append(im)
+    imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
 data = Data() #sets it up

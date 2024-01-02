@@ -1,6 +1,6 @@
 name = H2O
 rhoint = 1.0
 iceline = False
-Zinit = 0.01
+Zinit = 0.5
 mu = 18
 Sc = 1.0
