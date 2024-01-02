@@ -141,6 +141,7 @@ class System(object):
         #       and methods that are the same
         #       but not sure how to do this elegantly... perhaps:
 
+        #a little confused about how to use this, maybe make the COPY a sub class?
         oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL'])
 
         #particles properties
