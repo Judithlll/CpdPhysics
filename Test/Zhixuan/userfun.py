@@ -219,6 +219,15 @@ class Data(object):
                 # import pdb ; pdb.set_trace()
                 plt.savefig('planets&pebbles/'+str(self.timeL[i])+'.jpg') 
                 plt.close()
+    
+    def plot_deltaT(self):
+        plt.figure()
+        plt.title('Time step variation')
+        plt.xlabel('System Time [yr]')
+        plt.ylabel('Time Step [yr]')
+        plt.plot(self.timeL[:-1],np.diff(self.timeL))
+        plt.savefig('Delta_t.jpg')
+        plt.close()
 
 def make_animation(path='pebbles&planets'):
     save_name_gif =  "Cpd.gif"

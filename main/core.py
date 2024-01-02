@@ -107,7 +107,7 @@ class System(object):
         ## CWO: self.deltaT is now determined separately
 
         #update particle properties
-        self.back_up_last_data()
+        # self.back_up_last_data()
         Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,self.timestepn)
 
         #self.deltaT = deltaT
@@ -126,9 +126,22 @@ class System(object):
         copies present state to "old" 
         CWO: would it be good also to copy the time?
         """
+        #particles properties
         self.locLold=copy.deepcopy(self.particles.locL)
         self.massLold=copy.deepcopy(self.particles.massL)
         self.mtotLold=copy.deepcopy(self.particles.mtotL)
+
+        #planets properties, if they changes, back up.
+        self.planetLold=[]
+        for i in range(self.nplanet):
+            if len(self.planetLold) != self.nplanet or self.planetLold[i].loc != self.planetL[i].loc:
+                self.planetLold.append(copy.deepcopy(self.planetL[i]))
+
+        #icelines properties, if they change, back up.
+        self.icelineLold=[]
+        for i in range(self.niceline):
+            if len(self.icelineLold) != self.niceline or self.icelineLold[i].loc != self.icelineL[i].loc:
+                self.icelineLold.append(copy.deepcopy(self.icelineL[i]))
 
 
     def post_process (self):
@@ -187,6 +200,34 @@ class System(object):
         tpart = np.abs(Y2d/Y2dp)
         mintimeL.append({'name':'particles', 'tmin': fp*tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
+
+        #timescale for the planets (including migration and mass growth)
+        PmassTscale=np.inf*np.ones_like(self.planetL)
+        PlocaTscale=np.inf*np.ones_like(self.planetL)
+        
+        for i in range(len(self.planetL)):
+            if self.time>self.planetL[i].time:
+                # import pdb ;pdb.set_trace()
+                try:
+                    PmassTscale[i]=self.planetL[i].mass/abs(self.planetLold[i].mass-self.planetL[i].mass)*self.deltaT
+                    PlocaTscale[i]=self.planetL[i].loc/abs(self.planetLold[i]-self.planetL[i].loc)*self.deltaT
+                except:
+                    continue
+
+        mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
+        mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
+        
+        #timescale for the icelines
+        IlocaTscale=np.inf*np.ones_like(self.icelineL)
+        for i,iceline in enumerate(self.icelineL):
+            if self.time > dp.tgap:
+                try:
+                    tscale=iceline.loc/abs(self.icelineLold[i].loc-iceline.loc)*self.deltaT
+                    IlocaTscale.append(tscale)
+                except:
+                    continue
+            
+        mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
 
         #TBD: now we can add other mintime:
         # - planets (migration, growth)

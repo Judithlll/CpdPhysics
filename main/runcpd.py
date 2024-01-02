@@ -28,7 +28,11 @@ userfun.do_stuff(system, init=True)
 while system.time<pars.tmax:
 
     #[24.01.01]:determines the timestep for this step
-    system.new_timestep (pars.tmax)
+    #[24.01.02],LZX: don't understand why this should be here
+    system.new_timestep (pars.tmax)  #get deltaT through comparing some time scales
+    # if system.time > system.planetL[0].time:
+    #     import pdb; pdb.set_trace()
+    system.back_up_last_data()       #back up the data of last step
 
     #integrate the super particles
     Yt = system.update_particles ()
@@ -68,9 +72,9 @@ while system.time<pars.tmax:
 #CWO: what is all this (below) and why do we need it here?
 
 #get Peff propfile
-PAeff=[]
-for cp in system.particles.Y2d.T:
-    PAeff.append(f.epsilon_PA(system,system.planetL[0].loc,system.planetL[0].mass,cp))
+# PAeff=[]
+# for cp in system.particles.Y2d.T:
+#     PAeff.append(f.epsilon_PA(system,system.planetL[0].loc,system.planetL[0].mass,cp))
 
 # calculate the planet mass growth time scale  
 initLoc=[7*cgs.RJ,10*cgs.RJ] 
