@@ -224,12 +224,16 @@ class System(object):
         
         #[24.01.02]CWO: I think it's possible to have an dm/dt & da/dt to planet objects?
         #               whay you do here is a bit ugly...
-        for i in range(len(self.planetL)):
+        for i in range(self.nplanet):
             if self.time>self.planetL[i].time:
                 # import pdb ;pdb.set_trace()
                 try:
                     PmassTscale[i]=self.planetL[i].mass/abs(self.planetLold[i].mass-self.planetL[i].mass)*self.deltaT
-                    PlocaTscale[i]=self.planetL[i].loc/abs(self.planetLold[i]-self.planetL[i].loc)*self.deltaT
+                except:
+                    continue
+                    
+                try:
+                    PlocaTscale[i]=self.planetL[i].loc/abs(self.planetLold[i].loc-self.planetL[i].loc)*self.deltaT
                 except:
                     continue
 
@@ -247,10 +251,9 @@ class System(object):
                     continue
             
         mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
-
-        #TBD: now we can add other mintime:
-        # - planets (migration, growth)
-        # - icelines (change in position)
+        
+        # put mintimeL into system object for now to check
+        self.mintimeL=mintimeL
 
         deltaT = np.inf
         for ddum in mintimeL:
@@ -389,7 +392,7 @@ def advance_planets (system):
                     #don't understand this line...
                     #2nd index refers to total particle mass
                     delm = epsilon*crossL[k][2]
-                    import pdb; pdb.set_trace()
+                    # import pdb; pdb.set_trace()
 
                 else:
                     "pebble accretion can not happen"
