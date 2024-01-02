@@ -66,12 +66,13 @@ def v_K(r,t):
     v=np.sqrt(cgs.gC*Mcp_t(t)/r)
     return v
 
-def Sigma_g(r,cs,OmegaK,dotMg):
+def Sigma_g (r,cs,OmegaK,dotMg):
     """
     get the surface density at loc and time 
     """
-    Sg=dotMg/2/np.pi/rout*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
+    Sg = dotMg/2/np.pi/rout*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
     return Sg
+
 
 # def Sigma_g(r,t):
 #     """
@@ -112,10 +113,11 @@ def key_disk_properties (rad, t, dold=None):
     OmegaK=Omega_K(r,t,Mcp)
     dotMg = dot_Mg(t)
 
-    nmax = 10
+    nmax = 100
     nn = 1
 
     #active indices
+    #I dont think this does a lot...
     ii = np.ones_like(r, dtype=bool)
 
     #start from the guess solution
@@ -125,6 +127,9 @@ def key_disk_properties (rad, t, dold=None):
     else:
         Td = 10*np.ones_like(r)
         sigG = np.ones_like(r)
+
+    #prefactor in temperature expression (except g)
+    Tpre = (3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/r**3)**(1/4)
 
     while nn<nmax:
         if np.min(Td)<0:
@@ -139,13 +144,15 @@ def key_disk_properties (rad, t, dold=None):
         Ti = Td[ii]
 
         kapa = np.where(Ti<160, 450*(Ti/160)**2, 450) *rgg  
-        cs = c_s(Ti)
 
+        #this could be combined and simplified...
+        cs = c_s(Ti)
         sigG[ii] = Sigma_g(r[ii],cs,OmegaK[ii],dotMg)
+
         tau = kapa*sigG[ii]
 
         g = (3/8*tau+1/4.8/tau)**(1/4)
-        Td[ii] = (3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/r[ii]**3)**(1/4)*g #Shibaike 2019 equation (5)
+        Td[ii] = Tpre[ii] *g #Shibaike 2019 equation (5)
 
         diff = abs(Ti/Td[ii]-1)
         #Ti = Td
@@ -155,7 +162,8 @@ def key_disk_properties (rad, t, dold=None):
         #this inserts more False if condition is met
         ii[ii==True] = diff>1e-4
 
-        if np.all(ii==False):
+        #if np.all(ii==False):
+        if ii.any()==False:
             break
 
         nn += 1

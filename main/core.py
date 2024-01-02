@@ -652,7 +652,6 @@ class Superparticles(object):
     def make_Y2d (self):
         return np.array([self.locL, self.massL])
 
-
     def dY2d_dt (self,Y2d,t,gas):
         """
         input:
