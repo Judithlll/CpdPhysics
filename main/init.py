@@ -200,7 +200,7 @@ def sim_init (calldir, dsystempars={},*args):
     if pars.doIcelines is None:
         pars.doIcelines = False
     elif pars.doIcelines:
-        speciesarr,temparr,fracarr = userfun.init_icelines()
+        # speciesarr,temparr,fracarr = userfun.init_icelines()
         icelineL = []
         # icelineLocL=[]
 

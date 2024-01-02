@@ -97,23 +97,13 @@ class System(object):
         """
         Integrate the particles forward by amount deltaT
 
-        How to evolving the gas in the disk is still not sure
-        CWO: tell what is "not sure"
-
         Evolving system to the self.time
         """
 
         #time derivative of particles
 
         #TBD: make an Y2d array...
-        
-        #dydtP = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.gas)
-        #timescale
-        #tscaleArr = np.abs(self.particles.Y2d/dydtP)
-        #deltaT = np.nanmin(0.2*tscaleArr)
 
-        #if self.time+deltaT>tEnd:
-        #    deltaT = tEnd - self.time
 
         ## CWO: self.deltaT is now determined separately
 
@@ -787,7 +777,7 @@ class Superparticles(object):
 
         self.locL = np.append(self.locL, self.rout)
         self.massL = np.append(self.massL, self.mini)
-        self.mtotL = np.append(self.mtotL, self.mtot1)
+        self.mtotL = np.append(self.mtotL, self.mtot1)  #mtot1 is needed here
         self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
 
 

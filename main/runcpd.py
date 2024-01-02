@@ -31,10 +31,10 @@ while system.time<pars.tmax:
     # if system.time > system.planetL[0].time:
     #     import pdb; pdb.set_trace()
     oldstate=system.back_up_last_data()       #back up the data of last step
-    import pdb; pdb.set_trace()
+                        
     #integrate the super particles
     Yt = system.update_particles ()
-
+    
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
     if system.nplanet>0:
