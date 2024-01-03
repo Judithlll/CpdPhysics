@@ -246,22 +246,14 @@ def advance_iceline (system):
     """
 
     sploc = system.particles.locL
-    #sploc_old = system.locLold
     sploc_old = system.oldstate.particles.locL
     for k,iceline in enumerate(system.icelineL):
         idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
 
-        ##[23.12.30]CWO: I have no idea what this does... can be removed, I think
-        #frac=1
-        #for i in range(k+1):
-        #    frac-=system.icelineL[i].frac
-
         ic = pars.composL.index(iceline.species) #refers to species index
         if len(idx)!=0:     
-            #CWO: WHY was this left commented out?
+            
             for ix in idx:
-                print ('someone lose mass')
-                # print (system.particles.mass[idx])
                 fice = system.particles.fcomp[ix,ic]  #mass fraction in ice
                 fremain = (1-fice)          #remain fraction
                 print ('fremian', fremain)
@@ -521,20 +513,6 @@ class Superparticles(object):
         self.rout=rout
         self.massL = np.array([mini]*nini)
         self.stokesOld = None
-
-        ## TBR: no longer necessary
-        #
-        #TBD this (=location, mphys, mtot, ... of initial particles) should become user defined...
-        #self.locL=10**np.linspace(np.log10(rinn),np.log10(rout),nini)
-        # if icelineLoc==None:
-        #     self.mtot1=diskmass/nini
-        #     self.mtotL=self.mtot1*np.ones_like(self.locL)
-        # if len(icelineLoc)==1:
-        #     self.mtot1 = diskmass /(len(np.where(self.locL<icelineLoc))*ice_frac+len(np.where(self.locL>=icelineLoc)))
-        #     self.mtotL = np.where(self.locL<icelineLoc[0], self.mtot1*0.5, self.mtot1)
-        # if len(icelineLoc)==2:
-        #     self.mtot1 = diskmass /()
-
         
         #[23.12.30]:copied from /NewLagrance
         def construct_farr (dcomposL):
@@ -665,7 +643,7 @@ class Superparticles(object):
     def make_Y2d (self):
         return np.array([self.locL, self.massL])
 
-    def dY2d_dt (self,Y2d,t,gas):
+    def dY2d_dt (self,Y2d,time,gas):
         """
         input:
             Y2d -- state vector
@@ -674,15 +652,14 @@ class Superparticles(object):
         """
 
         #unpack the state vector
-        r, mphy = self.Y2d
-        #r=self.locL
+        loc, mphy = Y2d
 
         ## CWO: make a function calc_radii (...), which accountes for the internal density
         #       consistently, based on the fcomp
         Rd=(mphy/(self.rhoint*4/3*np.pi))**(1/3)
 
-        out = gas.get_key_disk_properties (r, t)
-        disk = DISK (*out, r, t) #pro
+        out = gas.get_key_disk_properties (loc, time)
+        disk = DISK (*out, loc, time) #pro
         disk.add_auxiliary ()
         disk.user_difined ()
 
@@ -713,7 +690,7 @@ class Superparticles(object):
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
-        sigD = dotMd /(-2*r*self.pi*v_r) #v_r<0
+        sigD = dotMd /(-2*loc*self.pi*v_r) #v_r<0
         
         ## CWO: this *could* become a userfun (b/c seems a bit specific)
         dmdt = 2*np.sqrt(np.pi)*Rd**2*v_dd/H_d*sigD  #eq. 5 of Shibaike et al. 2017
@@ -733,7 +710,7 @@ class Superparticles(object):
         """
 
         tSpan=np.array([t0,tFi])
-        tstep=(tFi-t0)/nstep #why 100?
+        tstep=(tFi-t0)/nstep
     
         Y2copy = np.copy(self.Y2d)
 
