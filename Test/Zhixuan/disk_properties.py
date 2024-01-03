@@ -214,6 +214,9 @@ def Omega_K(loc,t,Mcp):
     # print(Mcp,r)
     return OK
 
+def H_d(Hg, St):
+    Hd = Hg*(1+St/alpha*(1+2*St)/(1+St))**(-0.5) 
+    return Hd
 # def H_g(cs,OmegaK):
 #     """
 #     get scale height
@@ -257,3 +260,5 @@ def eta(r,Mcp,dotMg,mg):
     """
     e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
     return e
+
+

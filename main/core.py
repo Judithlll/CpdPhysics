@@ -392,12 +392,12 @@ class DISK (object):
         self.temp = temp
         self.mu = mu
         self.time = time
+
+        #user defined in disk_properties.py
         self.alpha = dp.alpha
         self.rout = dp.rout
         self.rinn = dp.rinn
-        self.tgap=dp.tgap
         self.sigmol = dp.sigmol
-        # self.tgap=dp.tgap
 
 
     def add_auxiliary (self):
@@ -623,8 +623,6 @@ class Superparticles(object):
         #unpack the state vector
         loc, mphy = Y2d
 
-        ## CWO: make a function calc_radii (...), which accountes for the internal density
-        #       consistently, based on the fcomp
         Rd=self.get_radius()
 
         out = gas.get_key_disk_properties (loc, time)
@@ -646,14 +644,11 @@ class Superparticles(object):
         St,v_r = ff.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd,Sto=self.stokesOld)
         self.stokesOld = St
 
+        #assume the relative velocity to be the half of radial velocity
+        v_dd = np.abs(v_r)/2  
 
-        #describe what's going on here
-        v_dd = np.abs(v_r)/2
-        H_d = H_g*(1+St/disk.alpha*(1+2*St)/(1+St))**(-0.5)
-
-        #this becomes...
-        H_d = disk.Hg *(1+St/disk.alpha*(1+2*St)/(1+St))**(-0.5)
-            
+        #make the dust scale height to be user defined
+        H_d = dp.H_d(H_g, St)     
 
         drdt = v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
