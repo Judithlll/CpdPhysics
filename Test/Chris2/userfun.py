@@ -47,16 +47,20 @@ def init_compos (material):
 
     return dcompos
 
-def do_stuff (sys, init=False):
+def do_stuff (system, init=False):
     #data class is available...
-    system=copy.deepcopy(sys)
+    #system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()
     if init:
-        data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
+        #data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #initialize your data class
+        pass
     else:
-        data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
+        pass
+        #data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #data object should be available...
+
+        print(system.ntime, len(system.particles.massL))
 
 
 

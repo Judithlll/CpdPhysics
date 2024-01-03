@@ -60,8 +60,9 @@ while system.time<pars.tmax:
     end = time.time()
     runTime = end-start
 
-    #TBD: you should put your print statements in userfun.do_stuff
-    print([system.time/cgs.yr,runTime])
+    ## CWO: please move print statements to userfun.do_stuff!!
+
+    #print([system.time/cgs.yr,runTime])
     # if runTime>5*60:
     #     print("it takes"+ str(runTime/60)+" now")
         

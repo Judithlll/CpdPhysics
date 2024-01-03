@@ -42,14 +42,16 @@ class System(object):
     rhoPlanet=1.9
     tgap=dp.tgap
 
-    def __init__(self,Rdi=0.01,time=0.0,nini=10,diskmass=0.01*cgs.MJ):
+    def __init__(self,Rdi=0.01,time=0.0,nini=100,diskmass=0.01*cgs.MJ):
         
         #initialize parameter from txt file // disk.py
         self.Rdi=Rdi  #initial radius of particles
-        self.nini=nini
+        self.nini=nini #CWO: this is changing all the time... rename to self.np ?
+        self.ninit = nini
         self.mini = 4*np.pi/3*self.rhoint *Rdi**3
         self.time=time  #initial time
         self.ntime = 0
+        self.Nplevel = nini
 
         # define a disk class
         self.gas = self.init_gas ()
@@ -65,6 +67,7 @@ class System(object):
 
         #initiallize the old state
         self.oldstate=None
+
     
     def init_particles(self, dparticleprops={}):
         """
@@ -170,12 +173,48 @@ class System(object):
 
         if 'add' in self.daction.keys():
             self.particles.add_particles(self.daction['add'])
+
+            #CWO: is this statement OK?
             self.nini+=self.daction['add']
 
         ##CWO: TBD 
         #Make mtot1 smaller (greater) if total number of particles
         #falls below (exceeds) some limit
-        
+        #
+        #[24.01.04]
+        #it is really difficult to stabalize particle numbers, b/c 
+        #of the huge lag... I think the below algorith accomplishes smth
+        #but is a bit ugly
+
+        Np = len(self.particles.massL)
+
+        nch = 5
+        if Np==self.ninit: self.Nplevel = self.ninit #reset
+
+        #particle level is decreasing...
+        if Np<self.Nplevel -nch and Np<self.ninit:
+            self.Nplevel -= nch
+            eps = abs(self.ninit -self.Nplevel) /self.ninit
+            self.mtot1 *= 1 -eps
+
+        #particle level is decreasing, but above ninit: modest decrease mtot1
+        elif Np<self.Nplevel -nch and Np>self.ninit:
+            self.Nplevel -= nch
+            eps = nch /self.ninit
+            self.mtot1 *= 1 -eps
+
+        #particle level is increasing, but below ninit: modest increase mtot1
+        elif Np>self.Nplevel +nch and Np<self.ninit:
+            self.Nplevel += nch
+            eps = nch /self.ninit
+            self.mtot1 *= 1 +eps
+
+        #particle level is increasing...
+        elif Np>self.Nplevel +nch and Np>self.ninit:
+            self.Nplevel += nch
+            eps = abs(self.ninit -self.Nplevel) /self.ninit
+            self.mtot1 *= 1 +eps
+
         #Ncrit = 100
         #N<90: mtot *= 0.9 && (wait some time?)
 

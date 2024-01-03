@@ -222,6 +222,9 @@ def Omega_K(loc,t,Mcp):
     # print(Mcp,r)
     return OK
 
+def H_d (Hg, St):
+    return np.sqrt(alpha /(alpha+St)) *Hg
+
 # def H_g(cs,OmegaK):
 #     """
 #     get scale height
