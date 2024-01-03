@@ -256,7 +256,7 @@ def advance_iceline (system):
             for ix in idx:
                 fice = system.particles.fcomp[ix,ic]  #mass fraction in ice
                 fremain = (1-fice)          #remain fraction
-                print ('fremian', fremain)
+
                 if fremain < 1e-15:
                     fremain=0 #loss of numbers (!!)
                 system.particles.mtotL[ix] *= fremain    #reduce masses accordingly
@@ -476,13 +476,6 @@ class DISK (object):
 
 class Superparticles(object):
 
-    #CWO: these parameters look ugly here..
-    rhoint=1.4
-    pi=np.pi
-    Sto=0.0001  
-    error=1e-8
-
-
     def __init__(self,rinn,rout,dcomposL,gas,nini=10,Rdi=0.1,
             initrule='equalmass'):
         """
@@ -501,17 +494,17 @@ class Superparticles(object):
         ice_frac  : the coresponding ice fraction of every iceline
         """
 
-        #import pdb; pdb.set_trace()
-
+        self.rhocompos=[]
+        for compos in dcomposL:
+            if compos['name']!= 'gas':
+                self.rhocompos.append(compos['rhoint'])
+        
         self.nini=nini
-        mini = Rdi**3 *4*np.pi/3 *1.0
 
         #[23.12.30]this was commented out; now uncommented
-        self.mini=mini #physical mass
 
         self.rinn=rinn
         self.rout=rout
-        self.massL = np.array([mini]*nini)
         self.stokesOld = None
         
         #[23.12.30]:copied from /NewLagrance
@@ -589,50 +582,13 @@ class Superparticles(object):
 
         #[24.01.01]this is a bit ugly... but necessary for adding particles
         self.fcompini = self.fcomp[-1]
-        # import pdb ;pdb.set_trace()
-        #[23.12.30]old stuff... this can be removed
-        #TBR
-        if False:
-            if len(icelineL)!= 0:
-                niceline=len(icelineL)
-                fracs=[]
-                nsum=0
-                ns=[]
-                for i in range(niceline):
-                    n=len(self.locL[self.locL<icelineL[i].loc])-nsum
-                    nsum+=n
-                    ns.append(n)
-                    frac=1
-                    for j in range(i):
-                        frac-=icelineL[-j].frac  #looking notes in Pad
-                    fracs.append(frac)
-                ns.append(len(self.locL)-nsum)
-                f=1
-
-                for k in range(niceline):
-                    f-=icelineL[k].frac
-                fracs.append(f)
-
-                fracs.reverse()
-                
-                factors=np.array(ns)*np.array(fracs)
-                self.mtot1=diskmass/np.sum(factors)
-                self.mtotL=np.array([])
-                
-                for k in range(len(icelineL)+1):
-                    self.mtotL=np.append(self.mtotL,np.ones(ns[k])*self.mtot1*fracs[k])
-            else:
-                self.mtot1=diskmass/nini
-                self.mtotL=np.array([self.mtot1]*nini)
-
+        
+        self.get_rhoint()
+        
+        self.massL = self.rhoint * 4/3*Rdi**3*np.pi
+        self.mini = self.massL[-1]   #for adding particles
 
         self.generate_Y2d()   #get a Y2d used to integrate
-
-        #TBR
-        # self.Y2d = np.empty((ndim,nini))
-        # self.Y2d[0] = self.locL
-        # self.Y2d[1] = self.massL
-        # self.Y2d[2] = self.mtotL
 
     ## CWO: I'm not sure if we need to attach Y2d to self
     #       since Y2d is no longer fundamental...
@@ -643,6 +599,19 @@ class Superparticles(object):
     def make_Y2d (self):
         return np.array([self.locL, self.massL])
 
+    def get_rhoint(self):
+        "get the true fcomp according to fcomp"
+        Volume = np.zeros_like(self.locL)
+        for i in range(len(self.rhocompos)):
+            Volume[:] += self.fcomp[:,i]/self.rhocompos[i]
+        
+        self.rhoint=1/Volume
+
+    def get_radius(self):
+        "update the rhoint according to new fcomp"
+        self.get_rhoint()
+        return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
+    
     def dY2d_dt (self,Y2d,time,gas):
         """
         input:
@@ -656,7 +625,7 @@ class Superparticles(object):
 
         ## CWO: make a function calc_radii (...), which accountes for the internal density
         #       consistently, based on the fcomp
-        Rd=(mphy/(self.rhoint*4/3*np.pi))**(1/3)
+        Rd=self.get_radius()
 
         out = gas.get_key_disk_properties (loc, time)
         disk = DISK (*out, loc, time) #pro
@@ -690,7 +659,7 @@ class Superparticles(object):
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
-        sigD = dotMd /(-2*loc*self.pi*v_r) #v_r<0
+        sigD = dotMd /(-2*loc*np.pi*v_r) #v_r<0
         
         ## CWO: this *could* become a userfun (b/c seems a bit specific)
         dmdt = 2*np.sqrt(np.pi)*Rd**2*v_dd/H_d*sigD  #eq. 5 of Shibaike et al. 2017
