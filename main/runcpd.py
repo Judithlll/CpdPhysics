@@ -30,7 +30,7 @@ while system.time<pars.tmax:
     system.new_timestep (pars.tmax)  #get deltaT through comparing some time scales
     # if system.time > system.planetL[0].time:
     #     import pdb; pdb.set_trace()
-    oldstate=system.back_up_last_data()       #back up the data of last step
+    system.back_up_last_data()       #back up the data of last step
                         
     #integrate the super particles
     Yt = system.update_particles ()
@@ -53,6 +53,7 @@ while system.time<pars.tmax:
     system.post_process()
     
     system.time += system.deltaT
+    system.ntime += 1
 
     userfun.do_stuff(system)
 

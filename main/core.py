@@ -62,6 +62,9 @@ class System(object):
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
         #self.Mcp=self.disk.Mcp_t(self.time)
+
+        #initiallize the old state
+        self.oldstate=None
     
     def init_particles(self, dparticleprops={}):
         """
@@ -112,7 +115,6 @@ class System(object):
         Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,self.timestepn)
 
         #self.deltaT = deltaT
-        self.ntime += 1
         # print(self.particles.locL, self.time)
         if self.time==np.nan or self.deltaT==np.nan:
             print('hello')
@@ -126,30 +128,10 @@ class System(object):
         copies present state to "old" 
         CWO: would it be good also to copy the time?
         """
-        ## CWO: This does not seem the best programming practice...
-        #       I think you need to return an object which you call >>oldstate<<
-        #       and methods that are the same
-        #       but not sure how to do this elegantly... perhaps:
+        #LZX: a little confused about how to use this, maybe make the COPY a sub class?
+        #CWO: OK, try it out
+        self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL'])
 
-        #a little confused about how to use this, maybe make the COPY a sub class?
-        oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL'])
-
-        #particles properties
-        self.locLold=copy.deepcopy(self.particles.locL)
-        self.massLold=copy.deepcopy(self.particles.massL)
-        self.mtotLold=copy.deepcopy(self.particles.mtotL)
-
-        #planets properties, if they changes, back up.
-        self.planetLold=[]
-        for i in range(self.nplanet):
-            if len(self.planetLold) != self.nplanet or self.planetLold[i].loc != self.planetL[i].loc:
-                self.planetLold.append(copy.deepcopy(self.planetL[i]))
-
-        #icelines properties, if they change, back up.
-        self.icelineLold=[]
-        for i in range(self.niceline):
-            if len(self.icelineLold) != self.niceline or self.icelineLold[i].loc != self.icelineL[i].loc:
-                self.icelineLold.append(copy.deepcopy(self.icelineL[i]))
 
 
     def post_process (self):
@@ -190,6 +172,13 @@ class System(object):
             self.particles.add_particles(self.daction['add'])
             self.nini+=self.daction['add']
 
+        ##CWO: TBD 
+        #Make mtot1 smaller (greater) if total number of particles
+        #falls below (exceeds) some limit
+        
+        #Ncrit = 100
+        #N<90: mtot *= 0.9 && (wait some time?)
+
 
     def new_timestep (self, tEnd):
         """
@@ -209,39 +198,31 @@ class System(object):
         mintimeL.append({'name':'particles', 'tmin': fp*tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
 
-        #timescale for the planets (including migration and mass growth)
-        PmassTscale=np.inf*np.ones_like(self.planetL)
-        PlocaTscale=np.inf*np.ones_like(self.planetL)
+        # if self.ntime>=1:
+        #     import pdb; pdb.set_trace()
         
         #[24.01.02]CWO: I think it's possible to have an dm/dt & da/dt to planet objects?
         #               whay you do here is a bit ugly...
-        for i in range(self.nplanet):
-            if self.time>self.planetL[i].time:
-                # import pdb ;pdb.set_trace()
-                try:
-                    PmassTscale[i]=self.planetL[i].mass/abs(self.planetLold[i].mass-self.planetL[i].mass)*self.deltaT
-                except:
-                    continue
-                    
-                try:
-                    PlocaTscale[i]=self.planetL[i].loc/abs(self.planetLold[i].loc-self.planetL[i].loc)*self.deltaT
-                except:
-                    continue
+        if self.oldstate is not None:   
+            #timescale for the planets (including migration and mass growth)
+            PmassTscale=np.inf*np.ones_like(self.planetL)
+            PlocaTscale=np.inf*np.ones_like(self.planetL) 
+            for i in range(self.nplanet):
+                if self.time>self.planetL[i].time:
+                    # import pdb ;pdb.set_trace()
+                        PmassTscale[i]=np.float64(self.planetL[i].mass)/abs(self.oldstate.planetL[i].mass-self.planetL[i].mass)*self.deltaT
+                        PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
 
-        mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
-        mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
-        
-        #timescale for the icelines
-        IlocaTscale=np.inf*np.ones_like(self.icelineL)
-        for i,iceline in enumerate(self.icelineL):
-            if self.time > dp.tgap:
-                try:
-                    tscale=iceline.loc/abs(self.icelineLold[i].loc-iceline.loc)*self.deltaT
-                    IlocaTscale.append(tscale)
-                except:
-                    continue
+            mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
+            mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
             
-        mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
+            #timescale for the icelines
+            IlocaTscale=np.inf*np.ones_like(self.icelineL)
+            for i,iceline in enumerate(self.icelineL):
+                tscale=np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
+                IlocaTscale[i]=tscale
+            
+            mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
         
         # put mintimeL into system object for now to check
         self.mintimeL=mintimeL
@@ -265,7 +246,8 @@ def advance_iceline (system):
     """
 
     sploc = system.particles.locL
-    sploc_old = system.locLold
+    #sploc_old = system.locLold
+    sploc_old = system.oldstate.particles.locL
     for k,iceline in enumerate(system.icelineL):
         idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
 
@@ -278,16 +260,19 @@ def advance_iceline (system):
         if len(idx)!=0:     
             #CWO: WHY was this left commented out?
             for ix in idx:
-
-                fice = system.particles.fcomp[idx,ic]  #mass fraction in ice
+                print ('someone lose mass')
+                # print (system.particles.mass[idx])
+                fice = system.particles.fcomp[ix,ic]  #mass fraction in ice
                 fremain = (1-fice)          #remain fraction
-                fremain[fremain<1e-15] = 0  #loss of numbers (!!)
-                system.particles.mtotL[idx] *= fremain    #reduce masses accordingly
-                system.particles.massL[idx] *= fremain
-                system.particles.fcomp[idx,ic] = 0.      #gone is the ice!
+                print ('fremian', fremain)
+                if fremain < 1e-15:
+                    fremain=0 #loss of numbers (!!)
+                system.particles.mtotL[ix] *= fremain    #reduce masses accordingly
+                system.particles.massL[ix] *= fremain
+                system.particles.fcomp[ix,ic] = 0.      #gone is the ice!
 
                 #renormalize
-                system.particles.fcomp[idx,:] = (system.particles.fcomp[idx,:].T /(system.particles.fcomp[idx,:].sum(1)+1e-100)).T
+                system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
 
 
 def advance_planets (system):
@@ -307,7 +292,7 @@ def advance_planets (system):
         if planet.time<system.time:
 
             sploc = system.particles.locL
-            sploc_old = system.locLold
+            sploc_old = system.oldstate.particles.locL
 
             #particles that cross are those that
             idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
@@ -324,7 +309,11 @@ def advance_planets (system):
 
                     ## CWO: perhaps nicer to make a particle object (instead of this array)
                     #       such that we can have spi.loc, spi.mphy, spi.msup, spi.fcomp
-                    spi = np.array([system.locLold[ip],system.massLold[ip],system.mtotLold[ip]])
+                    spi = np.array([system.oldstate.particles.locL[ip],system.oldstate.particles.massL[ip],system.oldstate.particles.mtotL[ip]])
+                    #spi = Single (...)
+                    #spi = particles.select(ip)
+                    #spi = system.oldstate.particles.select(ip)
+                    #spi = system.oldstate.particles.select_multi(idx)
                     crossL.append(spi)
                 crossL=np.array(crossL)
 
@@ -380,8 +369,8 @@ def advance_planets (system):
                 if Mc<planet.mass:                    
                     epsilon = ff.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
 
-                    #don't understand this line...
                     #2nd index refers to total particle mass
+                    #CWO: prefer to have smth like: delm = epsilon*crossL[k].mtot
                     delm = epsilon*crossL[k][2]
                     # import pdb; pdb.set_trace()
 
@@ -606,7 +595,7 @@ class Superparticles(object):
         #[23.12.30]:I don't know why/how mtot1 should be defined
         self.locL = np.array(radL)
         self.mtotL = np.array(msup)
-        self.mtot1 = msup[-1] #?? I also don't know, maybe we don't need this now
+        self.mtot1 = msup[-1] #?? 
 
         #[23.12.30]NEW:add composition data (fcomp)
         #[23.12.30]this looks a bit ugly...
@@ -685,17 +674,13 @@ class Superparticles(object):
         """
 
         #unpack the state vector
-        r, mphy = self.Y2d   #maybe the total mass needn't to be put in Y2d
+        r, mphy = self.Y2d
+        #r=self.locL
 
+        ## CWO: make a function calc_radii (...), which accountes for the internal density
+        #       consistently, based on the fcomp
         Rd=(mphy/(self.rhoint*4/3*np.pi))**(1/3)
 
-        #get disk object instance from gas
-        #maybe like this???
-
-        #(1) provides key properties (T,mu,Sigma)
-        #(2) make disk objects
-        #(3) add additional properties, which follow from (1) to disk object
-        #(4) add user-defined disk properties to disk class
         out = gas.get_key_disk_properties (r, t)
         disk = DISK (*out, r, t) #pro
         disk.add_auxiliary ()
@@ -727,8 +712,10 @@ class Superparticles(object):
         drdt = v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
 
+        ## CWO: surface density should follow from position of the Lagrangian particles...
         sigD = dotMd /(-2*r*self.pi*v_r) #v_r<0
         
+        ## CWO: this *could* become a userfun (b/c seems a bit specific)
         dmdt = 2*np.sqrt(np.pi)*Rd**2*v_dd/H_d*sigD  #eq. 5 of Shibaike et al. 2017
 
         Y2ddt = np.zeros_like(self.Y2d)
