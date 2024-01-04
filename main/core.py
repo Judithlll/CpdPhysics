@@ -12,6 +12,7 @@ from gas import GAS
 import scipy.optimize as sciop
 import scipy.integrate as sciint
 import time
+from scipy.optimize import curve_fit
 
 class COPY (object):
     """
@@ -67,6 +68,8 @@ class System(object):
 
         #initiallize the old state
         self.oldstate=None
+
+        self.planetMassData=[]
 
     
     def init_particles(self, dparticleprops={}):
@@ -244,17 +247,43 @@ class System(object):
         #               whay you do here is a bit ugly...
         if self.oldstate is not None:   
             #timescale for the planets (including migration and mass growth)
+            
+            if len(self.planetMassData) == 0:
+                self.planetMassData = [[],[]]
+                self.masstime = []   
+            
             PmassTscale=np.inf*np.ones_like(self.planetL)
             PlocaTscale=np.inf*np.ones_like(self.planetL) 
             for i in range(self.nplanet):
                 if self.time>self.planetL[i].time:
                     # import pdb ;pdb.set_trace()
-                        PmassTscale[i]=np.float64(self.planetL[i].mass)/abs(self.oldstate.planetL[i].mass-self.planetL[i].mass)*self.deltaT
+                        #store mass data first
+                        if self.oldstate.planetL[i].mass != self.planetL[i].mass:
+                            # self.masstime=
+                            self.planetMassData[i].append([self.time , self.oldstate.planetL[i].mass])
+
+
+                        #then try to fit the mass to a curve
                         PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
+
+                        if len(self.planetMassData[i]) > 2:
+                            def mass_fit(t,a,b):
+                                m=a*t+b
+                                return m 
+                            timedots=np.log10([self.planetMassData[i][j][0] for j in range(len(self.planetMassData[i]))])
+                            massdots=np.log10([self.planetMassData[i][j][1] for j in range(len(self.planetMassData[i]))])
+
+                            popt, pcov = curve_fit(mass_fit, timedots, massdots)
+                            # plt.scatter(timedots, massdots)
+                            # t_list=np.linspace(timedots[0], timedots[-1], 30)
+                            # plt.plot(t_list, mass_fit(t_list, *popt))
+                            # plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+
+                            PmassTscale[i]=1/popt[0]*self.time
+
 
             mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
             mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
-            
             #timescale for the icelines
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
             for i,iceline in enumerate(self.icelineL):
