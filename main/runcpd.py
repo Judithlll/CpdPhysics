@@ -46,9 +46,11 @@ while system.time<pars.tmax:
 
     ## CWO: What is this ?! -- I still don't understand. Need to discuss.
     #update the location of the icelines, when time pass the gap opening time
-    if system.time>system.tgap:
-        for il in system.icelineL:
-            il.get_icelines_location(system.gas,system.time)
+    #
+    #[24.01.04] uncommented this out b/c I dont understand why we need it
+    #if system.time>system.tgap:
+    #    for il in system.icelineL:
+    #        il.get_icelines_location(system.gas,system.time)
 
     system.post_process()
     
@@ -61,8 +63,7 @@ while system.time<pars.tmax:
     runTime = end-start
 
     ## CWO: please move print statements to userfun.do_stuff!!
-
-    print([system.time/cgs.yr,runTime])
+    # print([system.time/cgs.yr,runTime])
     # if runTime>5*60:
     #     print("it takes"+ str(runTime/60)+" now")
         
