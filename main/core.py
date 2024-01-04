@@ -188,7 +188,7 @@ class System(object):
 
         Np = len(self.particles.massL)
 
-        nch = 5
+        nch = 4
         if Np==self.ninit: self.Nplevel = self.ninit #reset
 
         #particle level is decreasing...
