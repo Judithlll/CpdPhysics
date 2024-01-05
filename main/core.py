@@ -699,7 +699,7 @@ class Superparticles(object):
         self.get_rhoint()
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
     
-    def dY2d_dt (self,Y2d,time,gas):
+    def dY2d_dt (self,Y2d,time,gas, returnMore=False):
         """
         input:
             Y2d -- state vector
@@ -751,7 +751,12 @@ class Superparticles(object):
         Y2ddt[1] = dmdt
         # Y2ddt[2] = 0.0
 
-        return Y2ddt 
+        #[24.01.05]:also return additional particle properties
+        if returnMore:
+            return Y2ddt, {'Rd':Rd, 'St':St, 'v_r':v_r} 
+
+        else:
+            return Y2ddt  
     
     
     def update (self,t0,tFi,gas,nstep=10):
@@ -773,6 +778,15 @@ class Superparticles(object):
         # self.mtotL=Yt[-1,2,:] #no longer updated
         #TBR
         self.generate_Y2d()  #update Y2d for next step integration
+
+
+        #[24.01.05]CWO
+        #after the integration, extract the particle properties
+        #for future use
+        dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], gas, returnMore=True)
+        for key, val in daux.items():
+            setattr(self, key, val)
+
         return Yt
 
     
