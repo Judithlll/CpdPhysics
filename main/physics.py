@@ -20,7 +20,7 @@ def sig_mol (mu):
     But we leave this to future use
     """
 
-    return 2e-5 *np.ones_like(mu)
+    return 2e-15 *np.ones_like(mu)
 
 
 class DISK (object):

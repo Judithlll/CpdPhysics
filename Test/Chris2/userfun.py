@@ -59,8 +59,12 @@ def do_stuff (system, init=False):
         pass
         #data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #data object should be available...
+        
+        tminarr = np.array([ddum['tmin'] for ddum in system.mintimeL])
 
-        print(system.ntime, len(system.particles.massL))
+        sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:10.2e}'
+        line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tminarr.argmin(), system.time)
+        print(line)
 
 
 

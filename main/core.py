@@ -697,8 +697,9 @@ class Superparticles(object):
         self.get_rhoint()
 
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
+
     
-    def dY2d_dt (self,Y2d,time,gas):
+    def dY2d_dt (self,Y2d,time,gas, returnMore=False):
         """
         input:
             Y2d -- state vector
@@ -720,7 +721,10 @@ class Superparticles(object):
         disk = physics.DISK (*out, loc, time, mcp) #pro
         disk.add_auxiliary ()
 
-        #add user defined attributes to DISK:
+        #[24.01.05] The new way to add user-defined properties to the disk class
+        #
+        #1. variables; 2. functions; 3. function evaluations
+        #
         disk.add_uservar (dp.user_add_var())    #variables
         disk.add_userfun (dp.user_add_fun())    #functions only
         disk.add_user_eval (dp.user_add_eval()) #evaluations
@@ -763,7 +767,12 @@ class Superparticles(object):
         Y2ddt[1] = dmdt
         # Y2ddt[2] = 0.0
 
-        return Y2ddt 
+        #[24.01.05]:also return additional particle properties
+        if returnMore:
+            return Y2ddt, {'Rd':Rd, 'St':St, 'v_r':v_r} 
+
+        else:
+            return Y2ddt 
     
     
     def update (self,t0,tFi,gas,nstep=10):
@@ -780,9 +789,18 @@ class Superparticles(object):
         #integrates system to tFi
         Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',gas)
         
-        self.locL=Yt[-1,0,:]
-        self.massL=Yt[-1,1,:]
+        self.locL = Yt[-1,0,:]
+        self.massL =Yt[-1,1,:]
         # self.mtotL=Yt[-1,2,:] #no longer updated
+
+        #[24.01.05]CWO
+        #after the integration, extract the particle properties
+        #for future use
+        dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], gas, returnMore=True)
+        for key, val in daux.items():
+            setattr(self, key, val)
+
+
         #TBR
         self.generate_Y2d()  #update Y2d for next step integration
         return Yt

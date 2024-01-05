@@ -88,7 +88,7 @@ def St_iterate (eta,v_K,v_th,lmfp,rho_g,
     niter = 1
     while niter<nmax:
         niter += 1
-        v_r=-2*St/(St**2+1)*eta*v_K
+        v_r =-2*St/(St**2+1)*eta*v_K
         v_dg=np.abs(v_r)
         Rep=4*R_d*v_dg/v_th/lmfp
         #following Shibaike, eq....
@@ -97,11 +97,12 @@ def St_iterate (eta,v_K,v_th,lmfp,rho_g,
 
         #better to do relative error 
         error = abs(St/Stn-1)
-        
+
         if error.max()<errorX:
             break
         else:
             St = Stn
+
 
     #print('# iterations:', niter)
     #if niter>50 and type(eta)==np.ndarray: import pdb; pdb.set_trace()
@@ -189,6 +190,7 @@ def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
     
     P_eff=1/np.sqrt((0.32*np.sqrt(mus*delv_o_vK/ St/ eta**2))**(-2)+(0.39*mus/ eta/hp)**(-2)) #Liu & Ormel 2018
     return P_eff
+
 
 
 def M_critical(system,PlanetsLoc,cross_p):
