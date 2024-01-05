@@ -33,6 +33,7 @@ Rsun=69570000000
 
 #length
 AU=1.496e13   #AU in cm
+au = 14959787070000.0 #CWO: I prefer lower case, following IAU
 ly=946073047258100000  #light year in cm
 pc=3.08567758e18
 

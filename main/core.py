@@ -41,7 +41,9 @@ class System(object):
     daction={}
     timestepn=3  #how many time points in every ODE solution process
     rhoPlanet=1.9
-    tgap=dp.tgap
+    
+    #[24.01.04]CWO: dont understand why we need it
+    #tgap=dp.tgap
 
     def __init__(self,Rdi=0.01,time=0.0,nini=100,diskmass=0.01*cgs.MJ):
         
@@ -255,7 +257,8 @@ class System(object):
             mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
 
         #central mass growth timescale:
-            
+        # if self.time > 0:
+        #     McTscale = self.
 
             # import pdb; pdb.set_trace() 
         if self.oldstate is not None:   
