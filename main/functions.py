@@ -113,7 +113,6 @@ def get_stokes_number(disk,t,sPLmtot,rhoint):
     mphy = sPLmtot
     Rd=(mphy/(rhoint*4/3*np.pi))**(1/3)
 
-
     eta=disk.eta
     v_K=disk.vK
     v_th=disk.vth
@@ -191,7 +190,9 @@ def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
     P_eff=1/np.sqrt((0.32*np.sqrt(mus*delv_o_vK/ St/ eta**2))**(-2)+(0.39*mus/ eta/hp)**(-2)) #Liu & Ormel 2018
     return P_eff
 
+
 def M_critical(system,PlanetsLoc,cross_p):
+    ## CWO: this needs to be re-thought
 
     out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
     disk = core.DISK (*out, PlanetsLoc, system.time)
