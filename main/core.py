@@ -256,7 +256,7 @@ class System(object):
         
         #Mass influx timescale
         if self.time > 0:  # better to get rid of the first step one, but the effect is tiny
-            InfluxTscale = self.Minflux_step / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
+            InfluxTscale = np.float64(self.Minflux_step) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
 
         #central mass growth timescale:
