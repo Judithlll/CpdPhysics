@@ -64,6 +64,7 @@ class System(object):
         #self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
+        self.Minflux_step = 0
         #self.Mcp=self.disk.Mcp_t(self.time)
 
         #initiallize the old state
@@ -136,7 +137,7 @@ class System(object):
         """
         #LZX: a little confused about how to use this, maybe make the COPY a sub class?
         #CWO: OK, try it out
-        self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL'])
+        self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step'])
 
 
 
@@ -157,7 +158,9 @@ class System(object):
         
         #particles that enter the domain
         Nadd = 0
-        self.Minflux += dp.M_influx(self.time,self.time+self.deltaT)
+
+        self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
+        self.Minflux += self.Minflux_step
 
         while self.Minflux>self.mtot1:
             Nadd += 1
@@ -245,6 +248,16 @@ class System(object):
         
         #[24.01.02]CWO: I think it's possible to have an dm/dt & da/dt to planet objects?
         #               whay you do here is a bit ugly...
+        
+        #Mass influx timescale
+        if self.time > 0:  # better to get rid of the first step one, but the effect is tiny
+            InfluxTscale = self.Minflux_step / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
+            mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
+
+        #central mass growth timescale:
+            
+
+            # import pdb; pdb.set_trace() 
         if self.oldstate is not None:   
             #timescale for the planets (including migration and mass growth)
             
