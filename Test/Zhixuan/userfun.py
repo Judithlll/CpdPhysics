@@ -55,7 +55,11 @@ def do_stuff (sys, init=False):
     else:
         data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #data object should be available...
+        tminarr = np.array([ddum['tmin'] for ddum in system.mintimeL])
 
+        sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
+        line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tminarr.argmin(), system.time/cgs.yr)
+        print(line)
 
 
 class Data(object):
