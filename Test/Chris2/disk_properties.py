@@ -31,7 +31,7 @@ def user_add_fun ():
     """
     a list of functions to be added
     """
-    return dot_Mg,
+    return dot_Mg, v_K, v_th, c_s, l_mfp, rho_g, H_g, Omega_K, 
 
 
 def user_add_var ():
@@ -239,12 +239,12 @@ def Omega_K(loc,t,Mcp):
 def H_d (Hg, St):
     return np.sqrt(alpha /(alpha+St)) *Hg
 
-# def H_g(cs,OmegaK):
-#     """
-#     get scale height
-#     """    
-#     GasScaleHeight=cs/OmegaK
-#     return GasScaleHeight
+def H_g(cs,OmegaK):
+    """
+    get scale height
+    """    
+    GasScaleHeight=cs/OmegaK
+    return GasScaleHeight
 
 # def viscosity(cs,Hg):
 #     """
@@ -253,27 +253,27 @@ def H_d (Hg, St):
 #     nu=alpha*cs*Hg
 #     return nu
 
-# def v_th(cs):
-#     """
-#     get the thermal velocity 
-#     """
-#     thermal_velocity=np.sqrt(8/np.pi)*cs
-#     return thermal_velocity
+def v_th(cs):
+    """
+    get the thermal velocity 
+    """
+    thermal_velocity=np.sqrt(8/np.pi)*cs
+    return thermal_velocity
 
-# def l_mfp(rhog,mg):
-#     """
-#     get the mean free path
+def l_mfp(rhog,mg):
+    """
+    get the mean free path
 
-#     """
-#     MeanFreePath=mg/sigmamol/rhog
-#     return MeanFreePath
+    """
+    MeanFreePath=mg/sigmol/rhog
+    return MeanFreePath
 
-# def rho_g(Sigmag,Hg):
-#     """
-#     get the density of gas
-#     """
-#     rhogas=Sigmag/(2*np.pi)**0.5/Hg
-#     return rhogas
+def rho_g(Sigmag,Hg):
+    """
+    get the density of gas
+    """
+    rhogas=Sigmag/(2*np.pi)**0.5/Hg
+    return rhogas
 
 
 def eta_old (r,Mcp,dotMg,mg):

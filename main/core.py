@@ -719,7 +719,7 @@ class Superparticles(object):
         out = gas.get_key_disk_properties (loc, time)
 
         disk = physics.DISK (*out, loc, time, mcp) #pro
-        disk.add_auxiliary ()
+        # disk.add_auxiliary ()
 
         #[24.01.05] The new way to add user-defined properties to the disk class
         #
@@ -740,10 +740,17 @@ class Superparticles(object):
         #Omega_K=disk.OmegaK
         #H_g=disk.Hg
         #dotMd=disk.dotMd
+        mg=disk.mu*cgs.mp
 
         #obtain Stokes number by iterating on drag law
-        St, v_r = ff.St_iterate (disk.eta,disk.vK,disk.vth,disk.lmfp,disk.rhog,disk.OmegaK,
-                                Rd,Sto=self.stokesOld)
+        St, v_r = ff.St_iterate (disk.eta,
+                                 disk.v_K(loc,time),
+                                 disk.v_th(disk.c_s(disk.temp)),
+                                 disk.l_mfp(disk.rho_g(disk.sigmaG, disk.H_g(disk.c_s(disk.temp), disk.Omega_K(loc,time, mcp))), mg),
+                                 disk.rho_g(disk.sigmaG, disk.H_g(disk.c_s(disk.temp), disk.Omega_K(loc,time, mcp))),
+                                 disk.Omega_K(loc,time, mcp),
+                                 Rd,
+                                 Sto=self.stokesOld)
         self.stokesOld = St
 
 
@@ -751,7 +758,7 @@ class Superparticles(object):
         v_dd = np.abs(v_r)/2  
 
         #make the dust scale height to be user defined
-        Hd = dp.H_d(disk.Hg, St)     
+        Hd = dp.H_d(disk.H_g(disk.c_s(disk.temp), disk.Omega_K(loc,time, mcp)), St)     
 
         drdt = v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
