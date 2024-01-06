@@ -31,7 +31,7 @@ def user_add_fun ():
     """
     a list of functions to be added
     """
-    return dot_Mg, v_K, v_th, c_s, l_mfp, rho_g, H_g, Omega_K, 
+    return dot_Mg,
 
 
 def user_add_var ():
@@ -79,6 +79,17 @@ def M_influx(t0,tEnd):
 def v_K(r,t):
     v=np.sqrt(cgs.gC*Mcp_t(t)/r)
     return v
+
+# def v_K(disk):
+#     OmegaK = disk.OmegaK
+#     v=np.sqrt(cgs.gC*Mcp/loc)
+#     return v
+
+# def Omega_K(disk):
+#     mcp=disk.mcp
+#     loc=disk.loc
+    
+#     return np.sqrt(cgs.gC*mcp/loc**3)
 
 def Sigma_g (r,cs,OmegaK,dotMg):
     """
