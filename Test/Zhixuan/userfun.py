@@ -8,6 +8,12 @@ import parameters as pars
 import imageio.v2 as imageio
 import os
 
+def del_v (St, rhoD, disk):
+    vr = 2*disk.eta *disk.vK *St/(1+St**2)
+
+    #take half of the velocity...
+    return np.abs(vr)/2
+
 def init_planets ():
     """
     this initializes the planets 

@@ -4,6 +4,13 @@ import cgs
 import datetime
 import csv
 import copy
+import physics
+
+def del_v (St, rhoD, disk):
+    vr = 2*disk.eta *disk.vK *St/(1+St**2)
+
+    #take half of the velocity...
+    return np.abs(vr)/2
 
 def init_planets ():
     """

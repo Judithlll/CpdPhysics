@@ -44,13 +44,7 @@ while system.time<pars.tmax:
         ## CWO: removed "idx"
         core.advance_iceline(system)
 
-    ## CWO: What is this ?! -- I still don't understand. Need to discuss.
-    #update the location of the icelines, when time pass the gap opening time
-    #
-    #[24.01.04] uncommented this out b/c I dont understand why we need it
-    #if system.time>system.tgap:
-    #    for il in system.icelineL:
-    #        il.get_icelines_location(system.gas,system.time)
+
 
     system.post_process()
     

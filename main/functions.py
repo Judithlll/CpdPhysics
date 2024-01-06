@@ -165,44 +165,36 @@ def determine_type (val):
         return out
 
 
-def epsilon_PA (system,PlanetsLoc,PlanetsMass,cross_p):
+def epsilon_PA (PlanetsLoc,PlanetsMass,cross_p):
     """
     abnormal now
     
     different particles has different size and so different accretion rate, so maybe should change the total mass of particles???
     """
-    out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
-    disk = core.DISK (*out, PlanetsLoc, system.time)
-    disk.add_auxiliary ()
-    disk.user_difined ()
+    # out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
+    # disk = core.DISK (*out, PlanetsLoc, system.time)
+    # disk.add_auxiliary ()
+    # disk.user_difined ()
 
-    St=get_stokes_number(disk,system.time,cross_p[1],system.rhoint)
-    eta=disk.eta
+    # St=get_stokes_number(disk,system.time,cross_p[1],system.rhoint)
+    # eta=disk.eta
 
-    mus=PlanetsMass/disk.Mcp
+    mus=PlanetsMass/cross_p.mcp
 
-    Hg= disk.Hg
+    # Hg= disk.Hg
     
-    Hp=Hg*(1+St/ disk.alpha*(1+2*St)/(1+St))
+    Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
     hp=Hp/PlanetsLoc
 
-    delv_o_vK=0.52*(mus*St)**(1/3)+eta/(1+5.7*(mus/eta**3*St))
+    delv_o_vK=0.52*(mus*cross_p.St)**(1/3)+cross_p.eta/(1+5.7*(mus/cross_p.eta**3*cross_p.St))
     
-    P_eff=1/np.sqrt((0.32*np.sqrt(mus*delv_o_vK/ St/ eta**2))**(-2)+(0.39*mus/ eta/hp)**(-2)) #Liu & Ormel 2018
+    P_eff=1/np.sqrt((0.32*np.sqrt(mus*delv_o_vK/ cross_p.St/ cross_p.eta**2))**(-2)+(0.39*mus/ cross_p.eta/hp)**(-2)) #Liu & Ormel 2018
     return P_eff
 
 
 
-def M_critical(system,PlanetsLoc,cross_p):
-    ## CWO: this needs to be re-thought
 
-    out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
-    disk = core.DISK (*out, PlanetsLoc, system.time)
-    disk.add_auxiliary ()
-    disk.user_difined ()
+def M_critical (eta, St, mcp):
 
-    St=get_stokes_number(disk,system.time,cross_p[1],system.rhoint)
-    eta=disk.eta
-
-    M_critical=1/8*eta**3*St *disk.Mcp#Shibaike 2019
+    M_critical=1/8*eta**3*St *mcp #Shibaike 2019
     return M_critical   

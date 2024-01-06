@@ -23,6 +23,18 @@ def sig_mol (mu):
     return 2e-15 *np.ones_like(mu)
 
 
+def c_s (temp, mu):
+    ## CWO: sound speed depends on mean molecular weight, as well!
+    #       you need to address this...
+    return np.sqrt(cgs.kB*temp /(mu*cgs.mp))
+
+
+def Omega_K(loc,mcp):
+    
+    OK = np.sqrt(cgs.gC*mcp/loc**3)
+    return OK
+
+
 class DISK (object):
     """
     Disk object including every disk properties use the methods definded in the disk_properties.py
@@ -45,9 +57,15 @@ class DISK (object):
         this are auxiliary disk properties that directly follow
         from the initialization
         """
-        self.OmegaK = np.sqrt(cgs.gC *self.mcp/self.loc**3)      
+
+        #dkeyp = {'loc':self.loc, 'temp':self.temp, 'sigmaG':self.sigmaG, 'mu':self.mu}
         
-        self.cs =  np.sqrt(cgs.kB*self.temp/(self.mu*cgs.mp))
+        #sound speed follows from the key disk properties
+        self.cs = c_s(self.temp, self.mu)
+
+        self.OmegaK = Omega_K(self.loc, self.mcp)
+        
+        #self.cs =  np.sqrt(cgs.kB*self.temp/(self.mu*cgs.mp))
         self.vth = np.sqrt(8/np.pi)*self.cs 
  
         self.vK = self.loc *self.OmegaK
@@ -56,10 +74,6 @@ class DISK (object):
 
         self.sigmol = sig_mol (self.mu)
         self.lmfp = self.mu*cgs.mp/(self.sigmol*self.rhog)
-
-        #alpha is too specific, must be added through add_more
-        #
-        #self.nu = self.alpha*self.cs*self.Hg
 
 
     def add_uservar (self, dd):

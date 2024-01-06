@@ -3,6 +3,7 @@ import numpy as np
 import cgs
 import ode 
 from scipy.integrate import quad
+import physics
 
 alpha = 1e-4
 rinn = 5.89*cgs.RJ  #the location of Io
@@ -13,6 +14,7 @@ ratio=0.01
 sigmol=2e-15
 rgg=1e-7
 Mcp0=0.4*cgs.MJ
+meanmol = 2.34
 
 tdep= 3e6*cgs.yr2s  #depletion tiescale of gas (constant: 3e6 yr)
 tgap= 1e6*cgs.yr2s  #time when the gap was built
@@ -49,7 +51,7 @@ def dotMg_gap():
 
     fraction: the fraction of Jupiter mass which is accreted 
     """
-    Mfg=frac*cgs.MJ/1e6/cgs.yr2s
+    Mfg = frac*cgs.MJ/1e6/cgs.yr2s
     return Mfg
 
 def mg(disk):
@@ -93,20 +95,6 @@ def Sigma_g(r,cs,OmegaK,dotMg):
     Sg=dotMg/2/np.pi/rout*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
     return Sg
 
-# def Sigma_g(r,t):
-#     """
-#     get the surface density at loc and time 
-#     """
-#     Sg=dot_Mg(t)/2/np.pi/rout*r**(3/2)/(alpha*c_s(r,t)**2/Omega_K(r,t))*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
-#     return Sg
-
-# def T_d(r,t):
-#     Td=(3*cgs.gC*Mcp_t(t)*dot_Mg(t)/8/np.pi/cgs.sigmaSB/r**3)**(1/4)
-#     return Td
-
-def MeanMolecularWeight():
-    return 2.34
-
 
 def key_disk_properties (rad, t, dold=None):
     """
@@ -129,7 +117,7 @@ def key_disk_properties (rad, t, dold=None):
     
     #add a judgement if r is an array, because there is a comparison
     Mcp = Mcp_t(t)
-    OmegaK=Omega_K(r,t,Mcp)
+    OmegaK = physics.Omega_K(r,Mcp)
     dotMg = dot_Mg(t)
 
     nmax = 10
@@ -137,6 +125,9 @@ def key_disk_properties (rad, t, dold=None):
 
     #active indices
     ii = np.ones_like(r, dtype=bool)
+
+
+    mu = meanmol *np.ones_like(r)
 
     #start from the guess solution
     if dold is not None and len(r)==len(dold['temp']):
@@ -159,7 +150,9 @@ def key_disk_properties (rad, t, dold=None):
         Ti = Td[ii]
 
         kapa = np.where(Ti<160, 450*(Ti/160)**2, 450) *rgg  
-        cs = c_s(Ti)
+
+        cs = physics.c_s (Ti, mu[ii]) #
+        #cs = c_s(Ti)
 
         sigG[ii] = Sigma_g(r[ii],cs,OmegaK[ii],dotMg)
         tau = kapa*sigG[ii]
@@ -180,7 +173,8 @@ def key_disk_properties (rad, t, dold=None):
 
         nn += 1
 
-    mu = MeanMolecularWeight()*np.ones_like(sigG)
+    #mu = MeanMolecularWeight()*np.ones_like(sigG)
+
 
     if returnfloat:
         return sigG[0],Td[0],mu[0]
@@ -203,11 +197,6 @@ def T_d(sigmag,kapa,Mcp,dotMg,loc):
     Td=(3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/loc**3)**(1/4)*g
     return Td
 
-def c_s (T):
-    ## CWO: sound speed depends on mean molecular weight, as well!
-    #       you need to address this...
-    return np.sqrt(cgs.kB*T/m_g())
-
 def m_g():
     """
     get the mean molecular mass of disk
@@ -224,19 +213,16 @@ def m_g():
 
 #     return cs
 
-def Omega_K(loc,t,Mcp):
-    
-    OK=np.sqrt(cgs.gC*Mcp/loc**3)
-    # print(OK)
-    # if type(OK) !=np.ndarray:
-    #     if OK==np.nan:
-    #         import pdb;pdb.set_trace()
-    # print(Mcp,r)
-    return OK
+
 
 def H_d(Hg, St):
+    """
+    Youdin & Lithwick 2007
+    CWO: can move to physics module?
+    """
     Hd = Hg*(1+St/alpha*(1+2*St)/(1+St))**(-0.5) 
     return Hd
+
 # def H_g(cs,OmegaK):
 #     """
 #     get scale height

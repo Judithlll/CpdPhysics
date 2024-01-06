@@ -14,6 +14,7 @@ import scipy.integrate as sciint
 import time
 from scipy.optimize import curve_fit
 import physics
+import userfun
 
 class COPY (object):
     """
@@ -42,12 +43,7 @@ class System(object):
     daction={}
     timestepn=3  #how many time points in every ODE solution process
     rhoPlanet=1.9
-    
-    #[24.01.04]CWO: dont understand why we need it
-    #tgap=dp.tgap
 
-    #[24.01.04]CWO: dont understand why we need it
-    #tgap=dp.tgap
 
     def __init__(self,Rdi=0.01,time=0.0,nini=100,diskmass=0.01*cgs.MJ):
         
@@ -353,6 +349,11 @@ def advance_iceline (system):
 
                 #renormalize
                 system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
+        
+        #now can change iceline location b/c disk temperature may evolve
+        #TBD
+
+        iceline.get_icelines_location(system.gas,system.time)
 
 
 def advance_planets (system):
@@ -389,13 +390,14 @@ def advance_planets (system):
 
                     ## CWO: perhaps nicer to make a particle object (instead of this array)
                     #       such that we can have spi.loc, spi.mphy, spi.msup, spi.fcomp
-                    spi = np.array([system.oldstate.particles.locL[ip],system.oldstate.particles.massL[ip],system.oldstate.particles.mtotL[ip]])
+                    #spi = np.array([system.oldstate.particles.locL[ip],system.oldstate.particles.massL[ip],system.oldstate.particles.mtotL[ip]])
                     #spi = Single (...)
                     #spi = particles.select(ip)
-                    #spi = system.oldstate.particles.select(ip)
+                    spi = system.oldstate.particles.select_single(ip)
                     #spi = system.oldstate.particles.select_multi(idx)
                     crossL.append(spi)
-                crossL=np.array(crossL)
+
+                #crossL=np.array(crossL)
 
                 
                 # if len(idx)!=0:
@@ -452,19 +454,18 @@ def advance_planets (system):
                 #
                 #       (for the moment I ignore it... we can discuss)
 
-                #Mc = ff.M_critical(system,planet.loc,crossL[k])
-                Mc = 0.0
+                spk = crossL[k]
+                Mc = ff.M_critical(spk.eta, spk.St, spk.mcp)
 
                 if Mc<planet.mass:                    
 
                     #[24.01.05]CWO: let's think about how to do this later...
                     #
-                    #epsilon = ff.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
-                    epsilon = 0.1
+                    epsilon = ff.epsilon_PA(planet.loc,planet.mass,spk)
 
                     #2nd index refers to total particle mass
                     #CWO: prefer to have smth like: delm = epsilon*crossL[k].mtot
-                    delm = epsilon*crossL[k][2]
+                    delm = epsilon*crossL[k].mtotL
                     # import pdb; pdb.set_trace()
 
                 else:
@@ -573,6 +574,13 @@ class NO_LONGER_USED_DISK (object):
     
     def eta_cal (self,loc):
         return dp.eta(loc,self.Mcp,self.dotMg,self.mu*cgs.mp)
+
+
+class SingleSP(object):
+
+    def __init__ (self,**kwargs):
+        for key,val in kwargs.items():
+            setattr(self,key,val)
 
 
 class Superparticles(object):
@@ -697,6 +705,19 @@ class Superparticles(object):
     def generate_Y2d(self):
         self.Y2d = np.array([self.locL, self.massL])
 
+
+    def select_single(self, ix):
+
+        kwargs = {}
+        propL = ['locL','massL','mtotL','fcomp','St','eta']
+        for prop in propL:
+            kwargs[prop] = getattr(self,prop)[ix]
+        kwargs['mcp'] = self.mcp
+
+        spi = SingleSP (**kwargs)
+        return spi
+
+
     def make_Y2d (self):
         return np.array([self.locL, self.massL])
 
@@ -737,13 +758,15 @@ class Superparticles(object):
 
         disk = physics.DISK (*out, loc, time, mcp) #pro
         disk.add_auxiliary ()
-
+        
         #[24.01.05] The new way to add user-defined properties to the disk class
         #
         #1. variables; 2. functions; 3. function evaluations
         #
+        
         disk.add_uservar (dp.user_add_var())    #variables
         disk.add_userfun (dp.user_add_fun())    #functions only
+
         disk.add_user_eval (dp.user_add_eval()) #evaluations
 
         #add user defined functions to DISK
@@ -771,7 +794,7 @@ class Superparticles(object):
 
 
         #assume the relative velocity to be the half of radial velocity
-        v_dd = np.abs(v_r)/2    
+        #v_dd = np.abs(v_r)/2    
 
         #make the dust scale height to be user defined
         Hd = dp.H_d(disk.Hg, St)     
@@ -781,9 +804,14 @@ class Superparticles(object):
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
         sigD = disk.dotMd /(-2*loc*np.pi*v_r) #v_r<0
+        rhoD = sigD /np.sqrt(np.pi*2) /Hd
+
+        #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..
+        delv = userfun.del_v (St, rhoD, disk)
         
-        ## CWO: this *could* become a userfun (b/c seems a bit specific)
-        dmdt = 2*np.sqrt(np.pi)*Rd**2*v_dd/Hd*sigD  #eq. 5 of Shibaike et al. 2017
+        ## CWO: this *should* become a userfun (b/c seems a bit specific)
+        #dmdt = userfun.dm_dt (Rd, delv, Hd, sigD)
+        dmdt = 2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD  #eq. 5 of Shibaike et al. 2017 !Please, check!
 
         Y2ddt = np.zeros_like(self.Y2d)
         Y2ddt[0] = drdt
@@ -792,7 +820,7 @@ class Superparticles(object):
 
         #[24.01.05]:also return additional particle properties
         if returnMore:
-            return Y2ddt, {'Rd':Rd, 'St':St, 'v_r':v_r} 
+            return Y2ddt, {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'eta':disk.eta, 'Hg':disk.Hg} 
 
         else:
             return Y2ddt  
@@ -918,15 +946,18 @@ class ICELINE(object):
         Tdisk = gas.get_key_disk_properties(rad,time)[1]
         return Tdisk -Tice
 
-    def get_icelines_location(self,gas,time):
+    def get_icelines_location(self,gas,time,bounds=None):
         """
         get location of iceline, whose temperature is assumped as 160K
         """
         locL = np.linspace(dp.rinn,dp.rout,1000)
         diffold = 1e5
 
+        if bounds==None:
+            bounds = (dp.rinn, dp.rout)
+
         #change the bounds to make it general
-        self.loc = sciop.brentq(self.find_iceline, cgs.RJ, 20*cgs.RJ, args=(time,gas))
+        self.loc = sciop.brentq(self.find_iceline, *bounds, args=(time,gas))
         # import pdb; pdb.set_trace()
 
 
