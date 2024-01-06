@@ -26,6 +26,26 @@ def Mcp_t(t):
     Mcp=Mcp0+dotMg_gap()*tdep*(np.exp(tgap/tdep)-np.exp((tgap-t)/tdep))
     return Mcp
 
+
+def user_add_fun ():
+    """
+    a list of functions to be added
+    """
+    return dot_Mg,
+
+
+def user_add_var ():
+    """
+    a list of attributes to be added
+    """
+    return {'alpha':alpha, 'rinn':rinn, 'rout':rout, 'ratio':ratio}
+
+
+def user_add_eval ():
+    return eta, dotMd
+
+
+
 def dotMg_gap():
     """
     get the gas mass flow when the gap firstly biult
@@ -34,6 +54,7 @@ def dotMg_gap():
     """
     Mfg=frac*cgs.MJ/1e6/cgs.yr2s
     return Mfg
+
 
 def dot_Mg(t):
     """
@@ -45,6 +66,7 @@ def dot_Mg(t):
         dotMg=dotMg_gap()  
     return dotMg   
 
+
 def M_influx(t0,tEnd):
     """
     gas inflow into the CJD
@@ -53,18 +75,21 @@ def M_influx(t0,tEnd):
     # Minflux=ratio*dotMg_gap()*tdep*(np.exp(tgap/tdep) -np.exp(-(t-tgap)/tdep))
     return Minflux
 
-def dot_Md(dotMg):
-    """
-    get the solid mass flow
-
-    ratio: the dust to gas ratio
-    """
-    Mfd=ratio*dotMg
-    return Mfd
 
 def v_K(r,t):
     v=np.sqrt(cgs.gC*Mcp_t(t)/r)
     return v
+
+# def v_K(disk):
+#     OmegaK = disk.OmegaK
+#     v=np.sqrt(cgs.gC*Mcp/loc)
+#     return v
+
+# def Omega_K(disk):
+#     mcp=disk.mcp
+#     loc=disk.loc
+    
+#     return np.sqrt(cgs.gC*mcp/loc**3)
 
 def Sigma_g (r,cs,OmegaK,dotMg):
     """
@@ -225,12 +250,12 @@ def Omega_K(loc,t,Mcp):
 def H_d (Hg, St):
     return np.sqrt(alpha /(alpha+St)) *Hg
 
-# def H_g(cs,OmegaK):
-#     """
-#     get scale height
-#     """    
-#     GasScaleHeight=cs/OmegaK
-#     return GasScaleHeight
+def H_g(cs,OmegaK):
+    """
+    get scale height
+    """    
+    GasScaleHeight=cs/OmegaK
+    return GasScaleHeight
 
 # def viscosity(cs,Hg):
 #     """
@@ -239,32 +264,62 @@ def H_d (Hg, St):
 #     nu=alpha*cs*Hg
 #     return nu
 
-# def v_th(cs):
-#     """
-#     get the thermal velocity 
-#     """
-#     thermal_velocity=np.sqrt(8/np.pi)*cs
-#     return thermal_velocity
-
-# def l_mfp(rhog,mg):
-#     """
-#     get the mean free path
-
-#     """
-#     MeanFreePath=mg/sigmamol/rhog
-#     return MeanFreePath
-
-# def rho_g(Sigmag,Hg):
-#     """
-#     get the density of gas
-#     """
-#     rhogas=Sigmag/(2*np.pi)**0.5/Hg
-#     return rhogas
-
-
-def eta(r,Mcp,dotMg,mg):
+def v_th(cs):
     """
-    v=(1-eta)vK
+    get the thermal velocity 
+    """
+    thermal_velocity=np.sqrt(8/np.pi)*cs
+    return thermal_velocity
+
+def l_mfp(rhog,mg):
+    """
+    get the mean free path
+
+    """
+    MeanFreePath=mg/sigmol/rhog
+    return MeanFreePath
+
+def rho_g(Sigmag,Hg):
+    """
+    get the density of gas
+    """
+    rhogas=Sigmag/(2*np.pi)**0.5/Hg
+    return rhogas
+
+
+def eta_old (r,Mcp,dotMg,mg):
+    """
+    as in: vgas = (1-eta)vK
     """
     e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
     return e
+
+
+### Evaluation functions are here:
+#   They all are take the disk object as argument 
+
+def eta (disk):
+    """
+    as in: vgas = (1-eta)vK
+
+    This is a derived function, using parameters from the disk class
+    """
+    r = disk.loc
+    Mcp = disk.mcp
+    dotMg = dot_Mg(disk.time)
+    mg = disk.mu *cgs.mp 
+
+    e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
+    return e
+
+
+def dotMd (disk):
+    """
+    get the solid mass flow
+
+    ratio: the dust to gas ratio
+    """
+    Mfd = disk.ratio *disk.dot_Mg(disk.time)
+    return Mfd
+
+

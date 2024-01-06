@@ -1,14 +1,23 @@
 import numpy as np
 import cgs
 import functions as f
-import core
+## import core# disk should go
+import physics
+import disk_properties as dp
 
-def planet_migration(gas,planetLoc,planetMass,time,rhopl):
+def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     #aerodynamic drag migration
     out = gas.get_key_disk_properties (planetLoc, time)
-    disk = core.DISK (*out, planetLoc, time)
+
+    mcp = dp.Mcp_t(time)
+
+    disk = physics.DISK (*out, planetLoc, time, mcp) #pro
     disk.add_auxiliary ()
-    disk.user_difined ()
+    disk.add_uservar (dp.user_add_var())    #variables
+    disk.add_userfun (dp.user_add_fun())
+    #disk = core.DISK (*out, planetLoc, time)
+    #disk.add_auxiliary ()
+    #disk.user_difined ()
 
     # eta=disk.eta
     # v_K=disk.vK

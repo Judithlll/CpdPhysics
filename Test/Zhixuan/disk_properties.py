@@ -26,6 +26,23 @@ def Mcp_t(t):
     Mcp=Mcp0+dotMg_gap()*tdep*(np.exp(tgap/tdep)-np.exp((tgap-t)/tdep))
     return Mcp
 
+def user_add_fun ():
+    """
+    a list of functions to be added
+    """
+    return dot_Mg,
+
+
+def user_add_var ():
+    """
+    a list of attributes to be added
+    """
+    return {'alpha':alpha, 'rinn':rinn, 'rout':rout, 'ratio':ratio}
+
+
+def user_add_eval ():
+    return eta, dotMd, mg
+
 def dotMg_gap():
     """
     get the gas mass flow when the gap firstly biult
@@ -34,6 +51,9 @@ def dotMg_gap():
     """
     Mfg=frac*cgs.MJ/1e6/cgs.yr2s
     return Mfg
+
+def mg(disk):
+    return disk.mu* cgs.mp
 
 def dot_Mg(t):
     """
@@ -53,13 +73,13 @@ def M_influx(t0,tEnd):
     # Minflux=ratio*dotMg_gap()*tdep*(np.exp(tgap/tdep) -np.exp(-(t-tgap)/tdep))
     return Minflux
 
-def dot_Md(dotMg):
+def dotMd(disk):
     """
     get the solid mass flow
 
     ratio: the dust to gas ratio
     """
-    Mfd=ratio*dotMg
+    Mfd=disk.ratio*disk.dot_Mg(disk.time)
     return Mfd
 
 def v_K(r,t):
@@ -254,10 +274,24 @@ def H_d(Hg, St):
 #     return rhogas
 
 
-def eta(r,Mcp,dotMg,mg):
+def eta_old(r,Mcp,dotMg,mg):
     """
     v=(1-eta)vK
     """
+    e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
+    return e
+
+def eta (disk):
+    """
+    as in: vgas = (1-eta)vK
+
+    This is a derived function, using parameters from the disk class
+    """
+    r = disk.loc
+    Mcp = disk.mcp
+    dotMg = dot_Mg(disk.time)
+    mg = disk.mu *cgs.mp 
+
     e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
     return e
 

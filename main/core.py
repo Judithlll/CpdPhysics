@@ -13,6 +13,7 @@ import scipy.optimize as sciop
 import scipy.integrate as sciint
 import time
 from scipy.optimize import curve_fit
+import physics
 
 class COPY (object):
     """
@@ -444,9 +445,22 @@ def advance_planets (system):
                 #need to calculate epsilon (PA efficiency)
 
                 #calculate critical mass to verify if the pebble accretion can occur
-                Mc = ff.M_critical(system,planet.loc,crossL[k])
+                 
+                #[24.01.05]
+                ## CWO: I dont think it's a good idea to forward the entire system
+                #       class to such simple functions..
+                #
+                #       (for the moment I ignore it... we can discuss)
+
+                #Mc = ff.M_critical(system,planet.loc,crossL[k])
+                Mc = 0.0
+
                 if Mc<planet.mass:                    
-                    epsilon = ff.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
+
+                    #[24.01.05]CWO: let's think about how to do this later...
+                    #
+                    #epsilon = ff.epsilon_PA(system,planet.loc,planet.mass,crossL[k])
+                    epsilon = 0.1
 
                     #2nd index refers to total particle mass
                     #CWO: prefer to have smth like: delm = epsilon*crossL[k].mtot
@@ -465,7 +479,7 @@ def advance_planets (system):
 
 
 #perhaps this class object is not necessary...
-class DISK (object):
+class NO_LONGER_USED_DISK (object):
     """
     Disk object including every disk properperties use the methods definded in the disk_properties.py
     """
@@ -497,7 +511,7 @@ class DISK (object):
         
         self.cs =  np.sqrt(cgs.kB*self.temp/(self.mu*cgs.mp))
         self.vth = np.sqrt(8/np.pi)*self.cs 
-
+ 
         self.vK = self.loc *self.OmegaK
         self.Hg = self.cs/self.OmegaK 
         self.nu = self.alpha*self.cs*self.Hg
@@ -694,10 +708,13 @@ class Superparticles(object):
         
         self.rhoint=1/Volume
 
+
     def get_radius(self):
         "update the rhoint according to new fcomp"
         self.get_rhoint()
+
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
+
     
     def dY2d_dt (self,Y2d,time,gas, returnMore=False):
         """
@@ -710,41 +727,63 @@ class Superparticles(object):
         #unpack the state vector
         loc, mphy = Y2d
 
-        Rd=self.get_radius()
+        #get radii of the particles
+        Rd = self.get_radius()
 
+
+        #we need these 2 things to initalize the class object
+        mcp = dp.Mcp_t(time)  
         out = gas.get_key_disk_properties (loc, time)
-        disk = DISK (*out, loc, time) #pro
+
+        disk = physics.DISK (*out, loc, time, mcp) #pro
         disk.add_auxiliary ()
-        disk.user_difined ()
 
-        eta=disk.eta
-        v_K=disk.vK
-        v_th=disk.vth
-        lmfp=disk.lmfp
-        rho_g=disk.rhog
-        Omega_K=disk.OmegaK
-        H_g=disk.Hg
-        dotMd=disk.dotMd
+        #[24.01.05] The new way to add user-defined properties to the disk class
+        #
+        #1. variables; 2. functions; 3. function evaluations
+        #
+        disk.add_uservar (dp.user_add_var())    #variables
+        disk.add_userfun (dp.user_add_fun())    #functions only
+        disk.add_user_eval (dp.user_add_eval()) #evaluations
 
+        #add user defined functions to DISK
+        #disk.user_difined ()
+
+        #eta=disk.eta
+        #v_K=disk.vK
+        #v_th=disk.vth
+        #lmfp=disk.lmfp
+        #rho_g=disk.rhog
+        #Omega_K=disk.OmegaK
+        #H_g=disk.Hg
+        #dotMd=disk.dotMd
 
         #obtain Stokes number by iterating on drag law
-        St,v_r = ff.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd,Sto=self.stokesOld)
+        St, v_r = ff.St_iterate (disk.eta,
+                                 disk.vK,
+                                 disk.vth,
+                                 disk.lmfp,
+                                 disk.rhog,
+                                 disk.OmegaK,
+                                 Rd,
+                                 Sto=self.stokesOld)
         self.stokesOld = St
 
+
         #assume the relative velocity to be the half of radial velocity
-        v_dd = np.abs(v_r)/2  
+        v_dd = np.abs(v_r)/2    
 
         #make the dust scale height to be user defined
-        H_d = dp.H_d(H_g, St)     
+        Hd = dp.H_d(disk.Hg, St)     
 
         drdt = v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
-        sigD = dotMd /(-2*loc*np.pi*v_r) #v_r<0
+        sigD = disk.dotMd /(-2*loc*np.pi*v_r) #v_r<0
         
         ## CWO: this *could* become a userfun (b/c seems a bit specific)
-        dmdt = 2*np.sqrt(np.pi)*Rd**2*v_dd/H_d*sigD  #eq. 5 of Shibaike et al. 2017
+        dmdt = 2*np.sqrt(np.pi)*Rd**2*v_dd/Hd*sigD  #eq. 5 of Shibaike et al. 2017
 
         Y2ddt = np.zeros_like(self.Y2d)
         Y2ddt[0] = drdt
@@ -773,9 +812,18 @@ class Superparticles(object):
         #integrates system to tFi
         Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',gas)
         
-        self.locL=Yt[-1,0,:]
-        self.massL=Yt[-1,1,:]
+        self.locL = Yt[-1,0,:]
+        self.massL =Yt[-1,1,:]
         # self.mtotL=Yt[-1,2,:] #no longer updated
+
+        #[24.01.05]CWO
+        #after the integration, extract the particle properties
+        #for future use
+        dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], gas, returnMore=True)
+        for key, val in daux.items():
+            setattr(self, key, val)
+
+
         #TBR
         self.generate_Y2d()  #update Y2d for next step integration
 
