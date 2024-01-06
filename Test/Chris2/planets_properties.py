@@ -12,9 +12,9 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     mcp = dp.Mcp_t(time)
 
     disk = physics.DISK (*out, planetLoc, time, mcp) #pro
-    disk.add_auxiliary ()
+    # disk.add_auxiliary ()
     disk.add_uservar (dp.user_add_var())    #variables
-
+    disk.add_userfun (dp.user_add_fun())
     #disk = core.DISK (*out, planetLoc, time)
     #disk.add_auxiliary ()
     #disk.user_difined ()
@@ -50,7 +50,7 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
 
     CI = 0.1
     bt1 = CI*(2.7+1.1*qr)   #a constant Ogihara 2014
-    vt1 = bt1*(planetMass/mcp)*(disk.sigmaG*planetLoc**2/mcp)*(disk.vK/disk.cs)**2 *disk.vK
+    vt1 = bt1*(planetMass/mcp)*(disk.sigmaG*planetLoc**2/mcp)*(disk.v_K(planetLoc, time)/disk.c_s(disk.temp))**2 *disk.v_K(planetLoc, time)
 
     v_mig=vt1+vd
     return v_mig

@@ -755,7 +755,7 @@ class Superparticles(object):
 
 
         #assume the relative velocity to be the half of radial velocity
-        v_dd = np.abs(v_r)/2  
+        v_dd = np.abs(v_r)/2    
 
         #make the dust scale height to be user defined
         Hd = dp.H_d(disk.H_g(disk.c_s(disk.temp), disk.Omega_K(loc,time, mcp)), St)     
