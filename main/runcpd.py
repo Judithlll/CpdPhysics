@@ -62,6 +62,7 @@ while system.time<pars.tmax:
     #     print("it takes"+ str(runTime/60)+" now")
         
 
+print('[runcpd]:finished')
 
 #CWO: what is all this (below) and why do we need it here?
 

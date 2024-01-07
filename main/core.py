@@ -253,14 +253,15 @@ class System(object):
         
         #Mass influx timescale
         if self.time > 0:  # better to get rid of the first step one, but the effect is tiny
-            InfluxTscale = np.float64(self.Minflux_step) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
+            #[24.01.07]CWO: in cases there is no influx, this should evaluate the infinity...
+            InfluxTscale = (1e-100 + np.float64(self.Minflux_step)) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
 
         #central mass growth timescale:
         # if self.time > 0:
         #     McTscale = self.
 
-            # import pdb; pdb.set_trace() 
+        #
         if self.oldstate is not None:   
             #timescale for the planets (including migration and mass growth)
             
@@ -268,8 +269,8 @@ class System(object):
                 self.planetMassData = [[],[]]
                 self.masstime = []   
             
-            PmassTscale=np.inf*np.ones_like(self.planetL)
-            PlocaTscale=np.inf*np.ones_like(self.planetL) 
+            PmassTscale = np.inf*np.ones_like(self.planetL)
+            PlocaTscale = np.inf*np.ones_like(self.planetL) 
             for i in range(self.nplanet):
                 if self.time>self.planetL[i].time:
                     # import pdb ;pdb.set_trace()
@@ -299,15 +300,20 @@ class System(object):
                             PmassTscale[i] = 1/abs(popt[0])*self.time
 
 
-            mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
-            mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
+            #[24.01.07]CWO: let's only add if there are planets
+            if pars.doPlanets:
+                mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
+                mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
+
             #timescale for the icelines
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
             for i,iceline in enumerate(self.icelineL):
                 tscale = np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
                 IlocaTscale[i] = tscale
             
-            mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
+            #[24.01.07]CWO: let's only add if there are icelines
+            if pars.doIcelines:
+                mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
         
         # put mintimeL into system object for now to check
         self.mintimeL=mintimeL
