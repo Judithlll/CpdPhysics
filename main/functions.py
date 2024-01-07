@@ -182,7 +182,7 @@ def epsilon_PA (PlanetsLoc,PlanetsMass,cross_p):
     mus=PlanetsMass/cross_p.mcp
 
     # Hg= disk.Hg
-    
+    # import pdb; pdb.set_trace()
     Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
     hp=Hp/PlanetsLoc
 

@@ -479,103 +479,6 @@ def advance_planets (system):
                 spN.mtotL[ip] -= delm #decrease mass sp
 
 
-#perhaps this class object is not necessary...
-class NO_LONGER_USED_DISK (object):
-    """
-    Disk object including every disk properperties use the methods definded in the disk_properties.py
-    """
-
-    def __init__ (self, sigmaG, temp, mu, loc, time):
-        """
-        initialize with key disk properties
-        """
-        self.loc = loc
-        self.sigmaG = sigmaG
-        self.temp = temp
-        self.mu = mu
-        self.time = time
-
-        #user defined in disk_properties.py
-        self.alpha = dp.alpha
-        self.rout = dp.rout
-        self.rinn = dp.rinn
-        self.sigmol = dp.sigmol
-
-
-    def add_auxiliary (self):
-        """
-        this add auxiliary disk properties that directly follow
-        from the key disk properties
-        """
-        self.Mcp = self.Mcp_t(self.time)  
-        self.OmegaK = np.sqrt(cgs.gC *self.Mcp/self.loc**3)      
-        
-        self.cs =  np.sqrt(cgs.kB*self.temp/(self.mu*cgs.mp))
-        self.vth = np.sqrt(8/np.pi)*self.cs 
- 
-        self.vK = self.loc *self.OmegaK
-        self.Hg = self.cs/self.OmegaK 
-        self.nu = self.alpha*self.cs*self.Hg
-        self.rhog = self.sigmaG/(2*np.pi)**0.5/self.Hg
-        self.lmfp = self.mu*cgs.mp/(self.sigmol*self.rhog)
-        
-
-    def user_difined(self):
-        #move to user-defined
-        self.dotMg = self.dot_Mg(self.time)
-        self.dotMd = self.dot_Md()
-        self.eta=self.eta_cal(self.loc)
-        
-
-    def Mcp_t(self,time):
-        return dp.Mcp_t(time)
-    
-    def dot_Mg(self,time):
-        return dp.dot_Mg(time)
-    
-    def dot_Md(self):
-        return dp.dot_Md(self.dotMg)
-    
-    def M_influx(self,t0,tEnd):
-        return dp.M_influx(t0,tEnd)
-
-    # def Sigmag (self,loc,time):
-    #     c_s=self.cs(loc,time)
-    #     Sg=dp.Sigma_g(loc,time,c_s)
-    #     return Sg
-    
-    # def Omega_K(self,loc,time):
-    #     return np.sqrt(cgs.gC *self.Mcp/loc**3)
-        #return dp.Omega_K(loc,time,self.Mcp)
-
-    def c_s (self):
-        return np.sqrt(cgs.kB*self.temp/(self.mu*cgs.mp))
-
-    def v_K(self,loc):
-        return self.OmegaK*loc
-    
-    def v_th(self):
-        return dp.v_th(self.cs)
-    
-    def H_g(self):
-        return dp.H_g(self.cs,self.OmegaK)
-    
-    def viscosity(self):
-        return dp.viscosity(self.cs,self.Hg)
-    
-    def rho_g(self):
-        return dp.rho_g(self.Sigmag,self.Hg)
-
-    def m_g(self):
-        return dp.m_g()
-
-    def l_mfp(self):
-        return dp.l_mfp(self.rhog,self.mg)
-    
-    def eta_cal (self,loc):
-        return dp.eta(loc,self.Mcp,self.dotMg,self.mu*cgs.mp)
-
-
 class SingleSP(object):
 
     def __init__ (self,**kwargs):
@@ -672,10 +575,9 @@ class Superparticles(object):
             #the mass of the super-particles are equally spread through
             msup = np.ones_like(radL) *Mtot/nini
 
-        #[23.12.30]:I don't know why/how mtot1 should be defined
         self.locL = np.array(radL)
         self.mtotL = np.array(msup)
-        self.mtot1 = msup[-1] #?? 
+        self.mtot1 = msup[-1] #for adding new particles
 
         #[23.12.30]NEW:add composition data (fcomp)
         #[23.12.30]this looks a bit ugly...
@@ -709,10 +611,20 @@ class Superparticles(object):
     def select_single(self, ix):
 
         kwargs = {}
-        propL = ['locL','massL','mtotL','fcomp','St','eta']
+        # select the properties that: 
+        #   1) is not float 
+        #   2) is not int
+        #   3) is not functions
+        #   4) is not something like '__prop__'
+
+        propL = [attr for attr in dir(self) if isinstance(getattr(self, attr), float) is False and isinstance(getattr(self, attr), int) is False and not callable(getattr(self, attr)) and not attr.startswith('__')]   
+        # propL = ['locL','massL','mtotL','fcomp','St','eta'] maybe just select properties artificially is also OK
+        
         for prop in propL:
-            kwargs[prop] = getattr(self,prop)[ix]
+            if len(getattr(self,prop)) > len(self.rhocompos):
+                kwargs[prop] = getattr(self,prop)[ix]
         kwargs['mcp'] = self.mcp
+        kwargs['alpha'] = self.alpha
 
         spi = SingleSP (**kwargs)
         return spi
@@ -769,18 +681,6 @@ class Superparticles(object):
 
         disk.add_user_eval (dp.user_add_eval()) #evaluations
 
-        #add user defined functions to DISK
-        #disk.user_difined ()
-
-        #eta=disk.eta
-        #v_K=disk.vK
-        #v_th=disk.vth
-        #lmfp=disk.lmfp
-        #rho_g=disk.rhog
-        #Omega_K=disk.OmegaK
-        #H_g=disk.Hg
-        #dotMd=disk.dotMd
-
         #obtain Stokes number by iterating on drag law
         St, v_r = ff.St_iterate (disk.eta,
                                  disk.vK,
@@ -820,7 +720,7 @@ class Superparticles(object):
 
         #[24.01.05]:also return additional particle properties
         if returnMore:
-            return Y2ddt, {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'eta':disk.eta, 'Hg':disk.Hg} 
+            return Y2ddt, {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'eta':disk.eta, 'Hg':disk.Hg, 'alpha': disk.alpha} 
 
         else:
             return Y2ddt  
