@@ -45,16 +45,13 @@ class System(object):
     rhoPlanet=1.9
 
 
-    def __init__(self,Rdi=0.01,time=0.0,nini=100,diskmass=0.01*cgs.MJ):
+    def __init__(self,Rdi=0.01,time=0.0,diskmass=0.01*cgs.MJ):
         
         #initialize parameter from txt file // disk.py
         self.Rdi=Rdi  #initial radius of particles
-        self.nini=nini #CWO: this is changing all the time... rename to self.np ?
-        self.ninit = nini
         self.mini = 4*np.pi/3*self.rhoint *Rdi**3
         self.time=time  #initial time
         self.ntime = 0
-        self.Nplevel = nini
 
         # define a disk class
         self.gas = self.init_gas ()
@@ -176,14 +173,17 @@ class System(object):
             #remove the particles from Y2d!
             
             self.particles.remove_particles(self.daction['remove'])
-            self.nini-=len(self.daction['remove'])
+
+            #[24.01.07]CWO: do we need this?
+            # self.nini-=len(self.daction['remove'])
             # import pdb; pdb.set_trace()
 
         if 'add' in self.daction.keys():
             self.particles.add_particles(self.daction['add'])
 
             #CWO: is this statement OK?
-            self.nini+=self.daction['add']
+            #[24.01.07]CWO: do we need this?
+            #self.nini+=self.daction['add']
 
         ##CWO: TBD 
         #Make mtot1 smaller (greater) if total number of particles
@@ -194,33 +194,36 @@ class System(object):
         #of the huge lag... I think the below algorith accomplishes smth
         #but is a bit ugly
 
-        Np = len(self.particles.massL)
+        #to be brief..
+        part = self.particles
+
+        Np = len(part.massL)
 
         nch = 4
-        if Np==self.ninit: self.Nplevel = self.ninit #reset
+        if Np==part.ninit: part.Nplevel = part.ninit #reset
 
         #particle level is decreasing...
-        if Np<self.Nplevel -nch and Np<self.ninit:
-            self.Nplevel -= nch
-            eps = abs(self.ninit -self.Nplevel) /self.ninit
+        if Np<part.Nplevel -nch and Np<part.ninit:
+            part.Nplevel -= nch
+            eps = abs(part.ninit -part.Nplevel) /part.ninit
             self.mtot1 *= 1 -eps
 
         #particle level is decreasing, but above ninit: modest decrease mtot1
-        elif Np<self.Nplevel -nch and Np>self.ninit:
-            self.Nplevel -= nch
-            eps = nch /self.ninit
+        elif Np<part.Nplevel -nch and Np>part.ninit:
+            part.Nplevel -= nch
+            eps = nch /part.ninit
             self.mtot1 *= 1 -eps
 
         #particle level is increasing, but below ninit: modest increase mtot1
-        elif Np>self.Nplevel +nch and Np<self.ninit:
-            self.Nplevel += nch
-            eps = nch /self.ninit
+        elif Np>part.Nplevel +nch and Np<part.ninit:
+            part.Nplevel += nch
+            eps = nch /part.ninit
             self.mtot1 *= 1 +eps
 
         #particle level is increasing...
-        elif Np>self.Nplevel +nch and Np>self.ninit:
-            self.Nplevel += nch
-            eps = abs(self.ninit -self.Nplevel) /self.ninit
+        elif Np>part.Nplevel +nch and Np>part.ninit:
+            part.Nplevel += nch
+            eps = abs(part.ninit -part.Nplevel) /part.ninit
             self.mtot1 *= 1 +eps
 
         #Ncrit = 100
@@ -519,7 +522,9 @@ class Superparticles(object):
             if compos['name']!= 'gas':
                 self.rhocompos.append(compos['rhoint'])
         
-        self.nini=nini
+        self.nini = nini
+        self.ninit =nini
+        self.Nplevel = nini
 
         #[23.12.30]this was commented out; now uncommented
 
@@ -791,7 +796,8 @@ class Superparticles(object):
         #TBR: not necessary... only generate when you need it!
         self.generate_Y2d()  #get a new Y2d, update.
 
-    def add_particles(self,Nadd):
+
+    def add_particles (self,Nadd):
         #TBD: no longer works with Y2d
 
         self.locL = np.append(self.locL, self.rout)
@@ -803,8 +809,8 @@ class Superparticles(object):
         self.generate_Y2d()  #update Y2d
 
         if Nadd!=1:
-            print('[core]Error:can only add 1 particle // reduce timestep')
-            sys.exit()
+            #[24.01.07]CWO: I dont understand why we need to add 2 particles sometimes?
+            print('[Super.add_particles]WARNING:can only add 1 particle // reduce timestep')
 
 
         # For the situation where not only one particles will be added, maybe useful in future
@@ -864,8 +870,6 @@ class ICELINE(object):
         """
         get location of iceline, whose temperature is assumped as 160K
         """
-        locL = np.linspace(dp.rinn,dp.rout,1000)
-        diffold = 1e5
 
         if guess is not None:
             dsol = sciop.root_scalar(self.find_iceline, x0=guess, args=(time,gas), 

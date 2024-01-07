@@ -69,8 +69,8 @@ def do_stuff (system, init=False):
         
         tminarr = np.array([ddum['tmin'] for ddum in system.mintimeL])
 
-        sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:10.2e}'
-        line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tminarr.argmin(), system.time)
+        sfmt = '{:7d} {:5d} {:10.2e} {:3d} {:10.2e}'
+        line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tminarr.argmin(), system.time/cgs.yr)
         print(line)
 
 
