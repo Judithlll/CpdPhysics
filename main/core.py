@@ -360,7 +360,8 @@ def advance_iceline (system):
         #now can change iceline location b/c disk temperature may evolve
         #TBD
 
-        iceline.get_icelines_location(system.gas,system.time)
+        loc_pv = system.oldstate.icelineL[k].loc
+        iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
 
 
 def advance_planets (system):
@@ -859,18 +860,22 @@ class ICELINE(object):
         Tdisk = gas.get_key_disk_properties(rad,time)[1]
         return Tdisk -Tice
 
-    def get_icelines_location(self,gas,time,bounds=None):
+    def get_icelines_location (self,gas,time,bounds=None,guess=None):
         """
         get location of iceline, whose temperature is assumped as 160K
         """
         locL = np.linspace(dp.rinn,dp.rout,1000)
         diffold = 1e5
 
+        if guess is not None:
+            dsol = sciop.root_scalar(self.find_iceline, x0=guess, args=(time,gas), 
+                            method='secant', rtol=1e-6)
+            self.loc = dsol.root
+            return
+
         if bounds==None:
             bounds = (dp.rinn, dp.rout)
 
         #change the bounds to make it general
         self.loc = sciop.brentq(self.find_iceline, *bounds, args=(time,gas))
-        # import pdb; pdb.set_trace()
-
 
