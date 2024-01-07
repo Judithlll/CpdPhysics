@@ -614,7 +614,7 @@ class Superparticles(object):
         # select the properties are list or numpy.ndarray
 
         propL = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), list) or isinstance(getattr(self, attr), np.ndarray)]   
-        # propL = ['locL','massL','mtotL','fcomp','St','eta'] maybe just select properties artificially is also OK
+        # propL = ['locL','massL','mtotL','fcomp','St','eta'] maybe just select properties artificially is better
         propSol = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), float)]
 
         for prop in propL:
@@ -624,7 +624,6 @@ class Superparticles(object):
         for prop in propSol:
             kwargs[prop] = getattr(self,prop)
         
-        import pdb; pdb.set_trace()
 
         spi = SingleSP (**kwargs)
         return spi
