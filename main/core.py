@@ -611,20 +611,20 @@ class Superparticles(object):
     def select_single(self, ix):
 
         kwargs = {}
-        # select the properties that: 
-        #   1) is not float 
-        #   2) is not int
-        #   3) is not functions
-        #   4) is not something like '__prop__'
+        # select the properties are list or numpy.ndarray
 
-        propL = [attr for attr in dir(self) if isinstance(getattr(self, attr), float) is False and isinstance(getattr(self, attr), int) is False and not callable(getattr(self, attr)) and not attr.startswith('__')]   
+        propL = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), list) or isinstance(getattr(self, attr), np.ndarray)]   
         # propL = ['locL','massL','mtotL','fcomp','St','eta'] maybe just select properties artificially is also OK
-        
+        propSol = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), float)]
+
         for prop in propL:
             if len(getattr(self,prop)) > len(self.rhocompos):
                 kwargs[prop] = getattr(self,prop)[ix]
-        kwargs['mcp'] = self.mcp
-        kwargs['alpha'] = self.alpha
+        
+        for prop in propSol:
+            kwargs[prop] = getattr(self,prop)
+        
+        import pdb; pdb.set_trace()
 
         spi = SingleSP (**kwargs)
         return spi
