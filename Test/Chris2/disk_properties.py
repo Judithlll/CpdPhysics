@@ -31,7 +31,7 @@ def user_add_fun ():
     """
     a list of functions to be added
     """
-    return dot_Mg,
+    return dot_Mg, Mcp_t
 
 
 def user_add_var ():

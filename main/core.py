@@ -676,10 +676,10 @@ class Superparticles(object):
         #1. variables; 2. functions; 3. function evaluations
         #
         
-        disk.add_uservar (dp.user_add_var())    #variables
+        userparL = disk.add_uservar (dp.user_add_var())    #variables
         disk.add_userfun (dp.user_add_fun())    #functions only
 
-        disk.add_user_eval (dp.user_add_eval()) #evaluations
+        userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
 
         #obtain Stokes number by iterating on drag law
         St, v_r = ff.St_iterate (disk.eta,
@@ -720,7 +720,13 @@ class Superparticles(object):
 
         #[24.01.05]:also return additional particle properties
         if returnMore:
-            return Y2ddt, {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'eta':disk.eta, 'Hg':disk.Hg, 'alpha': disk.alpha} 
+            #[24.01.07]CWO: alpha cannot be returned here, b/c some disk don't have it!
+            #
+            dMore = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'Hg':disk.Hg} 
+            for key in userparL+userevalL:
+                dout[key] = getattr(disk,key)
+
+            return Y2ddt, dMore
 
         else:
             return Y2ddt  

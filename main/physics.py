@@ -80,8 +80,12 @@ class DISK (object):
         """
         this add variables to the disk object
         """
+        keyL = []
         for key, val in dd.items():
             setattr(self, key, val)
+            keyL.append(key)
+
+        return keyL
 
 
     def add_userfun (self, dfunL):
@@ -97,7 +101,12 @@ class DISK (object):
         this evaluates the functions using the disk class
         (this is a bit complex)
         """
+        nameL = []
         for fun in dfunL:
             val = fun(self)
-            setattr(self, fun.__name__, val)
+            name = fun.__name__
+            setattr(self, name, val)
+            nameL.append(name)
+
+        return nameL
 
