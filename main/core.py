@@ -724,7 +724,7 @@ class Superparticles(object):
             #
             dMore = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'Hg':disk.Hg} 
             for key in userparL+userevalL:
-                dout[key] = getattr(disk,key)
+                dMore[key] = getattr(disk,key)
 
             return Y2ddt, dMore
 
