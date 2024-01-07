@@ -35,12 +35,14 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
 
     # Stpl,vd=f.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rpl)
 
+    mg = disk.mu *cgs.mp
+
     #Type I migration
-    qr=-0.14493*disk.dotMg*cgs.gC*disk.Mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dotMg*cgs.gC*disk.Mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
+    qr=-0.14493*disk.dot_Mg(planetLoc)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(planetLoc)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/mg) #pressure gradient
 
     CI=0.1
     bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
-    vt1=bt1*(planetMass/disk.Mcp)*(disk.Sigmag*planetLoc**2/disk.Mcp)*(disk.v_K/disk.cs)**2*disk.v_K
+    vt1=bt1*(planetMass/disk.mcp)*(disk.sigmaG*planetLoc**2/disk.mcp)*(disk.vK/disk.cs)**2*disk.vK
 
     # v_mig=vt1+vd
 

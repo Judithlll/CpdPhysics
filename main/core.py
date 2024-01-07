@@ -295,7 +295,8 @@ class System(object):
                             # plt.plot(t_list, mass_fit(t_list, *popt))
                             # plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
 
-                            PmassTscale[i]=1/popt[0]*self.time
+                            #[24.01.07]CWO: I toot absolute as popt[0] may turn out to be negative
+                            PmassTscale[i] = 1/abs(popt[0])*self.time
 
 
             mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
@@ -303,8 +304,8 @@ class System(object):
             #timescale for the icelines
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
             for i,iceline in enumerate(self.icelineL):
-                tscale=np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
-                IlocaTscale[i]=tscale
+                tscale = np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
+                IlocaTscale[i] = tscale
             
             mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
         
@@ -738,9 +739,10 @@ class Superparticles(object):
 
         #integrates system to tFi
         Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',gas)
-        
+
         self.locL = Yt[-1,0,:]
         self.massL =Yt[-1,1,:]
+
         # self.mtotL=Yt[-1,2,:] #no longer updated
 
         #[24.01.05]CWO

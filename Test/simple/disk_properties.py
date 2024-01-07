@@ -11,11 +11,20 @@ sigmol=2e-15
 
 
 def Mcp_t (t):
-    return cgs.mSun
+    return cgs.Msun
 
 
 def M_influx (t0, tEnd):
     return 0.0
+
+def user_add_var ():
+    return {}
+
+def user_add_fun ():
+    return []
+
+def user_add_eval ():
+    return [eta,dotMd]
 
 
 def key_disk_properties (rad, t, dold=None):
@@ -29,7 +38,12 @@ def key_disk_properties (rad, t, dold=None):
 
     return sigma, temp, mgas
 
+def eta (disk):
+    return 0.01
 
-def Omega_K (rad, t, Mcp):
-    return 2e-7 *(rad/cgs.au)**-1.5
+def H_d (Hg, St):
+    return 1
+
+def dotMd (disk):
+    return 1.0
 
