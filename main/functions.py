@@ -168,9 +168,7 @@ def determine_type (val):
 
 def epsilon_PA (PlanetsLoc,PlanetsMass,cross_p):
     """
-    abnormal now
-    
-    different particles has different size and so different accretion rate, so maybe should change the total mass of particles???
+    Get the pebble accretion rate
     """
 
     mus=PlanetsMass/cross_p.mcp
