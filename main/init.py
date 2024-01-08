@@ -137,7 +137,7 @@ def load_composdata (calldir, composL):
 
 def sim_init (calldir, dsystempars={},*args):
     """
-    The idea is that the system object is defined here... TBD
+    The idea is that the system object is defined here
 
     ...
     it also defines a composition list of dictionaries
@@ -159,7 +159,6 @@ def sim_init (calldir, dsystempars={},*args):
 
     #next, my /NewLagrange initialization has some routines
     #that initialize the surface density, also accounting for icelines 
-    #we can add them later (TBD)
     #(actually this should be merged with your superparticles initialization)
 
     #now add gas and additional vapor components to the composition object
@@ -180,7 +179,6 @@ def sim_init (calldir, dsystempars={},*args):
         #TBD: perhaps better to work with dictionaries
         tarr, radarr, mplanarr, fcomparr = userfun.init_planets ()
 
-        #TBD: check w/r fcompL is normalized
 
         nplan = len(radarr)
 
@@ -221,16 +219,6 @@ def sim_init (calldir, dsystempars={},*args):
         system.icelineL = []
         system.niceline = 0
 
-    # core.ICELINE.get_icelines_location(system)
-
-    #TBD: add icelines to system...
-    #
-    #returns: icelines species, condensation temperature...
-    #
-    #diceline = userfun.init_icelines ()
-
-
-    #Then assign particle properties
 
     return system,gasL
 

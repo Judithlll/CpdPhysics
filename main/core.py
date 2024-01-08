@@ -231,7 +231,7 @@ class System(object):
             InfluxTscale = (1e-100 + np.float64(self.Minflux_step)) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
 
-        #central mass growth timescale: TBD
+        #central mass growth timescale
         Mcpnew=dp.Mcp_t(self.time)  
         Mcpold=dp.Mcp0
         McTscale = np.inf
@@ -242,7 +242,8 @@ class System(object):
             # import pdb; pdb.set_trace()
         
         if self.oldstate is not None:   
-            #timescale for the planets (including migration and mass growth)
+            #timescale for the planets 
+            # (including migration and mass growth)
             
             if len(self.planetMassData) == 0:
                 self.planetMassData = [[],[]]
@@ -731,7 +732,6 @@ class Superparticles(object):
 
     
     def remove_particles(self,remove_idx):
-        #TBD: remove self.loc, self.mphys...
         self.mtotL =  np.delete(self.mtotL, remove_idx) 
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)   
@@ -740,7 +740,6 @@ class Superparticles(object):
 
 
     def add_particles (self,Nadd):
-        #TBD: no longer works with Y2d
 
         self.locL = np.append(self.locL, self.rout)
         self.massL = np.append(self.massL, self.mini)

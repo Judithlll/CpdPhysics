@@ -22,7 +22,6 @@ tgap= 1e6*cgs.yr2s  #time when the gap was built
 def Mcp_t(t):
     """
     mass of central body with time (integration of dot_Mg)
-    TBD: dot_Mg prescription has changed
     """
 
     Mcp=Mcp0+dotMg_gap()*tdep*(np.exp(tgap/tdep)-np.exp((tgap-t)/tdep))
