@@ -228,6 +228,7 @@ class System(object):
 
         #Ncrit = 100
         #N<90: mtot *= 0.9 && (wait some time?)
+        self.particles.generate_Y2d()
 
 
     def new_timestep (self, tEnd):
@@ -752,7 +753,8 @@ class Superparticles(object):
 
         tSpan=np.array([t0,tFi])
         tstep=(tFi-t0)/nstep
-    
+        
+        print(len(self.Y2d[0]))
         Y2copy = np.copy(self.Y2d)
 
         #integrates system to tFi
@@ -771,10 +773,6 @@ class Superparticles(object):
             setattr(self, key, val)
 
 
-        #TBR
-        self.generate_Y2d()  #update Y2d for next step integration
-
-
         #[24.01.05]CWO
         #after the integration, extract the particle properties
         #for future use
@@ -791,10 +789,7 @@ class Superparticles(object):
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)   
         self.fcomp = np.delete(self.fcomp, remove_idx, axis=0) #[24.01.01] added
-
-        
-        #TBR: not necessary... only generate when you need it!
-        self.generate_Y2d()  #get a new Y2d, update.
+        self.nini -= len(remove_idx)
 
 
     def add_particles (self,Nadd):
@@ -804,9 +799,7 @@ class Superparticles(object):
         self.massL = np.append(self.massL, self.mini)
         self.mtotL = np.append(self.mtotL, self.mtot1)  #mtot1 is needed here
         self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
-
-
-        self.generate_Y2d()  #update Y2d
+        self.nini += 1 
 
         if Nadd!=1:
             #[24.01.07]CWO: I dont understand why we need to add 2 particles sometimes?
