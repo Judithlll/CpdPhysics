@@ -38,6 +38,11 @@ def Omega_K(loc,mcp):
 class DISK (object):
     """
     Disk object including every disk properties use the methods definded in the disk_properties.py
+    
+    [24.01.05] The new way to add user-defined properties to the disk class
+    
+    1. variables; 2. functions; 3. function evaluations
+        
     """
 
     def __init__ (self, sigmaG, temp, mu, loc, time, mcp):

@@ -197,12 +197,12 @@ def T_d(sigmag,kapa,Mcp,dotMg,loc):
     Td=(3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/loc**3)**(1/4)*g
     return Td
 
-def m_g():
-    """
-    get the mean molecular mass of disk
-    """
-    MeanMolecularMass=MeanMolecularWeight()*cgs.mp
-    return MeanMolecularMass
+# def m_g():
+#     """
+#     get the mean molecular mass of disk
+#     """
+#     MeanMolecularMass=MeanMolecularWeight()*cgs.mp
+#     return MeanMolecularMass
 
 # def c_s(r,t):
 #     """

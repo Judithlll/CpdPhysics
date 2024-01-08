@@ -224,12 +224,6 @@ class System(object):
         tpart = np.abs(Y2d/Y2dp)
         mintimeL.append({'name':'particles', 'tmin': deltaTfraction*tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
-
-        # if self.ntime>=1:
-        #     import pdb; pdb.set_trace()
-        
-        #[24.01.02]CWO: I think it's possible to have an dm/dt & da/dt to planet objects?
-        #               whay you do here is a bit ugly...
         
         #Mass influx timescale
         if self.time > 0:  # better to get rid of the first step one, but the effect is tiny
@@ -237,7 +231,7 @@ class System(object):
             InfluxTscale = (1e-100 + np.float64(self.Minflux_step)) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
 
-        #central mass growth timescale:
+        #central mass growth timescale: TBD
         # if self.time > 0:
         #     McTscale = self.
 
@@ -247,52 +241,53 @@ class System(object):
             
             if len(self.planetMassData) == 0:
                 self.planetMassData = [[],[]]
-                self.masstime = []   
-            
-            PmassTscale = np.inf*np.ones_like(self.planetL)
-            PlocaTscale = np.inf*np.ones_like(self.planetL) 
-            for i in range(self.nplanet):
-                if self.time>self.planetL[i].time:
-                    # import pdb ;pdb.set_trace()
-                        #store mass data first
-                        if self.oldstate.planetL[i].mass != self.planetL[i].mass:
-                            # self.masstime=
-                            self.planetMassData[i].append([self.time , self.oldstate.planetL[i].mass])
+                self.masstime = []  
 
-
-                        #then try to fit the mass to a curve
-                        PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
-
-                        if len(self.planetMassData[i]) > 2:
-                            def mass_fit(t,a,b):
-                                m=a*t+b
-                                return m 
-                            timedots=np.log10([self.planetMassData[i][j][0] for j in range(len(self.planetMassData[i]))])
-                            massdots=np.log10([self.planetMassData[i][j][1] for j in range(len(self.planetMassData[i]))])
-
-                            popt, pcov = curve_fit(mass_fit, timedots, massdots)
-                            # plt.scatter(timedots, massdots)
-                            # t_list=np.linspace(timedots[0], timedots[-1], 30)
-                            # plt.plot(t_list, mass_fit(t_list, *popt))
-                            # plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
-
-                            #[24.01.07]CWO: I toot absolute as popt[0] may turn out to be negative
-                            PmassTscale[i] = 1/abs(popt[0])*self.time
-
-
-            #[24.01.07]CWO: let's only add if there are planets
+            #[24.01.07]CWO: let's only add if there are planets 
             if pars.doPlanets:
+                PmassTscale = np.inf*np.ones_like(self.planetL)
+                PlocaTscale = np.inf*np.ones_like(self.planetL) 
+                for i in range(self.nplanet):
+                    if self.time>self.planetL[i].time:
+
+                            #store mass data first
+                            if self.oldstate.planetL[i].mass != self.planetL[i].mass:
+                                # self.masstime=
+                                self.planetMassData[i].append([self.time , self.oldstate.planetL[i].mass])
+
+
+                            #then try to fit the mass to a curve
+                            PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
+
+                            if len(self.planetMassData[i]) > 2:
+                                def mass_fit(t,a,b):
+                                    m=a*t+b
+                                    return m 
+                                timedots=np.log10([self.planetMassData[i][j][0] for j in range(len(self.planetMassData[i]))])
+                                massdots=np.log10([self.planetMassData[i][j][1] for j in range(len(self.planetMassData[i]))])
+
+                                popt, pcov = curve_fit(mass_fit, timedots, massdots)
+                                # plt.scatter(timedots, massdots)
+                                # t_list=np.linspace(timedots[0], timedots[-1], 30)
+                                # plt.plot(t_list, mass_fit(t_list, *popt))
+                                # plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+
+                                #[24.01.07]CWO: I toot absolute as popt[0] may turn out to be negative
+                                PmassTscale[i] = 1/abs(popt[0])*self.time
+
+                        
                 mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
                 mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
 
             #timescale for the icelines
-            IlocaTscale=np.inf*np.ones_like(self.icelineL)
-            for i,iceline in enumerate(self.icelineL):
-                tscale = np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
-                IlocaTscale[i] = tscale
-            
             #[24.01.07]CWO: let's only add if there are icelines
             if pars.doIcelines:
+                IlocaTscale=np.inf*np.ones_like(self.icelineL)
+                for i,iceline in enumerate(self.icelineL):
+                    if not np.isnan(iceline.loc):
+                        tscale = np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
+                        IlocaTscale[i] = tscale
+            
                 mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
         
         # put mintimeL into system object for now to check
@@ -337,8 +332,6 @@ def advance_iceline (system):
                 #renormalize
                 system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
         
-        #now can change iceline location b/c disk temperature may evolve
-        #TBD
 
         loc_pv = system.oldstate.icelineL[k].loc
         iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
@@ -374,15 +367,9 @@ def advance_planets (system):
 
                 crossL = []
                 for ip in idx:
-                    #makes a superparticle
 
-                    ## CWO: perhaps nicer to make a particle object (instead of this array)
-                    #       such that we can have spi.loc, spi.mphy, spi.msup, spi.fcomp
-                    #spi = np.array([system.oldstate.particles.locL[ip],system.oldstate.particles.massL[ip],system.oldstate.particles.mtotL[ip]])
-                    #spi = Single (...)
-                    #spi = particles.select(ip)
                     spi = system.oldstate.particles.select_single(ip)
-                    #spi = system.oldstate.particles.select_multi(idx)
+
                     crossL.append(spi)
 
                 #crossL=np.array(crossL)
@@ -431,8 +418,6 @@ def advance_planets (system):
             spN = system.particles
             
             for k, ip in enumerate(idxN):
-                #mass that is being transferred (TBC!!)
-                #need to calculate epsilon (PA efficiency)
 
                 #calculate critical mass to verify if the pebble accretion can occur
                  
@@ -451,16 +436,13 @@ def advance_planets (system):
                     #
                     epsilon = ff.epsilon_PA(planet.loc,planet.mass,spk)
 
-                    #2nd index refers to total particle mass
-                    #CWO: prefer to have smth like: delm = epsilon*crossL[k].mtot
                     delm = epsilon*crossL[k].mtotL
-                    # import pdb; pdb.set_trace()
 
                 else:
                     "pebble accretion can not happen"
                     delm=0
                 
-                planet.mass += delm #in crease mass (pebble accretion)
+                planet.mass += delm #increase mass (pebble accretion)
                 # planet.fcomp += 0.  #TBD !!
                 
                 #spN -> system.particles.Y2d...
@@ -468,7 +450,9 @@ def advance_planets (system):
 
 
 class SingleSP(object):
-
+    """
+    Used to get single Superparticle
+    """
     def __init__ (self,**kwargs):
         for key,val in kwargs.items():
             setattr(self,key,val)
@@ -476,7 +460,7 @@ class SingleSP(object):
 
 class Superparticles(object):
 
-    def __init__(self,rinn,rout,dcomposL,gas,nini=10,Rdi=0.1,
+    def __init__(self, rinn, rout, dcomposL, gas, nini=10, Rdi=0.1, 
             initrule='equalmass'):
         """
         systems initial properties
@@ -486,12 +470,11 @@ class Superparticles(object):
 
         gas     :gas object (needed to get gas surface density)   
 
-        nini: initial number of the particles
-        mini: initial mass for every particles
-        rinn: inner edge of the disk
-        rout: outer edge of the disk
-        icelineLoc: the location of icelines from inner to outer
-        ice_frac  : the coresponding ice fraction of every iceline
+        nini    : initial number of the particles
+        rinn    : inner edge of the disk
+        rout    : outer edge of the disk
+        dcomposL: the composition list
+
         """
 
         self.rhocompos=[]
@@ -591,9 +574,7 @@ class Superparticles(object):
 
         self.generate_Y2d()   #get a Y2d used to integrate
 
-    ## CWO: I'm not sure if we need to attach Y2d to self
-    #       since Y2d is no longer fundamental...
-    #       perhaps just "make_Y2d" is sufficient?
+
     def generate_Y2d(self):
         self.Y2d = np.array([self.locL, self.massL])
 
@@ -601,10 +582,10 @@ class Superparticles(object):
     def select_single(self, ix):
 
         kwargs = {}
-        # select the properties are list or numpy.ndarray
-
+        # select the properties that are list or numpy.ndarray
         propL = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), list) or isinstance(getattr(self, attr), np.ndarray)]   
         # propL = ['locL','massL','mtotL','fcomp','St','eta'] maybe just select properties artificially is better
+        # select the properties that are float
         propSol = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), float)]
 
         for prop in propL:
@@ -660,11 +641,6 @@ class Superparticles(object):
         disk = physics.DISK (*out, loc, time, mcp) #pro
         disk.add_auxiliary ()
         
-        #[24.01.05] The new way to add user-defined properties to the disk class
-        #
-        #1. variables; 2. functions; 3. function evaluations
-        #
-        
         userparL = disk.add_uservar (dp.user_add_var())    #variables
         disk.add_userfun (dp.user_add_fun())    #functions only
 
@@ -699,13 +675,11 @@ class Superparticles(object):
         delv = userfun.del_v (St, rhoD, disk)
         
         ## CWO: this *should* become a userfun (b/c seems a bit specific)
-        #dmdt = userfun.dm_dt (Rd, delv, Hd, sigD)
-        dmdt = 2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD  #eq. 5 of Shibaike et al. 2017 !Please, check!
+        dmdt = userfun.dm_dt (Rd, delv, Hd, sigD)
 
         Y2ddt = np.zeros_like(self.Y2d)
         Y2ddt[0] = drdt
         Y2ddt[1] = dmdt
-        # Y2ddt[2] = 0.0
 
         #[24.01.05]:also return additional particle properties
         if returnMore:
@@ -730,7 +704,6 @@ class Superparticles(object):
         tSpan=np.array([t0,tFi])
         tstep=(tFi-t0)/nstep
         
-        print(len(self.Y2d[0]))
         Y2copy = np.copy(self.Y2d)
 
         #integrates system to tFi
@@ -745,14 +718,7 @@ class Superparticles(object):
         #after the integration, extract the particle properties
         #for future use
         dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], gas, returnMore=True)
-        for key, val in daux.items():
-            setattr(self, key, val)
 
-
-        #[24.01.05]CWO
-        #after the integration, extract the particle properties
-        #for future use
-        dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], gas, returnMore=True)
         for key, val in daux.items():
             setattr(self, key, val)
 
@@ -848,7 +814,10 @@ class ICELINE(object):
 
         if bounds==None:
             bounds = (dp.rinn, dp.rout)
-
         #change the bounds to make it general
-        self.loc = sciop.brentq(self.find_iceline, *bounds, args=(time,gas))
-
+        #[23.01.08]LZX: if we change alpha larger,there exist possibility that can't find the iceline location
+        #               so for now make a try-exception here, if can't find, then set it to np.nan
+        try:
+            self.loc = sciop.brentq(self.find_iceline, *bounds, args=(time,gas))
+        except:
+            self.loc = np.nan

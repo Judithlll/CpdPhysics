@@ -14,6 +14,14 @@ def del_v (St, rhoD, disk):
     #take half of the velocity...
     return np.abs(vr)/2
 
+
+def dm_dt(Rd, delv, Hd, sigD):
+    """
+    the time derivetive of particles's mass, determine how particles grow
+    """
+    return 2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD   #eq. 5 of Shibaike et al. 2017
+
+
 def init_planets ():
     """
     this initializes the planets 
@@ -65,7 +73,7 @@ def do_stuff (sys, init=False):
 
         sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
         line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tminarr.argmin(), system.time/cgs.yr)
-        print(line)
+        print(line) #TBD: print more things 
 
 
 class Data(object):

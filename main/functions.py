@@ -3,6 +3,7 @@ import cgs
 import core 
 import scipy.integrate as sciint
 import scipy.optimize as sciop
+import disk_properties as dp
 
 def sample_equal (fx, x0, xf, Nsample=100, ttol=1e-5):
     """
@@ -171,19 +172,11 @@ def epsilon_PA (PlanetsLoc,PlanetsMass,cross_p):
     
     different particles has different size and so different accretion rate, so maybe should change the total mass of particles???
     """
-    # out = system.gas.get_key_disk_properties (PlanetsLoc, system.time)
-    # disk = core.DISK (*out, PlanetsLoc, system.time)
-    # disk.add_auxiliary ()
-    # disk.user_difined ()
-
-    # St=get_stokes_number(disk,system.time,cross_p[1],system.rhoint)
-    # eta=disk.eta
 
     mus=PlanetsMass/cross_p.mcp
 
-    # Hg= disk.Hg
-    # import pdb; pdb.set_trace()
-    Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
+    Hp= dp.H_d(cross_p.Hg, cross_p.St)
+    # Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
     hp=Hp/PlanetsLoc
 
     delv_o_vK=0.52*(mus*cross_p.St)**(1/3)+cross_p.eta/(1+5.7*(mus/cross_p.eta**3*cross_p.St))
