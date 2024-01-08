@@ -6,12 +6,15 @@ intrhoL = [3.0, 1.0]
 
 #parameters fed into System
 dsystempars = {'timeini': 0.0,
-               'rhoPlanet': 1.9,
-               'timestepn': 3}
+               'rhoPlanet': 1.9}
 
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
                 'nini':100,
                 'initrule':'equallogspace'}  #initial number of particles
+
+#[24.01.08]LZX: don't know whether this is a good idea
+evolvingparas = {'deltaTfraction': 0.2,
+                 'timestepn': 3}
 
 dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
 gasmodel = 'prescribed'

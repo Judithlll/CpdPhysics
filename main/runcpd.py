@@ -27,13 +27,13 @@ while system.time<pars.tmax:
 
     #[24.01.01]:determines the timestep for this step
     #[24.01.02],LZX: don't understand why this should be here
-    system.new_timestep (pars.tmax)  #get deltaT through comparing some time scales
+    system.new_timestep (pars.tmax, pars.evolvingparas['deltaTfraction'])  #get deltaT through comparing some time scales
     # if system.time > system.planetL[0].time:
     #     import pdb; pdb.set_trace()
     system.back_up_last_data()       #back up the data of last step
                         
     #integrate the super particles
-    Yt = system.update_particles ()
+    Yt = system.update_particles (pars.evolvingparas['timestepn'])
     
     #change planet and super particle properties
     #due to crossings and intrinsic evolution

@@ -36,10 +36,8 @@ class System(object):
     ## CWO: These parameters should be initialized with pars.dsystempars; not hard-coded like this..
 
     daction={}
-    # timestepn=3  #how many time points in every ODE solution process
-    # rhoPlanet=1.9
 
-    def __init__(self, timeini=0.0, rhoPlanet=1.9, timestepn=3):
+    def __init__(self, timeini=0.0, rhoPlanet=1.9):
         """
         System initiallization parameters:
             
@@ -47,13 +45,9 @@ class System(object):
                 the initial time with default value 0.0(maybe not necessary)
             rhoPlanet: [float]
                 internal density of planets with default value 1.9g/cm^3
-            timestepn: [int]
-                the number of time step within every delatT, which can determine how fast the code can run, but 
-                don't set it to small. Default value: 3
         """
 
         self.rhoPlanet = rhoPlanet
-        self.timestepn = timestepn
 
         self.time=timeini
         self.ntime = 0  
@@ -78,11 +72,12 @@ class System(object):
         initiallize the particles, for now just water iceline is considered  
 
         history:
-        [23.12.30]CWO:instead of forwarding diskmass, I supply self.gas to the superparticle class
+        [23.12.30]CWO: instead of forwarding diskmass, I supply self.gas to the superparticle class
+        [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
         """
         self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
 
-        #mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
+        
         self.mtot1 = self.particles.mtot1
 
 
@@ -106,40 +101,29 @@ class System(object):
         return dum
 
 
-    def update_particles (self):
+    def update_particles (self, timestepn = 3):
         """
         Integrate the particles forward by amount deltaT
 
         Evolving system to the self.time
         """
 
-        #time derivative of particles
+    
+        Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,timestepn)
 
-        #TBD: make an Y2d array...
 
-
-        ## CWO: self.deltaT is now determined separately
-
-        #update particle properties
-        # self.back_up_last_data()
-        Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,self.timestepn)
-
-        #self.deltaT = deltaT
-        # print(self.particles.locL, self.time)
         if self.time==np.nan or self.deltaT==np.nan:
             print('hello')
             import pdb;pdb.set_trace()
 
-        ## CWO: why do we return stuff?
         return Yt
 
     def back_up_last_data(self):
         """
         copies present state to "old" 
-        CWO: would it be good also to copy the time?
+
         """
-        #LZX: a little confused about how to use this, maybe make the COPY a sub class?
-        #CWO: OK, try it out
+
         self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step'])
 
 
@@ -178,16 +162,10 @@ class System(object):
             
             self.particles.remove_particles(self.daction['remove'])
 
-            #[24.01.07]CWO: do we need this?
-            # self.nini-=len(self.daction['remove'])
-            # import pdb; pdb.set_trace()
 
         if 'add' in self.daction.keys():
             self.particles.add_particles(self.daction['add'])
 
-            #CWO: is this statement OK?
-            #[24.01.07]CWO: do we need this?
-            #self.nini+=self.daction['add']
 
         #[24.01.04]
         #it is really difficult to stabalize particle numbers, b/c 
@@ -231,12 +209,10 @@ class System(object):
         self.particles.generate_Y2d()
 
 
-    def new_timestep (self, tEnd):
+    def new_timestep (self, tEnd, deltaTfraction = 0.2):
         """
         chooses a timestep
         """
-        fp = 0.2 #The 0.2 should become a parameter...
-
         #organize the procedure a bit (for quasi-steady evolution... later!)
         mintimeL = []
 
@@ -246,7 +222,7 @@ class System(object):
         #timescale for the particles
         #I dont think there's need to use np.nanmin
         tpart = np.abs(Y2d/Y2dp)
-        mintimeL.append({'name':'particles', 'tmin': fp*tpart.min(), 
+        mintimeL.append({'name':'particles', 'tmin': deltaTfraction*tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
 
         # if self.ntime>=1:
