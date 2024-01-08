@@ -18,7 +18,7 @@ import userfun
 
 class COPY (object):
     """
-    this copies certain attributes over 
+    This object used to back up the system state of last time point
     """
 
     def __init__ (self, state, attributeL):
@@ -35,32 +35,32 @@ class System(object):
 
     ## CWO: These parameters should be initialized with pars.dsystempars; not hard-coded like this..
 
-    ## CWO: Many of these par also no longer used... please, clean up 
-    fraction=0.02 #CWO -- what's this?
-    dgratio=0.01  #dust to gas ratio
-    rhoint = 1.4
-    mtot1 = 1e24 #total mass a single superparticle represents
     daction={}
-    timestepn=3  #how many time points in every ODE solution process
-    rhoPlanet=1.9
+    # timestepn=3  #how many time points in every ODE solution process
+    # rhoPlanet=1.9
 
+    def __init__(self, timeini=0.0, rhoPlanet=1.9, timestepn=3):
+        """
+        System initiallization parameters:
+            
+            timeini: [float]
+                the initial time with default value 0.0(maybe not necessary)
+            rhoPlanet: [float]
+                internal density of planets with default value 1.9g/cm^3
+            timestepn: [int]
+                the number of time step within every delatT, which can determine how fast the code can run, but 
+                don't set it to small. Default value: 3
+        """
 
-    def __init__(self,Rdi=0.01,time=0.0,diskmass=0.01*cgs.MJ):
-        
-        #initialize parameter from txt file // disk.py
-        self.Rdi=Rdi  #initial radius of particles
-        self.mini = 4*np.pi/3*self.rhoint *Rdi**3
-        self.time=time  #initial time
-        self.ntime = 0
+        self.rhoPlanet = rhoPlanet
+        self.timestepn = timestepn
+
+        self.time=timeini
+        self.ntime = 0  
 
         # define a disk class
         self.gas = self.init_gas ()
 
-        #TBD: put this in dparticleprops
-        self.diskmass=diskmass
-
-        # define class of superparticles here
-        #self.particles = Superparticles(nini,self.mini,self.disk.rinn,self.disk.rout,self.mtot1)
         #the amount of solid mass that has crossed into the domain
         self.Minflux = 0
         self.Minflux_step = 0
@@ -77,16 +77,20 @@ class System(object):
         because we need to consider iceline, so separatly 
         initiallize the particles, for now just water iceline is considered  
 
+        history:
         [23.12.30]CWO:instead of forwarding diskmass, I supply self.gas to the superparticle class
         """
         self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
+
+        #mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
+        self.mtot1 = self.particles.mtot1
 
 
     def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
         """
         init_gas is called at initialization. It adds an instance of the GAS class
 
-        history
+        history:
         [23.12.13]:this is copied from /NewLagrange code base...
                   :for the moment gasL and dcomposL are put to None
 
@@ -185,10 +189,6 @@ class System(object):
             #[24.01.07]CWO: do we need this?
             #self.nini+=self.daction['add']
 
-        ##CWO: TBD 
-        #Make mtot1 smaller (greater) if total number of particles
-        #falls below (exceeds) some limit
-        #
         #[24.01.04]
         #it is really difficult to stabalize particle numbers, b/c 
         #of the huge lag... I think the below algorith accomplishes smth

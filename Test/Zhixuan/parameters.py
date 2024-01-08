@@ -5,7 +5,10 @@ composL = ['silicates', 'H2O']
 intrhoL = [3.0, 1.0]
 
 #parameters fed into System
-dsystempars = {}
+dsystempars = {'timeini': 0.0,
+               'rhoPlanet': 1.9,
+               'timestepn': 3}
+
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
                 'nini':100,
                 'initrule':'equallogspace'}  #initial number of particles
