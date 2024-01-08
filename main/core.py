@@ -232,10 +232,15 @@ class System(object):
             mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
 
         #central mass growth timescale: TBD
-        # if self.time > 0:
-        #     McTscale = self.
-
-        #
+        Mcpnew=dp.Mcp_t(self.time)  
+        Mcpold=dp.Mcp0
+        McTscale = np.inf
+        if self.time > 0:
+            McTscale = Mcpnew/ abs(Mcpold - Mcpnew) *self.deltaT
+            Mcpold = Mcpnew
+            mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
+            # import pdb; pdb.set_trace()
+        
         if self.oldstate is not None:   
             #timescale for the planets (including migration and mass growth)
             
