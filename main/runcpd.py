@@ -56,29 +56,5 @@ while system.time<pars.tmax:
     end = time.time()
     runTime = end-start
 
-    ## CWO: please move print statements to userfun.do_stuff!!
-    # print([system.time/cgs.yr,runTime])
-    # if runTime>5*60:
-    #     print("it takes"+ str(runTime/60)+" now")
-        
-
 print('[runcpd]:finished')
 
-#CWO: what is all this (below) and why do we need it here?
-
-#get Peff propfile
-# PAeff=[]
-# for cp in system.particles.Y2d.T:
-#     PAeff.append(f.epsilon_PA(system,system.planetL[0].loc,system.planetL[0].mass,cp))
-
-# calculate the planet mass growth time scale  
-initLoc=[7*cgs.RJ,10*cgs.RJ] 
-initTime=[1*cgs.yr,1e3*cgs.yr] 
-times=system.time/cgs.RJ//100
-PmassTscale=[]
-PlocaTscale=[]
-for i in range(len(system.planetL)):
-    if system.time>initTime[i]:
-        PmassTscale.append(system.planetL[i].mass/(system.planetL[i].mass-3e23)*system.time)
-        PlocaTscale.append(system.planetL[i].loc/(initLoc[i]-system.planetL[i].loc)*system.time)
-    #print('hello', system.time/cgs.yr)
