@@ -488,7 +488,7 @@ class Superparticles(object):
             if compos['name']!= 'gas':
                 self.rhocompos.append(compos['rhoint'])
         
-        self.nini = nini
+        self.num = nini
         self.ninit =nini
         self.Nplevel = nini
 
@@ -736,7 +736,7 @@ class Superparticles(object):
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)   
         self.fcomp = np.delete(self.fcomp, remove_idx, axis=0) #[24.01.01] added
-        self.nini -= len(remove_idx)
+        self.num -= len(remove_idx)
 
 
     def add_particles (self,Nadd):
@@ -745,7 +745,7 @@ class Superparticles(object):
         self.massL = np.append(self.massL, self.mini)
         self.mtotL = np.append(self.mtotL, self.mtot1)  #mtot1 is needed here
         self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
-        self.nini += 1 
+        self.num += 1 
 
         if Nadd!=1:
             #[24.01.07]CWO: I dont understand why we need to add 2 particles sometimes?
