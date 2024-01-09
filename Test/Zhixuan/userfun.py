@@ -8,7 +8,7 @@ import parameters as pars
 import imageio.v2 as imageio
 import os
 import glob
-import pandas
+import pandas as pd
 import parameters as pars
 
 def del_v (St, rhoD, disk):
@@ -153,7 +153,6 @@ class Data(object):
                 self.mD[k]=np.pad(self.mD[k], (0, max_len - len(v)), constant_values=np.nan)
                 self.mtotD[k]=np.pad(self.mtotD[k], (0, max_len - len(v)), constant_values=np.nan)
         
-        self.get_particles_plot_list()
 
         #store palnets' data
         if pars.doPlanets:
@@ -165,17 +164,63 @@ class Data(object):
             self.icelinesloc.setdefault(system.time, [iceline.loc for iceline in system.icelineL])
 
 
-    def get_particles_plot_list(self):
-        self.radL=np.array(list(self.radD.values())).T
-        self.mL=  np.array(list(self.mD.values())).T
-        self.mtotL=np.array(list(self.mtotD.values())).T
+    def get_plot_list(self):
+        self.radL=np.array(list(self.radD.values()))
+        self.mL=  np.array(list(self.mD.values()))
+        self.mtotL=np.array(list(self.mtotD.values()))
+        self.planetsmassL = np.array(list(self.planetsmass.values()))
+        self.planetslocL = np.array(list(self.planetsloc.values()))
+        self.icelineslocL = np.array(list(self.icelinesloc.values()))
+
 
     def data_store(self,path=os.getcwd()):
-        #TBD: better to be stored in EXCEL maybe.
-        with open(path+str(datetime.datetime.now())+'data_particles.csv', 'w', newline='') as csvfile:
-            writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
-            writer.writeheader()
-            writer.writerows([self.radD,self.mD,self.mtotD])
+        
+        self.get_plot_list()
+
+        #store particles data
+        df_rad = pd.DataFrame(self.radL)
+        df_mass = pd.DataFrame(self.mL)
+        df_mtot = pd.DataFrame(self.mtotL)
+        #df_fcomp = pd.DataFrame(data.fcomp.T)
+        
+        df_rad.index = self.timeL
+        df_mass.index = self.timeL
+        df_mtot.index = self.timeL
+        #df_fcomp.index = self.timeL
+
+        writer = pd.ExcelWriter('particles_data.xlsx', engine='xlsxwriter')
+        df_rad.to_excel (writer, sheet_name= 'location data')
+        df_mass.to_excel (writer, sheet_name= 'mass data')
+        df_mtot.to_excel (writer, sheet_name= 'total mass data')
+        writer.close()
+
+        #store planets data
+        df_plmass = pd.DataFrame(self.planetsmassL)
+        df_plloc = pd.DataFrame(self.planetslocL)
+        df_plmass.index = self.timeL
+        df_plloc.index = self.timeL
+
+        writer = pd.ExcelWriter('planets_data.xlsx', engine='xlsxwriter')
+        df_plmass.to_excel (writer, sheet_name= 'mass data')
+        df_plloc.to_excel (writer, sheet_name= 'location data')     
+        
+        writer.close()
+
+        #store iceline data
+        df_illoc = pd.DataFrame(self.icelineslocL)
+        df_illoc.index = self.timeL
+
+        writer = pd.ExcelWriter('icelines_data.xlsx', engine='xlsxwriter')
+        df_illoc.to_excel (writer, sheet_name= 'location data')     
+        
+        writer.close()
+
+
+
+        #with open(path+str(datetime.datetime.now())+'data_particles.csv', 'w', newline='') as csvfile:
+        #    writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
+        #    writer.writeheader()
+        #    writer.writerows([self.radD,self.mD,self.mtotD])
 
         # with open(str(datetime.datetime.now())+'data_mass.csv', 'w', newline='') as csvfile:
         #     writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
@@ -295,6 +340,7 @@ def make_animation(path='pebbles&planets'):
     imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
 def load_data(path=os.getcwd()):
+    #TBD: load data from excel
     filename=glob.glob(os.path.join(path, '*.csv'))
     with open (path+filename):
         reader = csv.DictReader(csvfile)  
