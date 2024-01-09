@@ -45,8 +45,12 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    return [1*cgs.yr, 1e3*cgs.yr], [7*cgs.rJup, 10*cgs.rJup], [3e23, 3e23], [1.0, 1.0]
+    timeL = [1*cgs.yr, 1e3*cgs.yr] 
+    locationL = [7*cgs.rJup, 10*cgs.rJup] 
+    massL = [3e23, 3e23] 
+    compoL = [[1.0, 0.0], [1.0, 0.0]]
 
+    return timeL, locationL, massL, compoL
 
 def init_compos (material):
     dcompos = {}

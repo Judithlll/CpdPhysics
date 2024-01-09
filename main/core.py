@@ -338,9 +338,10 @@ def advance_iceline (system):
                 #renormalize
                 system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
         
-
-        loc_pv = system.oldstate.icelineL[k].loc
-        iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
+        #a little time comsuming, don't consider this for now
+        if system.time > 1e6 *cgs.yr:
+            loc_pv = system.oldstate.icelineL[k].loc
+            iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
 
 
 def advance_planets (system):
@@ -415,9 +416,8 @@ def advance_planets (system):
 
             #update planet properties from rates supplied by user
             planet.loc += loc_t *system.deltaT
-            planet.mass += mass_t *system.deltaT
-            planet.fcomp += fcomp_t *system.deltaT
-
+            #planet.mass += mass_t *system.deltaT
+            #planet.fcomp += fcomp_t *system.deltaT
 
             #update s-particle properties from sp-crossings
             #assumes all particles are accreted (TBC!!)
@@ -436,23 +436,28 @@ def advance_planets (system):
                 spk = crossL[k]
                 Mc = ff.M_critical(spk.eta, spk.St, spk.mcp)
 
+                newmass = np.zeros_like(crossL[0].fcomp)
+
                 if Mc<planet.mass:                    
 
                     #[24.01.05]CWO: let's think about how to do this later...
                     #
                     epsilon = ff.epsilon_PA(planet.loc,planet.mass,spk)
 
-                    delm = epsilon*crossL[k].mtotL
-
+                    #delm = epsilon*crossL[k].mtotL
+                    for i in range(len(crossL[k].fcomp)):
+                        newmass[i] = epsilon* crossL[k].fcomp[i]*crossL[k].mtotL
+                    planet.mass += newmass.sum() #increase mass (pebble accretion)
+                    planet.fcomp = [(newmass[i]+planet.mass*planet.fcomp[i])/planet.mass for i in range(len(newmass))]
                 else:
-                    "pebble accretion can not happen"
-                    delm=0
-                
-                planet.mass += delm #increase mass (pebble accretion)
+                    print('[core]: pebble accretion can not happen')
+                    import pdb; pdb.set_trace()
+
+
                 # planet.fcomp += 0.  #TBD !!
                 
                 #spN -> system.particles.Y2d...
-                spN.mtotL[ip] -= delm #decrease mass sp
+                spN.mtotL[ip] -= newmass.sum() #decrease mass sp
 
 
 class SingleSP(object):
@@ -560,6 +565,7 @@ class Superparticles(object):
 
         #[23.12.30]NEW:add composition data (fcomp)
         #[23.12.30]this looks a bit ugly...
+        #[24.01.09]LZX:the initial fcomp also need to consider the iceline location, TBD
         self.fcomp = np.empty((nini,len(pars.composL)))
         for k,rad in enumerate(radL):
             Zcomp = []

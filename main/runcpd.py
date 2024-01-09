@@ -22,7 +22,7 @@ system.init_particles(pars.dparticleprops)
 
 #initialize userfun's data class
 userfun.do_stuff(system, init=True)
-
+#import pdb; pdb.set_trace()
 while system.time<pars.tmax:
 
     #[24.01.01]:determines the timestep for this step
