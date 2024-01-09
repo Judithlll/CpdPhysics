@@ -7,6 +7,9 @@ import copy
 import parameters as pars     
 import imageio.v2 as imageio
 import os
+import glob
+import pandas
+import parameters as pars
 
 def del_v (St, rhoD, disk):
     vr = 2*disk.eta *disk.vK *St/(1+St**2)
@@ -64,10 +67,10 @@ def do_stuff (sys, init=False):
     system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()
     if init:
-        data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
+        data.data_process(system)
         #initialize your data class
     else:
-        data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
+        data.data_process(system)        
         #data object should be available...
         tminarr = np.array([ddum['tmin'] for ddum in system.mintimeL])
 
@@ -91,7 +94,9 @@ class Data(object):
         self.mD={}
         self.mtotD={}
         self.cumulative_change={'remove':[],'add':0}
-        self.planetL=[]
+        self.planetsmass = {}
+        self.planetsloc = {}
+        self.icelinesloc = {}
         
     def update_cumulative_change(self,daction):
         if 'remove' in daction.keys():
@@ -99,16 +104,23 @@ class Data(object):
         if 'add' in daction.keys():
             self.cumulative_change['add']+=daction['add']
     
-    def data_process(self,locL,massL,mtotL,time,daction,planetL):
+    def data_process(self, system):
         """
         time: the system.time 
         Y2d: the particles properties' list
         """
         
+        locL = system.particles.locL
+        massL = system.particles.massL
+        mtotL = system.particles.mtotL
+        daction = system.daction
+        time = system.time
         self.update_cumulative_change(daction)
-
+        
+        # store time series 
         self.timeL.append(time/cgs.yr2s)
-
+        
+        # store particles data
         # if particles ware removed, then put a np.nan into this location. 
         # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
         if len(self.cumulative_change['remove'])>0:
@@ -138,7 +150,15 @@ class Data(object):
                 self.mtotD[k]=np.pad(self.mtotD[k], (0, max_len - len(v)), constant_values=np.nan)
         
         self.get_particles_plot_list()
-        self.planetL=planetL
+
+        #store palnets' data
+        if pars.doPlanets:
+            self.planetsmass.setdefault(system.time, [planet.mass for planet in system.planetL])
+            self.planetsloc.setdefault(system.time, [planet.loc for planet in system.planetL])
+
+        #store icelines' data
+        if pars.doIcelines:
+            self.icelinesloc.setdefault(system.time, [iceline.loc for iceline in system.icelineL])
 
 
     def get_particles_plot_list(self):
@@ -146,7 +166,8 @@ class Data(object):
         self.mL=  np.array(list(self.mD.values())).T
         self.mtotL=np.array(list(self.mtotD.values())).T
 
-    def data_store(self,path):
+    def data_store(self,path=os.getcwd()):
+        #TBD: better to be stored in EXCEL maybe.
         with open(path+str(datetime.datetime.now())+'data_particles.csv', 'w', newline='') as csvfile:
             writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
             writer.writeheader()
@@ -192,16 +213,30 @@ class Data(object):
 
     def plot_disk(self,time,gas):
         r_Span=np.linspace(pars.dgasgrid['rinn'],pars.dgasgrid['rout'])
-        Sigmag=gas.get_key_disk_properties(r_Span,time)[0]
-        Td=gas.get_key_disk_properties(r_Span,time)[1]
         plt.figure(figsize=(24,9))
-        plt.subplot(121)
-        plt.title('Surface dencity $[g/cm^2]$')
-        plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time/cgs.yr))
-        plt.subplot(122)
-        plt.title('Midplane Temperature $[K]$')
-        plt.plot(r_Span/cgs.RJ,Td,label=str(time/cgs.yr))
-        plt.savefig('diskproperties.jpg')
+        if type(time) == float or type(time) == np.float64:
+            Sigmag=gas.get_key_disk_properties(r_Span,time)[0]
+            Td=gas.get_key_disk_properties(r_Span,time)[1]
+            plt.subplot(121)
+            plt.title('Surface dencity $[g/cm^2]$')
+            plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time/cgs.yr))
+            plt.subplot(122)
+            plt.title('Midplane Temperature $[K]$')
+            plt.plot(r_Span/cgs.RJ,Td,label=str(time/cgs.yr))
+            plt.legend()
+            plt.savefig('diskproperties.jpg')
+        else:
+            for i in range(len(time)):
+                Sigmag, Td = gas.get_key_disk_properties(r_Span, time[i])[0:2]
+                plt.subplot(121)
+                plt.title('Surface dencity $[g/cm^2]$')
+                plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time[i]/cgs.yr))
+                plt.subplot(122)
+                plt.title('Midplane Temperature $[K]$')
+                plt.plot(r_Span/cgs.RJ,Td,label=str(time[i]/cgs.yr))
+            plt.legend()
+            plt.savefig('diskproperties.jpg')
+
 
     def plot_planets_accretion(self,planet,system):
             
@@ -242,6 +277,8 @@ class Data(object):
         plt.savefig('Delta_t.jpg')
         plt.close()
 
+
+
 def make_animation(path='pebbles&planets'):
     save_name_gif =  "Cpd.gif"
     pic_list = []
@@ -253,4 +290,9 @@ def make_animation(path='pebbles&planets'):
         pic_list.append(im)
     imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
+def load_data(path=os.getcwd()):
+    filename=glob.glob(os.path.join(path, '*.csv'))
+    with open (path+filename):
+        reader = csv.DictReader(csvfile)  
+        data = list(reader)
 data = Data() #sets it up
