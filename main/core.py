@@ -436,7 +436,7 @@ def advance_planets (system):
                 spk = crossL[k]
                 Mc = ff.M_critical(spk.eta, spk.St, spk.mcp)
 
-                newmass = np.zeros_like(crossL[0].fcomp)
+                delmass = np.zeros_like(crossL[0].fcomp)
 
                 if Mc<planet.mass:                    
 
@@ -446,9 +446,10 @@ def advance_planets (system):
 
                     #delm = epsilon*crossL[k].mtotL
                     for i in range(len(crossL[k].fcomp)):
-                        newmass[i] = epsilon* crossL[k].fcomp[i]*crossL[k].mtotL
-                    planet.mass += newmass.sum() #increase mass (pebble accretion)
-                    planet.fcomp = [(newmass[i]+planet.mass*planet.fcomp[i])/planet.mass for i in range(len(newmass))]
+                        delmass[i] = epsilon* crossL[k].fcomp[i]*crossL[k].mtotL
+                    
+                    planet.fcomp = [ (delmass[i]+planet.mass*planet.fcomp[i]) / (planet.mass+delmass.sum()) for i in range(len(delmass))]
+                    planet.mass += delmass.sum() #increase mass (pebble accretion)
                 else:
                     print('[core]: pebble accretion can not happen')
                     import pdb; pdb.set_trace()
@@ -457,7 +458,7 @@ def advance_planets (system):
                 # planet.fcomp += 0.  #TBD !!
                 
                 #spN -> system.particles.Y2d...
-                spN.mtotL[ip] -= newmass.sum() #decrease mass sp
+                spN.mtotL[ip] -= delmass.sum() #decrease mass sp
 
 
 class SingleSP(object):
