@@ -341,8 +341,33 @@ def make_animation(path='pebbles&planets'):
 
 def load_data(path=os.getcwd()):
     #TBD: load data from excel
-    filename=glob.glob(os.path.join(path, '*.csv'))
-    with open (path+filename):
-        reader = csv.DictReader(csvfile)  
-        data = list(reader)
+    
+    #load particles data
+    filename = '/particles_data.xlsx'
+    df_rad = pd.read_excel (path + filename, sheet_name = 'location data', engine = 'openpyxl')
+    df_mass = pd.read_excel (path + filename, sheet_name = 'mass data', engine = 'openpyxl')
+    df_mtot = pd.read_excel (path + filename, sheet_name = 'total mass data', engine = 'openpyxl')
+    #df_fcomp = pd.read_excel (path + filename, sheet_name = 'composition data', engine = 'openpyxl')
+
+    #load planets data
+    filename = '/planets_data.xlsx'
+    df_plloc = pd.read_excel (path + filename, sheet_name = 'location data', engine = 'openpyxl')
+    df_plmass = pd.read_excel (path + filename, sheet_name = 'mass data', engine = 'openpyxl')
+
+    #load icelines data
+    filename = '/icelines_data.xlsx'
+    df_illoc = pd.read_excel (path + filename, sheet_name = 'location data', engine = 'openpyxl')
+    
+    loaddata = Data()
+    loaddata.radL = df_rad.iloc[:,1:]
+    loaddata.mL=df_mass.iloc[:,1:]
+    loaddata.mtotL = df_mtot.iloc[:,1:]
+    loaddata.planetsmass = df_plmass.iloc[:,1:]
+    loaddata.planetsloc = df_plloc.iloc[:,1:]
+    loaddata.icelinesloc = df_illoc.iloc[:,1:]
+    loaddata.timeL = df_illoc.iloc[:,0]
+
+    return loaddata
+
+
 data = Data() #sets it up
