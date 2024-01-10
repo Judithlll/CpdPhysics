@@ -91,12 +91,10 @@ class Data(object):
     def __init__(self):
 
         self.timeL=[]
-        self.radL=np.array([])
-        self.mL=np.array([])
-        self.mtotL=np.array([])
         self.radD={}
         self.mD={}
         self.mtotD={}
+        self.fcompD={}
         self.cumulative_change={'remove':[],'add':0}
         self.planetsmass = {}
         self.planetsloc = {}
@@ -117,6 +115,7 @@ class Data(object):
         locL = system.particles.locL
         massL = system.particles.massL
         mtotL = system.particles.mtotL
+        fcompL = system.particles.fcomp
         daction = system.daction
         time = system.time
         self.update_cumulative_change(daction)
@@ -131,16 +130,20 @@ class Data(object):
             rL=np.insert(locL,0,np.full(len(self.cumulative_change['remove']),np.nan))
             mL=np.insert(massL,0,np.full(len(self.cumulative_change['remove']),np.nan))
             mtL=np.insert(mtotL,0,np.full(len(self.cumulative_change['remove']),np.nan))
-
+            
+            insertv = np.full((len(self.cumulative_change['remove']),len(fcompL[0])), np.nan)
+            fL=np.append(insertv, fcompL, axis =0)
         else:
 
             rL=locL
             mL=massL
             mtL=mtotL
+            fL = fcompL
 
         self.radD.setdefault(time/cgs.yr2s,rL/cgs.RJ)
         self.mD.setdefault(time/cgs.yr2s,mL)
         self.mtotD.setdefault(time/cgs.yr2s,mtL)
+        self.fcompD.setdefault(time/cgs.yr2s, fL)
 
         max_len=max(len(v) for v in self.radD.values())
 
@@ -152,7 +155,10 @@ class Data(object):
                 self.radD[k]=np.pad(v, (0, max_len - len(v)), constant_values=np.nan)
                 self.mD[k]=np.pad(self.mD[k], (0, max_len - len(v)), constant_values=np.nan)
                 self.mtotD[k]=np.pad(self.mtotD[k], (0, max_len - len(v)), constant_values=np.nan)
-        
+                
+                apdv = np.full((max_len-len(v), len(fcompL[0])), np.nan)
+                self.fcompD[k] = np.append(self.fcompD[k], apdv, axis = 0)
+
 
         #store palnets' data
         if pars.doPlanets:
@@ -168,8 +174,11 @@ class Data(object):
         self.radL=np.array(list(self.radD.values()))
         self.mL=  np.array(list(self.mD.values()))
         self.mtotL=np.array(list(self.mtotD.values()))
+        self.fcompL = np.array(list(self.fcompD.values()))
+        
         self.planetsmassL = np.array(list(self.planetsmass.values()))
         self.planetslocL = np.array(list(self.planetsloc.values()))
+
         self.icelineslocL = np.array(list(self.icelinesloc.values()))
 
 
@@ -181,17 +190,19 @@ class Data(object):
         df_rad = pd.DataFrame(self.radL)
         df_mass = pd.DataFrame(self.mL)
         df_mtot = pd.DataFrame(self.mtotL)
-        #df_fcomp = pd.DataFrame(data.fcomp.T)
+        df_fcomp = pd.DataFrame(self.fcompL)
         
         df_rad.index = self.timeL
         df_mass.index = self.timeL
         df_mtot.index = self.timeL
-        #df_fcomp.index = self.timeL
+        df_fcomp.index = self.timeL
 
+        import pdb; pdb.set_trace()
         writer = pd.ExcelWriter('particles_data.xlsx', engine='xlsxwriter')
         df_rad.to_excel (writer, sheet_name= 'location data')
         df_mass.to_excel (writer, sheet_name= 'mass data')
         df_mtot.to_excel (writer, sheet_name= 'total mass data')
+        df_fcomp.to_excel (writer, sheet_name= 'composition data')
         writer.close()
 
         #store planets data
@@ -347,7 +358,7 @@ def load_data(path=os.getcwd()):
     df_rad = pd.read_excel (path + filename, sheet_name = 'location data', engine = 'openpyxl')
     df_mass = pd.read_excel (path + filename, sheet_name = 'mass data', engine = 'openpyxl')
     df_mtot = pd.read_excel (path + filename, sheet_name = 'total mass data', engine = 'openpyxl')
-    #df_fcomp = pd.read_excel (path + filename, sheet_name = 'composition data', engine = 'openpyxl')
+    df_fcomp = pd.read_excel (path + filename, sheet_name = 'composition data', engine = 'openpyxl')
 
     #load planets data
     filename = '/planets_data.xlsx'
@@ -362,6 +373,7 @@ def load_data(path=os.getcwd()):
     loaddata.radL = df_rad.iloc[:,1:]
     loaddata.mL=df_mass.iloc[:,1:]
     loaddata.mtotL = df_mtot.iloc[:,1:]
+    loaddata.fcomL = df_fcomp.iloc[:,1:]
     loaddata.planetsmass = df_plmass.iloc[:,1:]
     loaddata.planetsloc = df_plloc.iloc[:,1:]
     loaddata.icelinesloc = df_illoc.iloc[:,1:]
