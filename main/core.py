@@ -33,7 +33,7 @@ class System(object):
     SYSTEM: integrate the every part of the PPD (or CPD) and update them with time.
     """
 
-    ## CWO: These parameters should be initialized with pars.dsystempars; not hard-coded like this..
+    ## TBD-later: think about how to calculate rhoPlanet
 
     daction={}
 
@@ -46,7 +46,6 @@ class System(object):
             rhoPlanet: [float]
                 internal density of planets with default value 1.9g/cm^3
         """
-
         self.rhoPlanet = rhoPlanet
 
         self.time=timeini
@@ -56,6 +55,7 @@ class System(object):
         self.gas = self.init_gas ()
 
         #the amount of solid mass that has crossed into the domain
+        self.dotMg = dp.dot_Mg(self.time)
         self.Minflux = 0
         self.Minflux_step = 0
         #self.Mcp=self.disk.Mcp_t(self.time)
@@ -101,14 +101,12 @@ class System(object):
         return dum
 
 
-    def update_particles (self, timestepn = 3):
+    def update_particles (self, timestepn=3, **kwargs):
         """
         Integrate the particles forward by amount deltaT
 
         Evolving system to the self.time
         """
-
-    
         Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,timestepn)
 
 
@@ -124,7 +122,7 @@ class System(object):
 
         """
 
-        self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step'])
+        self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step', 'dotMg'])
 
 
 
@@ -146,7 +144,12 @@ class System(object):
         #particles that enter the domain
         Nadd = 0
 
-        self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
+
+        delmgasIn, error = sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)
+        self.dotMg = dp.dot_Mg(self.time)
+            
+        #self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
+        self.Minflux_step = delmgasIn
         self.Minflux += self.Minflux_step
 
         while self.Minflux>self.mtot1:
@@ -209,7 +212,7 @@ class System(object):
         self.particles.generate_Y2d()
 
 
-    def new_timestep (self, tEnd, deltaTfraction = 0.2):
+    def new_timestep (self, tEnd, deltaTfraction = 0.2, **kwargs):
         """
         chooses a timestep
         """
@@ -228,8 +231,9 @@ class System(object):
         #Mass influx timescale
         if self.time > 0:  # better to get rid of the first step one, but the effect is tiny
             #[24.01.07]CWO: in cases there is no influx, this should evaluate the infinity...
-            InfluxTscale = (1e-100 + np.float64(self.Minflux_step)) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
-            mintimeL.append({'name': 'Mass_Influx', 'tmin': InfluxTscale})
+            #InfluxTscale = (1e-100 + np.float64(self.Minflux_step)) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
+            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / abs(self.oldstate.dotMg - self.dotMg) *self.deltaT
+            mintimeL.append({'name': 'Mass_Influx', 'tmin': mdotgTscale})
 
         #central mass growth timescale
         Mcpnew=dp.Mcp_t(self.time)  
@@ -249,7 +253,6 @@ class System(object):
                 self.planetMassData = [[],[]]
                 self.masstime = []  
 
-            #[24.01.07]CWO: let's only add if there are planets 
             if pars.doPlanets:
                 PmassTscale = np.inf*np.ones_like(self.planetL)
                 PlocaTscale = np.inf*np.ones_like(self.planetL) 
@@ -267,7 +270,7 @@ class System(object):
 
                             if len(self.planetMassData[i]) > 2:
                                 def mass_fit(t,a,b):
-                                    m=a*t+b
+                                    m = a*t+b
                                     return m 
                                 timedots=np.log10([self.planetMassData[i][j][0] for j in range(len(self.planetMassData[i]))])
                                 massdots=np.log10([self.planetMassData[i][j][1] for j in range(len(self.planetMassData[i]))])
@@ -278,7 +281,6 @@ class System(object):
                                 # plt.plot(t_list, mass_fit(t_list, *popt))
                                 # plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
 
-                                #[24.01.07]CWO: I toot absolute as popt[0] may turn out to be negative
                                 PmassTscale[i] = 1/abs(popt[0])*self.time
 
                         
@@ -286,7 +288,6 @@ class System(object):
                 mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
 
             #timescale for the icelines
-            #[24.01.07]CWO: let's only add if there are icelines
             if pars.doIcelines:
                 IlocaTscale=np.inf*np.ones_like(self.icelineL)
                 for i,iceline in enumerate(self.icelineL):
@@ -304,7 +305,6 @@ class System(object):
             if ddum['tmin'] < deltaT:
                 deltaT = ddum['tmin']
             
-
         if self.time+deltaT>tEnd:
             deltaT = tEnd - self.time
 
@@ -392,6 +392,7 @@ def advance_planets (system):
                 #this is about planet migration...
                 #TBD later...
                 if False:
+                    ## CWO: switch to the user-defined approach
                     loc_t, mass_t, fcomp_t = \
                     userfun.XY_planet (sim.time, planet.loc, planet.mass, planet.fcomp, 
                             crossL)
@@ -422,6 +423,9 @@ def advance_planets (system):
             #update s-particle properties from sp-crossings
             #assumes all particles are accreted (TBC!!)
             spN = system.particles
+
+            #mass*composition that is acccreted
+            delmcomp = np.zeros((spN.fcomp.shape[1]))
             
             for k, ip in enumerate(idxN):
 
@@ -438,18 +442,30 @@ def advance_planets (system):
 
                 delmass = np.zeros_like(crossL[0].fcomp)
 
+                #CWO: maybe get rid of the if statement and move this conidtion (Mc<...) to the
+                #user-defined
+
+                #[24.01.05]CWO: perhaps move to user-defined
+                #epsilon = userfun.epsilon(planet.loc,planet.mass,spk)
+                #
+                #TBD-later: in reality particles may be "stuck" in pressure bump
+                #           incorporate in planet object?
                 if Mc<planet.mass:                    
 
-                    #[24.01.05]CWO: let's think about how to do this later...
-                    #
+
                     epsilon = ff.epsilon_PA(planet.loc,planet.mass,spk)
 
+                    #accreted mass by composition
+                    delmcomp += epsilon*crossL[k].fcomp *crossL[k].mtotL
+
                     #delm = epsilon*crossL[k].mtotL
-                    for i in range(len(crossL[k].fcomp)):
-                        delmass[i] = epsilon* crossL[k].fcomp[i]*crossL[k].mtotL
+                    #for i in range(len(crossL[k].fcomp)):
+                    #    delmass[i] = epsilon* crossL[k].fcomp[i]*crossL[k].mtotL
                     
-                    planet.fcomp = [ (delmass[i]+planet.mass*planet.fcomp[i]) / (planet.mass+delmass.sum()) for i in range(len(delmass))]
-                    planet.mass += delmass.sum() #increase mass (pebble accretion)
+                    #planet.mass*planet.fcomp
+                    
+                    #planet.fcomp = [ (delmass[i]+planet.mass*planet.fcomp[i]) / (planet.mass+delmass.sum()) for i in range(len(delmass))]
+                    #planet.mass += delmass.sum() #increase mass (pebble accretion)
                 else:
                     print('[core]: pebble accretion can not happen')
                     import pdb; pdb.set_trace()
@@ -459,6 +475,9 @@ def advance_planets (system):
                 
                 #spN -> system.particles.Y2d...
                 spN.mtotL[ip] -= delmass.sum() #decrease mass sp
+            masscomp = planet.fcomp*planet.mass +delmcomp
+            planet.mass += delmcomp.sum()
+            planet.fcomp = masscomp /planet.mass
 
 
 class SingleSP(object):

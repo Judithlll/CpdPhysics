@@ -13,8 +13,11 @@ dparticleprops = {'Rdi':0.01,  #initial size pf particles
                 'initrule':'equallogspace'}  #initial number of particles
 
 #[24.01.08]LZX: don't know whether this is a good idea
-evolvingparas = {'deltaTfraction': 0.2,
-                 'timestepn': 3}
+dtimesteppars = {'deltaTfraction': 0.2,
+                 'timestepn': 1} #belong to integrator
+
+#TBD: implement integrator properties
+dintegratorpars = {'name':'RK5', 'timestepn':3}
 
 dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
 gasmodel = 'prescribed'

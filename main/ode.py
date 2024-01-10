@@ -41,8 +41,8 @@ def RK5(fun_name,y0,t_span,step,*args):
         
         ti=ti+step
         
-    if n<=3:
-        print('\r','maybe your step is too large!')
+    #if n<=3:
+    #    print('\r','maybe your step is too large!')
 
     y=np.array(y)
     
@@ -104,10 +104,16 @@ def ode(fun_name,y0,t_span,step,method='RK5',*args):
     """
     if method=='RK5':
         y=RK5(fun_name,y0,t_span,step,*args)
+
     if method=='Euler':
         y=Euler(fun_name,y0,t_span,step,*args)
+
+    ## CWO: implement Heun
     # if method=='Heun':
     #     y=Heun(fun_name,y0,t_span,step)
+
+    ## CWO: implement scipy.odeint method
     #if method=='odeint':
         #implement scipy.integrate.odeint..
     return y
+

@@ -48,7 +48,7 @@ def init_planets ():
     timeL = [1*cgs.yr, 1e3*cgs.yr] 
     locationL = [7*cgs.rJup, 10*cgs.rJup] 
     massL = [3e23, 3e23] 
-    compoL = [[1.0, 0.0], [1.0, 0.0]]
+    compoL = np.array([[1.0, 0.0], [1.0, 0.0]])
 
     return timeL, locationL, massL, compoL
 
@@ -182,7 +182,7 @@ class Data(object):
         self.icelineslocL = np.array(list(self.icelinesloc.values()))
 
 
-    def data_store(self,path=os.getcwd()):
+    def data_store (self,path=os.getcwd()):
         
         self.get_plot_list()
 
@@ -197,6 +197,7 @@ class Data(object):
         df_mtot.index = self.timeL
         df_fcomp.index = self.timeL
 
+        ## write CSV
         import pdb; pdb.set_trace()
         writer = pd.ExcelWriter('particles_data.xlsx', engine='xlsxwriter')
         df_rad.to_excel (writer, sheet_name= 'location data')
