@@ -65,6 +65,7 @@ class System(object):
 
         self.planetMassData=[]
 
+        self.njump = 0
     
     def init_particles(self, dparticleprops={}):
         """
@@ -311,6 +312,33 @@ class System(object):
         self.deltaT = deltaT
 
 
+    def system_jump(self, frac):
+        if len(self.mintimeL) > 1 and self.time/cgs.yr/50 >self.njump:  # this need to be change, maybe jump every 100 year
+            self.jumpT = frac*min(tscale['tmin'] for tscale in self.mintimeL[1:])
+            
+            # parameters needs to be updated:
+            # planets: location and mass and composition(this maybe very complex)
+            # icelines :location
+            # central mass (a little complex because it's hard to change the mcp parameter in disk)
+            # dotMg (also complex)
+            
+            self.dotMg -= self.dotMg/ self.mintimeL[1]['tmin'] *self.jumpT
+           # self.mcp 
+
+            if pars.doPlanets:
+                for planet in self.planetL:
+                    planet.loc -= planet.loc/ self.mintimeL[3]['tmin'] *self.jumpT
+                    planet.mass += planet.mass/ self.mintimeL[4]['tmin'] *self.jumpT
+            
+            if pars.doIcelines:
+                for iceline in self.icelineL:
+                    iceline.loc -= iceline.loc/self.mintimeL[5]['tmin'] *self.jumpT
+            self.time += self.jumpT
+            self.njump +=1
+
+            import pdb;pdb.set_trace()        
+
+
 
 def advance_iceline (system):
     """
@@ -342,6 +370,7 @@ def advance_iceline (system):
         if system.time > 1e6 *cgs.yr:
             loc_pv = system.oldstate.icelineL[k].loc
             iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
+
 
 
 def advance_planets (system):

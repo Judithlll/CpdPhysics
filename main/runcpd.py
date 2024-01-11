@@ -45,7 +45,8 @@ while system.time<pars.tmax:
 
 
     system.post_process()
-    
+
+    system.system_jump(0.2)
     system.time += system.deltaT
     system.ntime += 1
 
