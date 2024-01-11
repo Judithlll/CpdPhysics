@@ -214,14 +214,6 @@ def T_d(sigmag,kapa,Mcp,dotMg,loc):
 
 
 
-def H_d(Hg, St):
-    """
-    Youdin & Lithwick 2007
-    CWO: can move to physics module?
-    """
-    Hd = Hg*(1+St/alpha*(1+2*St)/(1+St))**(-0.5) 
-    return Hd
-
 # def H_g(cs,OmegaK):
 #     """
 #     get scale height

@@ -166,26 +166,7 @@ def determine_type (val):
         return out
 
 
-def epsilon_PA (PlanetsLoc,PlanetsMass,cross_p):
-    """
-    Get the pebble accretion rate
-    """
-
-    mus=PlanetsMass/cross_p.mcp
-
-    Hp= dp.H_d(cross_p.Hg, cross_p.St)
-    # Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
-    hp=Hp/PlanetsLoc
-
-    delv_o_vK=0.52*(mus*cross_p.St)**(1/3)+cross_p.eta/(1+5.7*(mus/cross_p.eta**3*cross_p.St))
-    
-    P_eff=1/np.sqrt((0.32*np.sqrt(mus*delv_o_vK/ cross_p.St/ cross_p.eta**2))**(-2)+(0.39*mus/ cross_p.eta/hp)**(-2)) #Liu & Ormel 2018
-    return P_eff
 
 
 
 
-def M_critical (eta, St, mcp):
-
-    M_critical=1/8*eta**3*St *mcp #Shibaike 2019
-    return M_critical   

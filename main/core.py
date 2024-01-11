@@ -438,7 +438,7 @@ def advance_planets (system):
                 #       (for the moment I ignore it... we can discuss)
 
                 spk = crossL[k]
-                Mc = ff.M_critical(spk.eta, spk.St, spk.mcp)
+                Mc = userfun.M_critical(spk.eta, spk.St, spk.mcp)
 
                 delmass = np.zeros_like(crossL[0].fcomp)
 
@@ -453,7 +453,7 @@ def advance_planets (system):
                 if Mc<planet.mass:                    
 
 
-                    epsilon = ff.epsilon_PA(planet.loc,planet.mass,spk)
+                    epsilon = userfun.epsilon_PA(planet.loc,planet.mass,spk)
 
                     #accreted mass by composition
                     delmcomp += epsilon*crossL[k].fcomp *crossL[k].mtotL
@@ -694,7 +694,7 @@ class Superparticles(object):
         #v_dd = np.abs(v_r)/2    
 
         #make the dust scale height to be user defined
-        Hd = dp.H_d(disk.Hg, St)     
+        Hd = physics.H_d(disk.Hg, St)     
 
         drdt = v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt

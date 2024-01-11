@@ -1,5 +1,6 @@
 import numpy as np
 import cgs
+import disk_properties as dp
 
 def get_auxiliary (mcp, loc, sigmaG, temp, mu, sigmol):
 
@@ -21,6 +22,13 @@ def sig_mol (mu):
     """
 
     return 2e-15 *np.ones_like(mu)
+
+def H_d(Hg, St):
+    """
+    Youdin & Lithwick 2007
+    """
+    Hd = Hg*(1+St/dp.alpha*(1+2*St)/(1+St))**(-0.5) 
+    return Hd
 
 
 def c_s (temp, mu):
