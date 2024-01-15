@@ -312,7 +312,20 @@ class System(object):
         self.deltaT = deltaT
 
 
+    def query_system_jump(self):
+        """
+        investigates w/r we can jump and by how much
+        ...
+
+        returns True/False, {jump properties}
+        """
+        pass
+
+
     def system_jump(self, frac):
+        """
+        execute the system jump
+        """
         if len(self.mintimeL) > 1 and self.time/cgs.yr/50 >self.njump:  # this need to be change, maybe jump every 100 year
             self.jumpT = frac*min(tscale['tmin'] for tscale in self.mintimeL[1:])
             
@@ -322,7 +335,7 @@ class System(object):
             # central mass (a little complex because it's hard to change the mcp parameter in disk)
             # dotMg (also complex)
             
-            self.dotMg -= self.dotMg/ self.mintimeL[1]['tmin'] *self.jumpT
+           #self.dotMg -= self.dotMg/ self.mintimeL[1]['tmin'] *self.jumpT
            # self.mcp 
 
             if pars.doPlanets:

@@ -46,11 +46,18 @@ while system.time<pars.tmax:
 
     system.post_process()
 
-    system.system_jump(0.2)
     system.time += system.deltaT
     system.ntime += 1
 
     userfun.do_stuff(system)
+    
+    # djump = system.query_jump()
+    # if djump['doJump']==True:
+    #   system.system_jump(djump) #changes system.time
+    #
+    #   #do this again?
+    #   system.post_process()
+
 
     end = time.time()
     runTime = end-start

@@ -120,12 +120,17 @@ def load_composdata (calldir, composL):
 
         #(initial) position of iceline
         if dcompos['iceline'] == True:
-            rice = dcompos['iceline_init']
+            if 'iceline_init' in dcompos:
+                rice = dcompos['iceline_init']
+            else:
+                #rice = {calculate iceline}?
+                pass
         elif dcompos['iceline'] == 'None': #all vapor
             rice = np.inf
         elif dcompos['iceline'] == False: #all refractory
             rice = 0.0
 
+        #maybe not necessary?
         dcompos['mask_icl'] = construct_mask_icl (rice)
 
         dcomposL.append(dcompos)
@@ -208,6 +213,9 @@ def sim_init (calldir, dsystempars={},*args):
                 iceline.get_icelines_location(system.gas,system.time)      
                 icelineL.append(iceline)
 
+                ##TBD add mask_icl function to dcompos here??
+                #   dcompos['mask_icl'] = construct_mask_icl (rice)
+
         #niceline = len(speciesarr)
         #for i in range (niceline):
         #    iceline=core.ICELINE (speciesarr[i], temparr[i], fracarr[i])
@@ -218,6 +226,7 @@ def sim_init (calldir, dsystempars={},*args):
     else:
         system.icelineL = []
         system.niceline = 0
+
 
 
     return system,gasL
