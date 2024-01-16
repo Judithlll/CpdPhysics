@@ -265,7 +265,10 @@ class System(object):
             # (including migration and mass growth)
             
             if len(self.planetMassData) == 0:
-                self.planetMassData = [[],[]]
+                #self.planetMassData = np.empty(self.nplanet)
+                self.planetMassData = []
+                for i in range(self.nplanet):
+                    self.planetMassData.append([[self.planetL[i].time, self.oldstate.planetL[i].mass]])
                 self.masstime = []  
 
             if pars.doPlanets:
@@ -277,7 +280,7 @@ class System(object):
                             #store mass data first
                             if self.oldstate.planetL[i].mass != self.planetL[i].mass:
                                 # self.masstime=
-                                self.planetMassData[i].append([self.time , self.oldstate.planetL[i].mass])
+                                self.planetMassData[i].append([self.time , self.planetL[i].mass])
 
 
                             #then try to fit the mass to a curve
@@ -291,10 +294,10 @@ class System(object):
                                 massdots=np.log10([self.planetMassData[i][j][1] for j in range(len(self.planetMassData[i]))])
 
                                 popt, pcov = curve_fit(mass_fit, timedots, massdots)
-                                # plt.scatter(timedots, massdots)
-                                # t_list=np.linspace(timedots[0], timedots[-1], 30)
-                                # plt.plot(t_list, mass_fit(t_list, *popt))
-                                # plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+                                #plt.scatter(timedots, massdots)
+                                #t_list=np.linspace(timedots[0], timedots[-1], 30)
+                                #plt.plot(t_list, mass_fit(t_list, *popt))
+                                #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
                                 self.pmassfit_cov = pcov
                                 PmassTscale[i] = 1/abs(popt[0])*self.time
 
@@ -352,15 +355,16 @@ class System(object):
         return jumptf
 
 
-    def system_jump(self, frac):
+    def system_jump(self, frac, tmax):
         """
         execute the system jump
         """
 
         self.jumpT = frac*min(self.mintimeL.tminarr[1:])
-        
+        if self.jumpT+self.time > tmax:
+            self.jumpT = tmax - self.time
+
         print( self.jumpT)
-        import pdb;pdb.set_trace()
         # parameters needs to be upda`ted:
         # planets: location and mass and composition(this maybe very complex)
         # icelines :location

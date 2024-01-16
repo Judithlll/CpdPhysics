@@ -12,6 +12,7 @@ import pandas as pd
 import parameters as pars
 import disk_properties as dp
 import physics
+from scipy.optimize import curve_fit
 
 def del_v (St, rhoD, disk):
     vr = 2*disk.eta *disk.vK *St/(1+St**2)
@@ -84,7 +85,7 @@ def init_compos (material):
         dcompos['iceline'] = True
         dcompos['rhoint'] = 1.0
         dcompos['iceline_temp'] = 160
-        dcompos['iceline_init'] = 2*cgs.RJ
+        dcompos['iceline_init'] = 15*cgs.RJ
 
     return dcompos
 
@@ -103,6 +104,24 @@ def do_stuff (sys, init=False):
         line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr)
         print(line) #TBD: print more things 
 
+def plot_massfit(planetMassData):
+    def mass_fit(t,a,b):
+        m = a*t+b
+        
+        return m 
+    plt.figure()
+    for i in range(len(planetMassData)):
+        if len(planetMassData[i])>2:
+            timedots=np.log10([planetMassData[i][j][0] for j in range(len(planetMassData[i]))])
+            massdots=np.log10([planetMassData[i][j][1] for j in range(len(planetMassData[i]))])
+            popt, pcov = curve_fit(mass_fit, timedots, massdots)
+            plt.scatter(timedots, massdots)
+            t_list=np.linspace(timedots[0], timedots[-1], 30)
+            plt.plot(t_list, mass_fit(t_list, *popt))
+    plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+    plt.close()
+
+   
 
 class Data(object):
     """
