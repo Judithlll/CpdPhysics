@@ -345,7 +345,8 @@ class System(object):
 
             #1) the uncertainty of mass growth fit
             #2) maybe begin after 50 years(e.g.), then check if there should be a jump.
-            if min(Tscale_ratio) > 1e3: #should have more judgements
+            #TBD: add the palnets mass uncertainty judgement
+            if min(Tscale_ratio) > 1e2: #should have more judgements
                 jumptf = True
             else:
                 jumptf = False
@@ -358,13 +359,15 @@ class System(object):
     def system_jump(self, frac, tmax):
         """
         execute the system jump
+        
+        TBD: problem!! after 1e6 years, the planets migration timescale is too small, affecting the jump execution
         """
 
         self.jumpT = frac*min(self.mintimeL.tminarr[1:])
         if self.jumpT+self.time > tmax:
             self.jumpT = tmax - self.time
 
-        print( self.jumpT)
+        print( self.jumpT/cgs.yr)
         # parameters needs to be upda`ted:
         # planets: location and mass and composition(this maybe very complex)
         # icelines :location
@@ -378,7 +381,6 @@ class System(object):
         if pars.doIcelines:
             for iceline in self.icelineL:
                 iceline.loc -= iceline.loc/self.mintimeL.icelineloca *self.jumpT
-        self.time += self.jumpT
         
         self.njump +=1
 
@@ -634,7 +636,8 @@ class Superparticles(object):
             msup = np.zeros_like(radL)
             r0 = rinn
             for k,r1 in enumerate(radL):
-                msup[k], err = sciint.quad(f_sample, r0, r1)
+                #after change the mask_icl getting location, there will be a strange warning, by set the limit=100 can remove this warning
+                msup[k], err = sciint.quad(f_sample, r0, r1, limit =100)
                 r0 = r1
 
         elif initrule=='equalmass':

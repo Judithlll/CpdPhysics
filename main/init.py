@@ -118,20 +118,20 @@ def load_composdata (calldir, composL):
                 print('[init.py]:aborting')
                 sys.exit()
 
-        #(initial) position of iceline
-        if dcompos['iceline'] == True:
-            if 'iceline_init' in dcompos:
-                rice = dcompos['iceline_init']
-            else:
-                #rice = {calculate iceline}?
-                pass
-        elif dcompos['iceline'] == 'None': #all vapor
-            rice = np.inf
-        elif dcompos['iceline'] == False: #all refractory
-            rice = 0.0
+        if False:
+            #(initial) position of iceline
+            if dcompos['iceline'] == True:
+                if 'iceline_init' in dcompos:
+                    rice = dcompos['iceline_init']
+                else:
+                    #rice = {calculate iceline}?
+                    pass
+            elif dcompos['iceline'] == 'None': #all vapor
+                rice = np.inf
+            elif dcompos['iceline'] == False: #all refractory
+                rice = 0.0
 
-        #maybe not necessary?
-        dcompos['mask_icl'] = construct_mask_icl (rice)
+            dcompos['mask_icl'] = construct_mask_icl (rice)
 
         dcomposL.append(dcompos)
 
@@ -174,7 +174,7 @@ def sim_init (calldir, dsystempars={},*args):
     gasL.append('gas')      #always
     gasL += pars.addgasL    #specified by user
 
-    system.dcomposL = dcomposL
+
     system.gasL = gasL
 
     #add the planets
@@ -212,9 +212,15 @@ def sim_init (calldir, dsystempars={},*args):
                 iceline = core.ICELINE (dcompos['name'], dcompos['iceline_temp'])  
                 iceline.get_icelines_location(system.gas,system.time)      
                 icelineL.append(iceline)
+               #(initial) position of iceline
+                rice = iceline.loc
+                
+            elif dcompos['iceline'] == 'None': #all vapor
+                rice = np.inf
+            elif dcompos['iceline'] == False: #all refractory
+                rice = 0.0
 
-                ##TBD add mask_icl function to dcompos here??
-                #   dcompos['mask_icl'] = construct_mask_icl (rice)
+            dcompos['mask_icl'] = construct_mask_icl (rice)
 
         #niceline = len(speciesarr)
         #for i in range (niceline):
@@ -226,7 +232,7 @@ def sim_init (calldir, dsystempars={},*args):
     else:
         system.icelineL = []
         system.niceline = 0
-
+    system.dcomposL = dcomposL
 
 
     return system,gasL
