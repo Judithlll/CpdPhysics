@@ -23,14 +23,17 @@ system.init_particles(pars.dparticleprops)
 #initialize userfun's data class
 userfun.do_stuff(system, init=True)
 #import pdb; pdb.set_trace()
+#get the initial deltaT
+system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
+#backup the initial data
+system.back_up_last_data()       #back up the data of last step
+
 while system.time<pars.tmax:
 
     #[24.01.01]:determines the timestep for this step
     #[24.01.02],LZX: don't understand why this should be here
-    system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
-    # if system.time > system.planetL[0].time:
+        # if system.time > system.planetL[0].time:
     #     import pdb; pdb.set_trace()
-    system.back_up_last_data()       #back up the data of last step
                         
     #integrate the super particles
     Yt = system.update_particles (**pars.dtimesteppars)
@@ -44,19 +47,29 @@ while system.time<pars.tmax:
         core.advance_iceline(system)
 
 
+    doJump = system.query_system_jump()
+    if doJump and False:
+        #1)do jump,
+        #2)update the system time with jumpT
+        #3)then the deltaT should be the jumpT
+        #4)finally, generate the deltaT for next step
+        system.system_jump(0.2, pars.tmax) #changes system.time
+        system.time += system.jumpT
+        system.deltaT = system.jumpT
+        system.new_timestep(pars.tmax, **pars.dtimesteppars)
+    else:
+        #1)update the system time 
+        #2)get the new deltaT 
+        system.time +=system.deltaT
+        system.new_timestep(pars.tmax, **pars.dtimesteppars)
+    #do this again? LZX: maybe not, post_process mainly for particles
+    #   system.post_process()
     system.post_process()
 
-    system.time += system.deltaT
+    system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
 
     userfun.do_stuff(system)
-    
-    # djump = system.query_jump()
-    # if djump['doJump']==True:
-    #   system.system_jump(djump) #changes system.time
-    #
-    #   #do this again?
-    #   system.post_process()
 
 
     end = time.time()

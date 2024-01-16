@@ -26,6 +26,20 @@ class COPY (object):
         for attr in attributeL:
             setattr(self, attr, copy.deepcopy(getattr(state,attr)))
 
+class Mintimes (object):
+    """
+    store the minimam times
+    """
+    def __init__(self, mintimedict):
+        for i in range (len(mintimedict)):
+            setattr(self, mintimedict[i]['name'], mintimedict[i]['tmin'])
+
+        self.mintimelist(mintimedict)
+
+    def mintimelist(self,mintimedict):
+        self.tminarr = np.array([ddum['tmin'] for ddum in mintimedict])
+        
+
 
 class System(object):
 
@@ -281,7 +295,7 @@ class System(object):
                                 # t_list=np.linspace(timedots[0], timedots[-1], 30)
                                 # plt.plot(t_list, mass_fit(t_list, *popt))
                                 # plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
-
+                                self.pmassfit_cov = pcov
                                 PmassTscale[i] = 1/abs(popt[0])*self.time
 
                         
@@ -300,7 +314,8 @@ class System(object):
         
         # put mintimeL into system object for now to check
         self.mintimeL=mintimeL
-
+        #make a class to use this mintimeL 
+        self.mintimeL = Mintimes(mintimeL)
         deltaT = np.inf
         for ddum in mintimeL:
             if ddum['tmin'] < deltaT:
@@ -319,37 +334,50 @@ class System(object):
 
         returns True/False, {jump properties}
         """
-        pass
+        Tscale_ratio = []
+        for t in self.mintimeL.tminarr[1:]:
+            Tscale_ratio.append( t/self.mintimeL.particles)
+        
+        if self.time >50*cgs.yr:
+
+            #1) the uncertainty of mass growth fit
+            #2) maybe begin after 50 years(e.g.), then check if there should be a jump.
+            if min(Tscale_ratio) > 1e3: #should have more judgements
+                jumptf = True
+            else:
+                jumptf = False
+        else:
+            jumptf = False
+
+        return jumptf
 
 
     def system_jump(self, frac):
         """
         execute the system jump
         """
-        if len(self.mintimeL) > 1 and self.time/cgs.yr/50 >self.njump:  # this need to be change, maybe jump every 100 year
-            self.jumpT = frac*min(tscale['tmin'] for tscale in self.mintimeL[1:])
-            
-            # parameters needs to be updated:
-            # planets: location and mass and composition(this maybe very complex)
-            # icelines :location
-            # central mass (a little complex because it's hard to change the mcp parameter in disk)
-            # dotMg (also complex)
-            
-           #self.dotMg -= self.dotMg/ self.mintimeL[1]['tmin'] *self.jumpT
-           # self.mcp 
 
-            if pars.doPlanets:
-                for planet in self.planetL:
-                    planet.loc -= planet.loc/ self.mintimeL[3]['tmin'] *self.jumpT
-                    planet.mass += planet.mass/ self.mintimeL[4]['tmin'] *self.jumpT
-            
-            if pars.doIcelines:
-                for iceline in self.icelineL:
-                    iceline.loc -= iceline.loc/self.mintimeL[5]['tmin'] *self.jumpT
-            self.time += self.jumpT
-            self.njump +=1
+        self.jumpT = frac*min(self.mintimeL.tminarr[1:])
+        
+        print( self.jumpT)
+        import pdb;pdb.set_trace()
+        # parameters needs to be upda`ted:
+        # planets: location and mass and composition(this maybe very complex)
+        # icelines :location
+        
+        if pars.doPlanets:
+            for planet in self.planetL:
+                if self.time > planet.time:
+                    planet.loc -= planet.loc/ self.mintimeL.planetsMigration *self.jumpT
+                    planet.mass += planet.mass/ self.mintimeL.planetsGrowth *self.jumpT
+        
+        if pars.doIcelines:
+            for iceline in self.icelineL:
+                iceline.loc -= iceline.loc/self.mintimeL.icelineloca *self.jumpT
+        self.time += self.jumpT
+        
+        self.njump +=1
 
-            import pdb;pdb.set_trace()        
 
 
 
