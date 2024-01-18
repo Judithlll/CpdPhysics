@@ -77,9 +77,21 @@ class System(object):
         #initiallize the old state
         self.oldstate=None
 
-        self.planetMassData=[]
-
+        #self.planetMassData=[]
         self.njump = 0
+
+        self.milestones = {}
+        #d = self.milestones
+        #d[0] = 'initialization'
+        #d[time1] = 'insert planet'
+        #d[time2] = 'insert planet'
+        #d[tmax] = 'final time'
+        #
+        #
+        #timeM = d.keys()
+        #eventsM = d.values()
+        #for k,v in d.items(): if v=='event'
+
     
     def init_particles(self, dparticleprops={}):
         """
@@ -134,7 +146,6 @@ class System(object):
     def back_up_last_data(self):
         """
         copies present state to "old" 
-
         """
 
         self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step', 'dotMg'])
@@ -264,42 +275,47 @@ class System(object):
             #timescale for the planets 
             # (including migration and mass growth)
             
-            if len(self.planetMassData) == 0:
-                #self.planetMassData = np.empty(self.nplanet)
-                self.planetMassData = []
-                for i in range(self.nplanet):
-                    self.planetMassData.append([[self.planetL[i].time, self.oldstate.planetL[i].mass]])
-                self.masstime = []  
-
             if pars.doPlanets:
                 PmassTscale = np.inf*np.ones_like(self.planetL)
                 PlocaTscale = np.inf*np.ones_like(self.planetL) 
                 for i in range(self.nplanet):
-                    if self.time>self.planetL[i].time:
+                    planet = self.planetL[i]
+                    if self.time>planet.starttime:
 
                             #store mass data first
-                            if self.oldstate.planetL[i].mass != self.planetL[i].mass:
+                            if self.oldstate.planetL[i].mass != planet.mass:
                                 # self.masstime=
-                                self.planetMassData[i].append([self.time , self.planetL[i].mass])
+                                planet.planetMassData.append([self.time , planet.mass])
 
 
                             #then try to fit the mass to a curve
+                            #planet.loc_t
                             PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
 
-                            if len(self.planetMassData[i]) > 2:
+                            if len(planet.planetMassData) > 2:
                                 def mass_fit(t,a,b):
                                     m = a*t+b
                                     return m 
-                                timedots=np.log10([self.planetMassData[i][j][0] for j in range(len(self.planetMassData[i]))])
-                                massdots=np.log10([self.planetMassData[i][j][1] for j in range(len(self.planetMassData[i]))])
+
+                                #better way to do
+                                timedots, massdots = np.log(np.array(planet.planetMassData).T)
+                                #timedots = np.log10([planet.planetMassData[j][0] for j in range(len(planet.planetMassData))])
+                                #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
 
                                 popt, pcov = curve_fit(mass_fit, timedots, massdots)
+                                psig = np.sqrt(pcov[0,0])
                                 #plt.scatter(timedots, massdots)
                                 #t_list=np.linspace(timedots[0], timedots[-1], 30)
                                 #plt.plot(t_list, mass_fit(t_list, *popt))
                                 #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
                                 self.pmassfit_cov = pcov
+                                planet.dmdt = popt[0] *planet.mass/(self.time-planet.starttime) 
+                                planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
                                 PmassTscale[i] = 1/abs(popt[0])*self.time
+                                planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
+                            else:
+                                planet.dmdt = 0
+                                planet.dsigmdt = np.inf #uncertainty in fit..
 
                         
                 mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
@@ -317,8 +333,8 @@ class System(object):
         
         # put mintimeL into system object for now to check
         self.mintimeL=mintimeL
-        #make a class to use this mintimeL 
-        self.mintimeL = Mintimes(mintimeL)
+        #make a class to use this mintimeL, change the name 
+        self.minTimes = Mintimes(mintimeL)
         deltaT = np.inf
         for ddum in mintimeL:
             if ddum['tmin'] < deltaT:
@@ -330,7 +346,7 @@ class System(object):
         self.deltaT = deltaT
 
 
-    def query_system_jump(self):
+    def query_system_jump(self, jumpfrac):
         """
         investigates w/r we can jump and by how much
         ...
@@ -338,13 +354,14 @@ class System(object):
         returns True/False, {jump properties}
         """
         Tscale_ratio = []
-        for t in self.mintimeL.tminarr[1:]:
-            Tscale_ratio.append( t/self.mintimeL.particles)
+        for t in self.minTimes.tminarr[1:]:
+            Tscale_ratio.append( t/self.minTimes.particles)
         
         if self.time >50*cgs.yr:
 
             #1) the uncertainty of mass growth fit
             #2) maybe begin after 50 years(e.g.), then check if there should be a jump.
+            #3) should do this every 20(for examplp)years, to make the time scales updated
             #TBD: add the palnets mass uncertainty judgement
             if min(Tscale_ratio) > 1e2: #should have more judgements
                 jumptf = True
@@ -352,18 +369,43 @@ class System(object):
                 jumptf = False
         else:
             jumptf = False
+            
+        if len(self.minTimes.tminarr[1:])==0:
+            return False, {}
 
-        return jumptf
+        #jump by this amount
+        #(cannot jump over "important events" -> Milestones) 
+        #TBD: adjust jumpT accordingly !! including the tmax
+        jumpT = jumpfrac*min(self.minTimes.tminarr[1:])
+        timepoints = np.sort( np.array(list(self.milestones.keys())) )
+         
+        reached_ms = np.where( (timepoints - self.time - jumpT<0) & (timepoints - self.time>0) )[0] 
+
+        if len(reached_ms) != 0:
+            jumpT = timepoints[reached_ms[0]] - self.time
+        
+        #conditions that need to be met in order to have a jump
+        con1 = (min(Tscale_ratio) > 1e2) and (jumpT/self.deltaT>100) #should have more judgements
+        #con2 = # 
+        #con2 = ... (uncertainty on mass growth: Ncross=0 -> sig(dmdt)=np.inf)
+
+        jumptf = con1 #*con2 *con3
+
+        jumptf = False
+        djump = {'jumpT':jumpT}
+
+        return jumptf, djump
 
 
-    def system_jump(self, frac, tmax):
+    def system_jump(self, djump):
         """
         execute the system jump
         
         TBD: problem!! after 1e6 years, the planets migration timescale is too small, affecting the jump execution
         """
-
-        self.jumpT = frac*min(self.mintimeL.tminarr[1:])
+        jumpT = djump['jumpT']
+        
+        #TBD: should be moved into milestones
         if self.jumpT+self.time > tmax:
             self.jumpT = tmax - self.time
 
@@ -374,15 +416,18 @@ class System(object):
         
         if pars.doPlanets:
             for planet in self.planetL:
-                if self.time > planet.time:
-                    planet.loc -= planet.loc/ self.mintimeL.planetsMigration *self.jumpT
-                    planet.mass += planet.mass/ self.mintimeL.planetsGrowth *self.jumpT
+                if self.time > planet.starttime:
+                    planet.loc -= planet.loc/ self.minTimes.planetsMigration *self.jumpT
+                    planet.mass += planet.mass/ self.minTimes.planetsGrowth *self.jumpT
         
         if pars.doIcelines:
             for iceline in self.icelineL:
-                iceline.loc -= iceline.loc/self.mintimeL.icelineloca *self.jumpT
+                iceline.loc -= iceline.loc/self.minTimes.icelineloca *self.jumpT
         
         self.njump +=1
+
+        #"erase" previous planet.crossL OR record the jump time to planet.
+        #such that new fit for dm/dt starts w/ N=0 particles
 
 
 
@@ -434,7 +479,7 @@ def advance_planets (system):
     for planet in system.planetL:
 
         #planet exists only after planet.time
-        if planet.time<system.time:
+        if planet.starttime<system.time:
 
             sploc = system.particles.locL
             sploc_old = system.oldstate.particles.locL
@@ -493,6 +538,10 @@ def advance_planets (system):
 
             #update planet properties from rates supplied by user
             planet.loc += loc_t *system.deltaT
+            planet.dlocdt = loc_t
+
+            planet.time = system.time  ## add this time to planet
+
             #planet.mass += mass_t *system.deltaT
             #planet.fcomp += fcomp_t *system.deltaT
 
@@ -874,13 +923,14 @@ class PLANET ():
     """
     def __init__(self, time, loc, mplanet, fcomp):
         self.loc = loc          #location
-        self.time = time        #time when it appears
+        self.starttime = time        #time when it appears
         self.mass = mplanet     #its mass
         self.fcomp = fcomp      #its composition
         self.spCrossTime = [0.0]   #list when particles cross
         self.spCrossMass = [0.0]   #corresponding mass
         self.spCrossTau = [-1]   #corresponding stokes number
         self.ncross = 0
+        self.planetMassData = [[time, mplanet]]
 
     def record_cross_sp (self, time, sp, idxcross):
         for k in idxcross:

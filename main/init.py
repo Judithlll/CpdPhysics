@@ -191,7 +191,7 @@ def sim_init (calldir, dsystempars={},*args):
         planL = []
         for k in range(nplan):
             planL.append(core.PLANET (tarr[k], radarr[k], mplanarr[k], fcomparr[k]))
-
+            system.milestones[tarr[k]] = 'insert_planet'
         system.planetL = planL
         system.nplanet = nplan
     else:

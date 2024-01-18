@@ -99,7 +99,7 @@ def do_stuff (sys, init=False):
     else:
         data.data_process(system)        
         #data object should be available...
-        tminarr = system.mintimeL.tminarr        
+        tminarr = system.minTimes.tminarr        
         sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
         line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr)
         print(line) #TBD: print more things 

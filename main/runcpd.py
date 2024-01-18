@@ -19,6 +19,7 @@ calldir = init.init_default_pars (argL[0]) #directory from which this is called 
 #this initializes the system...
 system, gasL = init.sim_init (calldir, pars.dsystempars)
 system.init_particles(pars.dparticleprops)
+system.milestones[pars.tmax] = 'Ending_time'
 #initialize userfun's data class
 userfun.do_stuff(system, init=True)
 #import pdb; pdb.set_trace()
@@ -46,13 +47,14 @@ while system.time<pars.tmax:
         core.advance_iceline(system)
 
 
-    doJump = system.query_system_jump()
+    doJump, djump = system.query_system_jump(jumpfrac=0.2)
+
     if doJump:
         #1)do jump,
         #2)update the system time with jumpT
         #3)then the deltaT should be the jumpT
         #4)finally, generate the deltaT for next step
-        system.system_jump(0.2, pars.tmax) #changes system.time
+        system.system_jump(djump) #changes system.time
         system.time += system.jumpT
         system.deltaT = system.jumpT
         system.new_timestep(pars.tmax, **pars.dtimesteppars)
