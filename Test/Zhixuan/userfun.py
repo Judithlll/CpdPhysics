@@ -106,18 +106,18 @@ def do_stuff (sys, init=False):
 
 def plot_massfit(planetMassData):
     def mass_fit(t,a,b):
-        m = a*t+b
-        
+        m = a*(t-timedots[0])**2+b
         return m 
+
+        
     plt.figure()
-    for i in range(len(planetMassData)):
-        if len(planetMassData[i])>2:
-            timedots=np.log10([planetMassData[i][j][0] for j in range(len(planetMassData[i]))])
-            massdots=np.log10([planetMassData[i][j][1] for j in range(len(planetMassData[i]))])
-            popt, pcov = curve_fit(mass_fit, timedots, massdots)
-            plt.scatter(timedots, massdots)
-            t_list=np.linspace(timedots[0], timedots[-1], 30)
-            plt.plot(t_list, mass_fit(t_list, *popt))
+    if len(planetMassData)>2:
+        timedots=np.log([planetMassData[j][0] for j in range(len(planetMassData))])
+        massdots=np.log([planetMassData[j][1] for j in range(len(planetMassData))])
+        popt, pcov = curve_fit(mass_fit, timedots, massdots)
+        plt.scatter(timedots, massdots)
+        t_list=np.linspace(timedots[0], timedots[-1], 30)
+        plt.plot(t_list, mass_fit(t_list, *popt))
     plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
     plt.close()
 

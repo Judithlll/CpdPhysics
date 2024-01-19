@@ -48,17 +48,20 @@ while system.time<pars.tmax:
 
 
     doJump, djump = system.query_system_jump(jumpfrac=0.2)
-
+    
     if doJump:
         #1)do jump,
         #2)update the system time with jumpT
         #3)then the deltaT should be the jumpT
         #4)finally, generate the deltaT for next step
         system.system_jump(djump) #changes system.time
-        system.time += system.jumpT
-        system.deltaT = system.jumpT
-        system.new_timestep(pars.tmax, **pars.dtimesteppars)
+        system.time += djump['jumpT']
+        #system.deltaT = system.jumpT
+        
         import pdb;pdb.set_trace()
+        system.new_timestep(pars.tmax, afterjump = True, **pars.dtimesteppars)
+        
+        system.reset_after_jump()
     else:
         #1)update the system time 
         #2)get the new deltaT 
