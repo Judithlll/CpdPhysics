@@ -106,7 +106,7 @@ def do_stuff (sys, init=False):
 
 def plot_massfit(planetMassData):
     def mass_fit(t,a,b):
-        m = a*(t-timedots[0])**2+b
+        m = a*t+b
         return m 
 
         

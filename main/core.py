@@ -262,17 +262,18 @@ class System(object):
             self.deltaT = min([ob['tmin'] for ob in mintimeL])
 
             return
-        
+        #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
         #central mass growth timescale
-        Mcpnew=dp.Mcp_t(self.time)  
-        Mcpold=dp.Mcp0
-        McTscale = np.inf
-        if self.time > 0:
-            McTscale = Mcpnew/ abs(Mcpold - Mcpnew) *self.deltaT
-            Mcpold = Mcpnew
-            mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
+        #Mcpnew=dp.Mcp_t(self.time)  
+        #Mcpold=dp.Mcp0
+        #McTscale = np.inf
+        #if self.time > 0:
+        #    McTscale = Mcpnew/ abs(Mcpold - Mcpnew) *self.deltaT
+        #    Mcpold = Mcpnew
+        #    mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
         
+       
         #Mass influx timescale
         if self.time > 0:  # better to get rid of the first step one, but the effect is tiny
             #[24.01.07]CWO: in cases there is no influx, this should evaluate the infinity...
@@ -286,71 +287,83 @@ class System(object):
             # (including migration and mass growth)
             
             if pars.doPlanets:
-                PmassTscale = np.inf*np.ones_like(self.planetL)
-                PlocaTscale = np.inf*np.ones_like(self.planetL) 
+                PmassTscale = np.inf*np.ones(self.nplanet)
+                PlocaTscale = np.inf*np.ones(self.nplanet) 
+                PcompTscale = np.inf*np.ones(self.nplanet)
                 for i in range(self.nplanet):
                     planet = self.planetL[i]
                     if self.time>planet.starttime:
 
                             #store mass data first
-                            if self.oldstate.planetL[i].mass != planet.mass:
-                                # self.masstime=
-                                planet.planetMassData.append([self.time , planet.mass])
+                        if self.oldstate.planetL[i].mass != planet.mass:
+                            # self.masstime=
+                            planet.planetMassData.append([self.time , planet.mass])
 
 
-                            #then try to fit the mass to a curve
-                            #planet.loc_t
-                            PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
+                        #then try to fit the mass to a curve
+                        #planet.loc_t
+                        PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
+                        
+                        #consider the data is not large enough to make the fit
+                        if len(planet.planetMassData) > 10:
+                            #better way to do
+                            timedots, massdots = np.log(np.array(planet.planetMassData).T)
+                            #timedots = np.log10([planet.planetMassData[j][0] for j in range(len(planet.planetMassData))])
+                            def mass_fit(t,a,b):
+                                m = a*t+b
+                                return m 
+
+                            #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
+
+                            popt, pcov = curve_fit(mass_fit, timedots, massdots)
+                            psig = np.sqrt(pcov[0,0])
+                            #plt.scatter(timedots, massdots)
+                            #t_list=np.linspace(timedots[0], timedots[-1], 30)
+                            #plt.plot(t_list, mass_fit(t_list, *popt))
+                            #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
                             
-                            #consider the data is not large enough to make the fit
-                            if len(planet.planetMassData) > 10:
-                                #better way to do
-                                timedots, massdots = np.log(np.array(planet.planetMassData).T)
-                                #timedots = np.log10([planet.planetMassData[j][0] for j in range(len(planet.planetMassData))])
-                                def mass_fit(t,a,b):
-                                    m = a*(t-timedots[0])**2+b
-                                    return m 
-
-                                #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
-
-                                popt, pcov = curve_fit(mass_fit, timedots, massdots)
-                                popt_poly, cov = np.polyfit(timedots,massdots, 1, cov = True)
-                                r_pearson = pcov[0,1]/np.sqrt(pcov[0,0]*pcov[1,1])
-                                psig = np.sqrt(pcov[0,0])
-                                #plt.scatter(timedots, massdots)
-                                #t_list=np.linspace(timedots[0], timedots[-1], 30)
-                                #plt.plot(t_list, mass_fit(t_list, *popt))
-                                #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+                            #not sure because we don't have sigp in pcov
+                            planet.dmdt = popt[0] *planet.mass/(self.time) 
+                            planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
+                            PmassTscale[i] = 1/abs(popt[0])*(np.exp(timedots[-1]) - planet.starttime)
+                            #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
+                            
+                            #get the standard error of time(w/o log)
+                            t_sig = np.std(np.exp(timedots))
+                            #t_sig = 1/len(timedots) *np.sum([(t - np.mean())])
                                 
-                                #not sure because we don't have sigp in pcov
-                                planet.dmdt = popt[0] *planet.mass/(self.time) 
-                                planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
-                                PmassTscale[i] = 1/abs(popt[0])*(np.exp(timedots[-1]) - planet.starttime)
-                                #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
-                                
-                                #get the standard error of time(w/o log)
-                                t_sig = np.std(np.exp(timedots))
-                                #t_sig = 1/len(timedots) *np.sum([(t - np.mean())])
-                                    
-
-                                # the standard error of timescale
-                                planet.rel_tc_err = 1/popt[0] *t_sig /PmassTscale[i]
-                                planet.rel_tc_err = t_sig /np.mean(np.exp(timedots))
-                                
-                                #for now use r2 to measure whether the fit is good enough
-                                #because the first several points are very disturbing
-                                planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
-                                
-                                #if np.float64(self.ntime) in np.linspace(1,100, 100)*100:            
-                                #    import pdb;pdb.set_trace()
-                            else:
-                                planet.dmdt = 0
-                                planet.dsigmdt = np.inf #uncertainty in fit..
-                                planet.r2 = np.nan 
-
+                            #for now use r2 to measure whether the fit is good enough
+                            #because the first several points are very disturbing
+                            planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
+                            
+                            #if np.float64(self.ntime) in np.linspace(1,100, 100)*100:            
+                            #    import pdb;pdb.set_trace()
+                        else:
+                            planet.dmdt = 0
+                            planet.dsigmdt = np.inf #uncertainty in fit..
+                            planet.r2 = np.nan 
+                        
+                        #get the planet composition change time scale
+                        if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
+                            planet.compData .append([self.time, planet.fcomp[0]])
+                        
+                        if len(planet.compData) >10:
+                            timedots, compdots = np.array(planet.compData).T
+                            timedots = np.log(timedots)
+                            def comp_fit(t,a,b):
+                                c = a*t+b
+                                return c
+                            
+                            popt,pcov = curve_fit(comp_fit, timedots, compdots) 
+                            PcompTscale[i] = (np.exp(timedots[-1])-planet.starttime)* compdots[-1]/abs(popt[0]) 
+                            planet.comp_tc = PcompTscale[i]
+                            planet.comp_r2 = np.corrcoef(timedots[9:],compdots[9:])[0,1]
+                        else:
+                            planet.comp_r2 = np.nan
                         
                 mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
                 mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
+                mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
 
             #timescale for the icelines
             if pars.doIcelines:
@@ -414,8 +427,15 @@ class System(object):
             con2 = False
         #if self.time > 50*cgs.yr:
         #    import pdb; pdb.set_trace()
-
-        jumptf = con1 *con2 #*con3
+        # consider the fit goodness of the planet's composition change, similar with the mass
+        
+        comp_r2L = np.array([abs(p.comp_r2) for p in self.planetL if p.starttime < self.time])
+        if len(comp_r2L) != 0:
+            con3 = comp_r2L.min()>0.95
+        else:
+            con3 = False
+        
+        jumptf = con1 *con2 *con3
 
         djump = {'jumpT':jumpT}
 
@@ -425,7 +445,7 @@ class System(object):
         #reset the planet mass data
         for planet in self.planetL:
             planet.planetMassData = []
-            #planet.compdata = np.array([])
+            planet.compData = []
         
     def system_jump(self, djump):
         """
@@ -957,6 +977,8 @@ class PLANET ():
         self.ncross = 0
         self.planetMassData = [[time, mplanet]]
         self.r2 = np.nan
+        self.compData = [[time,fcomp[0]]]
+        self.comp_r2 = np.nan
 
     def record_cross_sp (self, time, sp, idxcross):
         for k in idxcross:
