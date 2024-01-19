@@ -562,16 +562,18 @@ def advance_planets (system):
                 #
                 #       (for the moment I ignore it... we can discuss)
 
+
                 spk = crossL[k]
                 Mc = userfun.M_critical(spk.eta, spk.St, spk.mcp)
 
                 delmass = np.zeros_like(crossL[0].fcomp)
 
-                #CWO: maybe get rid of the if statement and move this conidtion (Mc<...) to the
-                #user-defined
-
-                #[24.01.05]CWO: perhaps move to user-defined
-                #epsilon = userfun.epsilon(planet.loc,planet.mass,spk)
+                #TBD-later: I dont like the need for an M_critical userfun..
+                #   instead, we can incorporate this into userfun.epsilon_PA
+                #
+                #On the other hand, particles may get stuck in pressure bump   
+                #and fail to accrete and drift. This behavior would be nice to capture
+                #but this requires more thinking..
                 #
                 #TBD-later: in reality particles may be "stuck" in pressure bump
                 #           incorporate in planet object?
