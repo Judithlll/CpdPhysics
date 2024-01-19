@@ -450,8 +450,6 @@ class System(object):
     def system_jump(self, djump):
         """
         execute the system jump
-        
-        TBD: problem!! after 1e6 years, the planets migration timescale is too small, affecting the jump execution
         """
         jumpT = djump['jumpT']
         
@@ -465,7 +463,9 @@ class System(object):
                 if self.time > planet.starttime:
                     planet.loc -= planet.loc/ self.minTimes.planetsMigration *jumpT
                     planet.mass += planet.mass/ self.minTimes.planetsGrowth *jumpT
-        
+                    sil_comp = planet.fcomp[0]-planet.fcomp[0]/self.minTimes.planetsComp *jumpT
+                    planet.fcomp -=[sil_comp, 1-sil_comp]
+
         if pars.doIcelines:
             for iceline in self.icelineL:
                 iceline.loc -= iceline.loc/self.minTimes.icelineloca *jumpT
