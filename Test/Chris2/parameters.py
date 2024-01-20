@@ -17,7 +17,7 @@ dtimesteppars = {'deltaTfraction': 0.2,
 dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
 gasmodel = 'prescribed'
 
-tmax = 3e2 *cgs.yr
+tmax = 3e3 *cgs.yr
 
 doPlanets = True
 doIcelines = True

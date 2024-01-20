@@ -60,7 +60,6 @@ while system.time<pars.tmax:
         
         system.new_timestep(pars.tmax, afterjump = True, **pars.dtimesteppars)
         system.reset_after_jump()
-        import pdb;pdb.set_trace()
     else:
         #1)update the system time 
         #2)get the new deltaT 

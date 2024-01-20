@@ -354,7 +354,7 @@ class System(object):
                             #because the first several points are very disturbing
                             planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
                             
-                            #maximum allowed jump time 
+                            #jump time is limited by uncertainty in the fit
                             denom = (planet.dmdt_err - planet.dmdt*thre_jump_max)
                             if denom<0:
                                 planet.max_jumpT = np.inf
@@ -370,7 +370,7 @@ class System(object):
                         #TBD: do the composition 'crude' for the moment, assuming the comp of added mass during the jump is the same as the nearest particles
                         if False:
                             if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
-                                planet.compData .append([self.time, planet.fcomp[0]])
+                                planet.compData.append([self.time, planet.fcomp[0]])
                             
                             if len(planet.compData) >10:
                                 timedots, compdots = np.array(planet.compData).T
@@ -444,7 +444,7 @@ class System(object):
             return False, {}
 
         #jump time is given by the min evol. timescales, excluding those of the particles
-        jumpT = jumpfrac*min(self.minTimes.tminarr[1:])
+        max_tevol = jumpfrac*min(self.minTimes.tminarr[1:])
         
         #(cannot jump over "important events" -> Milestones) 
         #adjust jumpT according to milestones
@@ -462,14 +462,17 @@ class System(object):
         #if len(reached_ms) != 0:
         #   jumpT = timepoints[reached_ms[0]] - self.time
         
-        #jumpT cannot be larger than the max_jumpT
+        #jumpT cannot exceed max_jumpT
+        #NOTE: planet may not exist... hence the for/if construct
         max_tpl = np.inf
         for planet in self.planetL:
             if self.time>planet.starttime:
                 max_tpl = min(max_tpl, planet.max_jumpT)
-                #print('jumpT exceeds the max jumpT')
 
-        jumpT = min(jumpT, max_tms, max_tpl)
+
+        #the jump time is the minimum
+        tjumparr = np.array([max_tevol, max_tms, max_tpl])
+        jumpT = min(tjumparr)
 
         #evol.timescales >> drift timescales && ensure significant jump
         con0 = self.ntime >self.njumptime +100 
@@ -495,9 +498,10 @@ class System(object):
         else:
             jumptf = con0 & con1
 
-        djump = {'jumpT':jumpT}
-        if jumptf:
-            print(jumpT, con1)
+        djump = {'jumpT':jumpT, 'tjumparr':tjumparr}
+        if jumptf: 
+            import pdb; pdb.set_trace()
+            #print(jumpT, con1)
 
         return jumptf, djump
 
@@ -507,7 +511,7 @@ class System(object):
             planet.planetMassData = []
             planet.relp_mass = np.nan
             planet.max_jumpT = np.nan
-            planet.compData = []
+            #planet.compData = []
             #planet.relp_comp = np.nan
         
     def system_jump(self, djump):
@@ -516,7 +520,6 @@ class System(object):
         """
         jumpT = djump['jumpT']
         
-        print(jumpT/cgs.yr)
         # parameters needs to be upda`ted:
         # planets: location and mass and composition(this maybe very complex)
         # icelines :location
@@ -542,7 +545,7 @@ class System(object):
         self.njump +=1
         self.njumptime = self.ntime
 
-        print(f'[system.jump]:at {self.time:8.2e} jumped by {jumpT:8.2e}')
+        print(f'[core.system_jump]:at {self.time/cgs.yr:8.2e} yr jumped by {jumpT/cgs.yr:8.2e} yr')
 
         #"erase" previous planet.crossL OR record the jump time to planet.
         #such that new fit for dm/dt starts w/ N=0 particles
@@ -1051,7 +1054,7 @@ class PLANET ():
         self.ncross = 0
         self.planetMassData = [[time, mplanet]]
         self.relp_mass = np.inf
-        self.compData = [[time,fcomp[0]]]
+        #self.compData = [[time,fcomp[0]]]
         self.relp_comp = np.nan
         self.max_jumpT = 0.0
 
