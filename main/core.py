@@ -12,7 +12,7 @@ from gas import GAS
 import scipy.optimize as sciop
 import scipy.integrate as sciint
 import time
-from scipy.optimize import curve_fit
+import scipy.optimize as sciop
 import physics
 import userfun
 
@@ -318,12 +318,19 @@ class System(object):
                             def mass_fit(logt,p,b):
                                 logm = p*logt+b
                                 return logm 
+                            def jac_mass_fit (logt,p,b):
+                                jac = np.array([logt, np.ones_like(logt)]).T
+                                return jac
 
                             #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
 
-                            relp = np.inf
+                            relp = np.inf #relative error/uncertainty in pwl index
+                            popt = np.array([1,1]) #initial guess (p0)
                             while Nfit<=Npts:
-                                popt, pcov = curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
+                                ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
+                                #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
+                                popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
+
                                 #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
                                 #print(line)
                                 if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
@@ -499,9 +506,7 @@ class System(object):
             jumptf = con0 & con1
 
         djump = {'jumpT':jumpT, 'tjumparr':tjumparr}
-        if jumptf: 
-            import pdb; pdb.set_trace()
-            #print(jumpT, con1)
+        #if jumptf: import pdb; pdb.set_trace()
 
         return jumptf, djump
 
