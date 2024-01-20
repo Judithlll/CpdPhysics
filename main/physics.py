@@ -40,6 +40,8 @@ def c_s (temp, mu):
 def Omega_K(loc,mcp):
     
     OK = np.sqrt(cgs.gC*mcp/loc**3)
+    if np.any(loc<0):
+        import pdb; pdb.set_trace()
     return OK
 
 
