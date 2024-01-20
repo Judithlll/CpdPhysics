@@ -3,6 +3,7 @@ import numpy as np
 import cgs
 import ode 
 from scipy.integrate import quad
+import physics
 
 alpha = 1e-4
 rinn = 5.89*cgs.RJ  #the location of Io
@@ -80,17 +81,6 @@ def v_K(r,t):
     v=np.sqrt(cgs.gC*Mcp_t(t)/r)
     return v
 
-# def v_K(disk):
-#     OmegaK = disk.OmegaK
-#     v=np.sqrt(cgs.gC*Mcp/loc)
-#     return v
-
-# def Omega_K(disk):
-#     mcp=disk.mcp
-#     loc=disk.loc
-    
-#     return np.sqrt(cgs.gC*mcp/loc**3)
-
 def Sigma_g (r,cs,OmegaK,dotMg):
     """
     get the surface density at loc and time 
@@ -99,16 +89,6 @@ def Sigma_g (r,cs,OmegaK,dotMg):
     return Sg
 
 
-# def Sigma_g(r,t):
-#     """
-#     get the surface density at loc and time 
-#     """
-#     Sg=dot_Mg(t)/2/np.pi/rout*r**(3/2)/(alpha*c_s(r,t)**2/Omega_K(r,t))*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
-#     return Sg
-
-# def T_d(r,t):
-#     Td=(3*cgs.gC*Mcp_t(t)*dot_Mg(t)/8/np.pi/cgs.sigmaSB/r**3)**(1/4)
-#     return Td
 
 def MeanMolecularWeight():
     return 2.34
@@ -135,11 +115,9 @@ def key_disk_properties (rad, t, dold=None):
     
     #add a judgement if r is an array, because there is a comparison
     Mcp = Mcp_t(t)
-    OmegaK=Omega_K(r,t,Mcp)
+    OmegaK = physics.Omega_K(r,Mcp)
     dotMg = dot_Mg(t)
 
-    nmax = 100
-    nn = 1
 
     #active indices
     #I dont think this does a lot...
@@ -149,29 +127,30 @@ def key_disk_properties (rad, t, dold=None):
     if dold is not None and len(r)==len(dold['temp']):
         Td = dold['temp']
         sigG = dold['sigmaG']
+        oldstate = True
     else:
         Td = 10*np.ones_like(r)
         sigG = np.ones_like(r)
+        oldstate = False
 
     #prefactor in temperature expression (except g)
     Tpre = (3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/r**3)**(1/4)
+
+    nmax = 100
+    nn = 1
+    mu = np.ones_like(Td) *MeanMolecularWeight()
 
     while nn<nmax:
         if np.min(Td)<0:
             print('Something wrong! T=', Ti, '<0')
             break
 
-        #kapa=np.zeros_like(r)
-
-        #kapa[Ti<160]=450*(Ti[Ti<160]/160)**2*rgg
-        #kapa[Ti>=160]=450*rgg
-
         Ti = Td[ii]
 
         kapa = np.where(Ti<160, 450*(Ti/160)**2, 450) *rgg  
 
         #this could be combined and simplified...
-        cs = c_s(Ti)
+        cs = physics.c_s(Ti, mu[ii])
         sigG[ii] = Sigma_g(r[ii],cs,OmegaK[ii],dotMg)
 
         tau = kapa*sigG[ii]
@@ -180,9 +159,6 @@ def key_disk_properties (rad, t, dold=None):
         Td[ii] = Tpre[ii] *g #Shibaike 2019 equation (5)
 
         diff = abs(Ti/Td[ii]-1)
-        #Ti = Td
-        # print(n,'diff_Td=',diff.max())
-        #if diff.max()<1e-4: break
 
         #this inserts more False if condition is met
         ii[ii==True] = diff>1e-4
@@ -193,7 +169,6 @@ def key_disk_properties (rad, t, dold=None):
 
         nn += 1
 
-    mu = MeanMolecularWeight()*np.ones_like(sigG)
 
     if returnfloat:
         return sigG[0],Td[0],mu[0]
