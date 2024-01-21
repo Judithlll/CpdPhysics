@@ -353,13 +353,15 @@ class System(object):
                             PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
                             #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
                             
-                            #get the standard error of time(w/o log)
-                            t_sig = np.std(np.exp(timedots))
-                            #t_sig = 1/len(timedots) *np.sum([(t - np.mean())])
-                                
-                            #for now use r2 to measure whether the fit is good enough
-                            #because the first several points are very disturbing
-                            planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
+                            #TBD: remove if we don't use this
+                            if False:
+                                #get the standard error of time(w/o log)
+                                t_sig = np.std(np.exp(timedots))
+                                #t_sig = 1/len(timedots) *np.sum([(t - np.mean())])
+                                    
+                                #for now use r2 to measure whether the fit is good enough
+                                #because the first several points are very disturbing
+                                planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
                             
                             #jump time is limited by uncertainty in the fit
                             denom = (planet.dmdt_err - planet.dmdt*thre_jump_max)
@@ -478,6 +480,8 @@ class System(object):
 
 
         #the jump time is the minimum
+        #[24.01.21]I wrote this a bit more clearly...
+        tjumpkeys = ['system-evol', 'milestones', 'planet-growth-fit']
         tjumparr = np.array([max_tevol, max_tms, max_tpl])
         jumpT = min(tjumparr)
 
@@ -505,16 +509,17 @@ class System(object):
         else:
             jumptf = con0 & con1
 
-        djump = {'jumpT':jumpT, 'tjumparr':tjumparr}
+        djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
         #if jumptf: import pdb; pdb.set_trace()
 
         return jumptf, djump
+
 
     def reset_after_jump(self):
         #reset the planet mass data
         for planet in self.planetL:
             planet.planetMassData = []
-            planet.relp_mass = np.nan
+            planet.relp_mass = np.nan #Chris: never assign "nan" please
             planet.max_jumpT = np.nan
             #planet.compData = []
             #planet.relp_comp = np.nan
@@ -550,7 +555,15 @@ class System(object):
         self.njump +=1
         self.njumptime = self.ntime
 
+        im = djump['tjumparr'].argmin()
+
+        nameL = [d['name'] for d in self.mintimeL]
+        tminarr = np.array([d['tmin'] for d in self.mintimeL])
+        imin = 1 +tminarr[1:].argmin() #minimum evolution
+
         print(f'[core.system_jump]:at {self.time/cgs.yr:8.2e} yr jumped by {jumpT/cgs.yr:8.2e} yr')
+        print(f'[core.system_jump]:jump time limited by: {djump["tjumpkeys"][im]}')
+        print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:8.2e} yr')
 
         #"erase" previous planet.crossL OR record the jump time to planet.
         #such that new fit for dm/dt starts w/ N=0 particles

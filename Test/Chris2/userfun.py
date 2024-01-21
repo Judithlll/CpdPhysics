@@ -98,9 +98,15 @@ def do_stuff (system, init=False):
         #data object should be available...
         
         tminarr = np.array([ddum['tmin'] for ddum in system.mintimeL])
+        isort = tminarr.argsort()
 
-        sfmt = '{:7d} {:5d} {:10.2e} {:3d} {:10.2e}'
-        line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tminarr.argmin(), system.time/cgs.yr)
+        if len(tminarr)>1:
+            tevol = tminarr[isort[1]]
+        else:
+            tevol = -1
+
+        sfmt = '{:7d} {:5d} {:10.2e} {:10.2e} {:10.2e}'
+        line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tevol/cgs.yr, system.time/cgs.yr)
         print(line)
 
 
