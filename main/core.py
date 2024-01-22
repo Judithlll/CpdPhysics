@@ -12,7 +12,7 @@ from gas import GAS
 import scipy.optimize as sciop
 import scipy.integrate as sciint
 import time
-from scipy.optimize import curve_fit
+import scipy.optimize as sciop
 import physics
 import userfun
 
@@ -318,12 +318,19 @@ class System(object):
                             def mass_fit(logt,p,b):
                                 logm = p*logt+b
                                 return logm 
+                            def jac_mass_fit (logt,p,b):
+                                jac = np.array([logt, np.ones_like(logt)]).T
+                                return jac
 
                             #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
 
-                            relp = np.inf
+                            relp = np.inf #relative error/uncertainty in pwl index
+                            popt = np.array([1,1]) #initial guess (p0)
                             while Nfit<=Npts:
-                                popt, pcov = curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
+                                ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
+                                #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
+                                popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
+
                                 #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
                                 #print(line)
                                 if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
@@ -346,15 +353,17 @@ class System(object):
                             PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
                             #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
                             
-                            #get the standard error of time(w/o log)
-                            t_sig = np.std(np.exp(timedots))
-                            #t_sig = 1/len(timedots) *np.sum([(t - np.mean())])
-                                
-                            #for now use r2 to measure whether the fit is good enough
-                            #because the first several points are very disturbing
-                            planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
+                            #TBD: remove if we don't use this
+                            if False:
+                                #get the standard error of time(w/o log)
+                                t_sig = np.std(np.exp(timedots))
+                                #t_sig = 1/len(timedots) *np.sum([(t - np.mean())])
+                                    
+                                #for now use r2 to measure whether the fit is good enough
+                                #because the first several points are very disturbing
+                                planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
                             
-                            #maximum allowed jump time 
+                            #jump time is limited by uncertainty in the fit
                             denom = (planet.dmdt_err - planet.dmdt*thre_jump_max)
                             if denom<0:
                                 planet.max_jumpT = np.inf
@@ -370,7 +379,7 @@ class System(object):
                         #TBD: do the composition 'crude' for the moment, assuming the comp of added mass during the jump is the same as the nearest particles
                         if False:
                             if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
-                                planet.compData .append([self.time, planet.fcomp[0]])
+                                planet.compData.append([self.time, planet.fcomp[0]])
                             
                             if len(planet.compData) >10:
                                 timedots, compdots = np.array(planet.compData).T
@@ -444,7 +453,7 @@ class System(object):
             return False, {}
 
         #jump time is given by the min evol. timescales, excluding those of the particles
-        jumpT = jumpfrac*min(self.minTimes.tminarr[1:])
+        max_tevol = jumpfrac*min(self.minTimes.tminarr[1:])
         
         #(cannot jump over "important events" -> Milestones) 
         #adjust jumpT according to milestones
@@ -462,14 +471,19 @@ class System(object):
         #if len(reached_ms) != 0:
         #   jumpT = timepoints[reached_ms[0]] - self.time
         
-        #jumpT cannot be larger than the max_jumpT
+        #jumpT cannot exceed max_jumpT
+        #NOTE: planet may not exist... hence the for/if construct
         max_tpl = np.inf
         for planet in self.planetL:
             if self.time>planet.starttime:
                 max_tpl = min(max_tpl, planet.max_jumpT)
-                #print('jumpT exceeds the max jumpT')
 
-        jumpT = min(jumpT, max_tms, max_tpl)
+
+        #the jump time is the minimum
+        #[24.01.21]I wrote this a bit more clearly...
+        tjumpkeys = ['system-evol', 'milestones', 'planet-growth-fit']
+        tjumparr = np.array([max_tevol, max_tms, max_tpl])
+        jumpT = min(tjumparr)
 
         #evol.timescales >> drift timescales && ensure significant jump
         con0 = self.ntime >self.njumptime +100 
@@ -495,17 +509,19 @@ class System(object):
         else:
             jumptf = con0 & con1
 
-        djump = {'jumpT':jumpT}
+        djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
+        #if jumptf: import pdb; pdb.set_trace()
 
         return jumptf, djump
+
 
     def reset_after_jump(self):
         #reset the planet mass data
         for planet in self.planetL:
             planet.planetMassData = []
-            planet.relp_mass = np.nan
+            planet.relp_mass = np.nan #Chris: never assign "nan" please
             planet.max_jumpT = np.nan
-            planet.compData = []
+            #planet.compData = []
             #planet.relp_comp = np.nan
         
     def system_jump(self, djump):
@@ -539,7 +555,7 @@ class System(object):
         self.njump +=1
         self.njumptime = self.ntime
 
-        print(f'[system.jump]:at {self.time/cgs.yr:5.2f} jumped by {jumpT/cgs.yr:5.2f}')
+        print(f'[system.jump]:at {self.time:8.2e} jumped by {jumpT:8.2e}')
 
         #"erase" previous planet.crossL OR record the jump time to planet.
         #such that new fit for dm/dt starts w/ N=0 particles
@@ -1048,7 +1064,7 @@ class PLANET ():
         self.ncross = 0
         self.planetMassData = [[time, mplanet]]
         self.relp_mass = np.inf
-        self.compData = [[time,fcomp[0]]]
+        #self.compData = [[time,fcomp[0]]]
         self.relp_comp = np.nan
         self.max_jumpT = 0.0
 
