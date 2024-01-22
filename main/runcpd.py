@@ -72,8 +72,9 @@ while system.time<pars.tmax:
 
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
-
-    userfun.do_stuff(system)
+    
+    
+    userfun.do_stuff(system, doJump = doJump)
 
 
     end = time.time()

@@ -89,15 +89,15 @@ def init_compos (material):
 
     return dcompos
 
-def do_stuff (sys, init=False):
+def do_stuff (sys, init=False, doJump =False):
     #data class is available...
     system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()
     if init:
-        data.data_process(system)
+        data.data_process(system, doJump = doJump)
         #initialize your data class
     else:
-        data.data_process(system)        
+        data.data_process(system, doJump = doJump)        
         #data object should be available...
         tminarr = system.minTimes.tminarr        
         sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
@@ -139,7 +139,7 @@ class Data(object):
         self.planetsmass = {}
         self.planetsloc = {}
         self.icelinesloc = {}
-        self.jumpstuff = {}
+        self.jumpstuff = []
         
     def update_cumulative_change(self,daction):
         if 'remove' in daction.keys():
@@ -212,7 +212,8 @@ class Data(object):
         
         #if jump is done, then shore something about jump
         if doJump:
-            stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumpT': system.jumpT, }            
+            stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumpT': system.jumpT, 'jump_limitation':system.jump_limitation}
+            self.jumpstuff.append(stuff)
 
     def get_plot_list(self):
         self.radL=np.array(list(self.radD.values()))
@@ -381,8 +382,20 @@ class Data(object):
         plt.plot(self.timeL[:-1],np.diff(self.timeL))
         plt.savefig('Delta_t.jpg')
         plt.close()
+    
+    def plot_planet_migration(self):
+        plt.figure()
+        plt.title('PLanet migration')
+        plt.xlabel('Planets location [$R_J$]' )
+        plt.ylabel('System time [yr]')
+        loclist = np.array(list(self.planetsloc.values()))
+        time = np.array(list(self.planetsloc.keys()))
+        for i,loc in enumerate(loclist):
+            plt.plot(loc, time, label = 'planet'+str(i+1))
 
-
+        plt.legend()
+        plt.savefig('planet_migration.jpg')
+        plt.close()
 
 def make_animation(path='pebbles&planets'):
     save_name_gif =  "Cpd.gif"

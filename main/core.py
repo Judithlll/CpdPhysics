@@ -353,16 +353,6 @@ class System(object):
                             PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
                             #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
                             
-                            #TBD: remove if we don't use this
-                            if False:
-                                #get the standard error of time(w/o log)
-                                t_sig = np.std(np.exp(timedots))
-                                #t_sig = 1/len(timedots) *np.sum([(t - np.mean())])
-                                    
-                                #for now use r2 to measure whether the fit is good enough
-                                #because the first several points are very disturbing
-                                planet.r2 = np.corrcoef(timedots[5:],massdots[5:])[0,1]
-                            
                             #jump time is limited by uncertainty in the fit
                             denom = (planet.dmdt_err - planet.dmdt*thre_jump_max)
                             if denom<0:
@@ -519,8 +509,8 @@ class System(object):
         #reset the planet mass data
         for planet in self.planetL:
             planet.planetMassData = []
-            planet.relp_mass = np.nan #Chris: never assign "nan" please
-            planet.max_jumpT = np.nan
+            planet.relp_mass = np.inf #Chris: never assign "nan" please
+            planet.max_jumpT = 0.0
             #planet.compData = []
             #planet.relp_comp = np.nan
         
@@ -528,7 +518,7 @@ class System(object):
         """
         execute the system jump
         """
-        jumpT = djump['jumpT']
+        self.jumpT = djump['jumpT']
         
         # parameters needs to be upda`ted:
         # planets: location and mass and composition(this maybe very complex)
@@ -538,25 +528,38 @@ class System(object):
             for planet in self.planetL:
                 if self.time > planet.starttime:
 
-                    planet.loc += planet.dlocdt *jumpT
+                    planet.loc += planet.dlocdt *self.jumpT
                     #planet.loc -= planet.loc/ self.minTimes.planetsMigration *jumpT
                     #planet.mass += planet.mass/ self.minTimes.planetsGrowth *jumpT
-                    planet.mass += planet.dmdt *jumpT
+                    planet.mass += planet.dmdt *self.jumpT
 
                     #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
                     #       planet.dmdt = [dmdt comp 1, dmdt comp 2, ...]
-                    sil_comp = planet.fcomp[0]-planet.fcomp[0]/self.minTimes.planetsComp *jumpT
+                    sil_comp = planet.fcomp[0]-planet.fcomp[0]/self.minTimes.planetsComp *self.jumpT
                     planet.fcomp -=[sil_comp, 1-sil_comp]
 
         if pars.doIcelines:
             for iceline in self.icelineL:
-                iceline.loc -= iceline.loc/self.minTimes.icelineloca *jumpT
+                iceline.loc -= iceline.loc/self.minTimes.icelineloca *self.jumpT
         
         self.njump +=1
         self.njumptime = self.ntime
 
-        print(f'[system.jump]:at {self.time:8.2e} jumped by {jumpT:8.2e}')
+        im = djump['tjumparr'].argmin()
+        #maybe interesting to store and plot which factor limits the jumpT
+        self.jump_limitation = djump["tjumpkeys"][im]
 
+        nameL = [d['name'] for d in self.mintimeL]
+        tminarr = np.array([d['tmin'] for d in self.mintimeL])
+        imin = 1 +tminarr[1:].argmin() #minimum evolution
+
+        print(f'[system.jump]:at {self.time/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
+        print(f'[core.system_jump]:jump time limited by: {self.jump_limitation}')
+        print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:8.2e} yr')
+        
+        if self.planetL[0].loc <dp.rinn:
+            print('[core.system.jump]: the first planet migrates across the inner edge')
+            import pdb;pdb.set_trace()
         #"erase" previous planet.crossL OR record the jump time to planet.
         #such that new fit for dm/dt starts w/ N=0 particles
 
