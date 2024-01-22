@@ -58,7 +58,7 @@ while system.time<pars.tmax:
         system.time += djump['jumpT']
         #system.deltaT = system.jumpT
         
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         system.new_timestep(pars.tmax, afterjump = True, **pars.dtimesteppars)
         system.reset_after_jump()
     else:

@@ -212,7 +212,7 @@ class Data(object):
         
         #if jump is done, then shore something about jump
         if doJump:
-            stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumpT': system.jumpT, 'jump_limitation':system.jump_limitation}
+            stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumptime':system.time-system.jumpT, 'jumpT': system.jumpT, 'jump_limitation':system.jump_limitation}
             self.jumpstuff.append(stuff)
 
     def get_plot_list(self):
@@ -388,10 +388,12 @@ class Data(object):
         plt.title('PLanet migration')
         plt.xlabel('Planets location [$R_J$]' )
         plt.ylabel('System time [yr]')
-        loclist = np.array(list(self.planetsloc.values()))
+        loclist = np.array(list(self.planetsloc.values())).T
         time = np.array(list(self.planetsloc.keys()))
         for i,loc in enumerate(loclist):
-            plt.plot(loc, time, label = 'planet'+str(i+1))
+            plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'planet'+str(i+1))
+        for jump in self.jumpstuff:
+            plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.5)
 
         plt.legend()
         plt.savefig('planet_migration.jpg')
