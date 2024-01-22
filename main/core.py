@@ -527,10 +527,12 @@ class System(object):
         if pars.doPlanets:
             for planet in self.planetL:
                 if self.time > planet.starttime:
-
+                    
                     planet.loc += planet.dlocdt *self.jumpT
-                    #planet.loc -= planet.loc/ self.minTimes.planetsMigration *jumpT
-                    #planet.mass += planet.mass/ self.minTimes.planetsGrowth *jumpT
+                    # if planet migration into the cavity, then stop
+                    if planet.loc < dp.rinn:
+                        planet.loc = dp.rinn
+                        
                     planet.mass += planet.dmdt *self.jumpT
 
                     #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
