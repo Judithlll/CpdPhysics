@@ -139,6 +139,7 @@ class Data(object):
         self.planetsmass = {}
         self.planetsloc = {}
         self.icelinesloc = {}
+        self.jumpstuff = {}
         
     def update_cumulative_change(self,daction):
         if 'remove' in daction.keys():
@@ -146,7 +147,7 @@ class Data(object):
         if 'add' in daction.keys():
             self.cumulative_change['add']+=daction['add']
     
-    def data_process(self, system):
+    def data_process(self, system, doJump = False):
         """
         time: the system.time 
         Y2d: the particles properties' list
@@ -208,7 +209,10 @@ class Data(object):
         #store icelines' data
         if pars.doIcelines:
             self.icelinesloc.setdefault(system.time, [iceline.loc for iceline in system.icelineL])
-
+        
+        #if jump is done, then shore something about jump
+        if doJump:
+            stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumpT': system.jumpT, }            
 
     def get_plot_list(self):
         self.radL=np.array(list(self.radD.values()))

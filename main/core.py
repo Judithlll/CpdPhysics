@@ -496,8 +496,6 @@ class System(object):
             jumptf = con0 & con1
 
         djump = {'jumpT':jumpT}
-        if jumptf:
-            print(jumpT, con1)
 
         return jumptf, djump
 
@@ -516,7 +514,6 @@ class System(object):
         """
         jumpT = djump['jumpT']
         
-        print(jumpT/cgs.yr)
         # parameters needs to be upda`ted:
         # planets: location and mass and composition(this maybe very complex)
         # icelines :location
@@ -542,7 +539,7 @@ class System(object):
         self.njump +=1
         self.njumptime = self.ntime
 
-        print(f'[system.jump]:at {self.time:8.2e} jumped by {jumpT:8.2e}')
+        print(f'[system.jump]:at {self.time/cgs.yr:5.2f} jumped by {jumpT/cgs.yr:5.2f}')
 
         #"erase" previous planet.crossL OR record the jump time to planet.
         #such that new fit for dm/dt starts w/ N=0 particles
