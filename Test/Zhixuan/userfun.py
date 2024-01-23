@@ -398,6 +398,18 @@ class Data(object):
         plt.legend()
         plt.savefig('planet_migration.jpg')
         plt.close()
+    
+    def plot_jumpT(self):
+        plt.figure()
+        plt.title('Jump time')
+        plt.xlabel('System time [yr]')
+        plt.ylabel('Jump time [yr]')
+        jumpTlist = [f['jumpT']/cgs.yr for f in self.jumpstuff]
+        timelist = [f['jumptime']/cgs.yr for f in self.jumpstuff]
+        plt.plot(timelist, jumpTlist)
+        plt.scatter(timelist, jumpTlist)
+        plt.savefig('jumpT variation')
+        plt.close()
 
 def make_animation(path='pebbles&planets'):
     save_name_gif =  "Cpd.gif"

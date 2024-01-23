@@ -533,12 +533,13 @@ class System(object):
                     if planet.loc < dp.rinn:
                         planet.loc = dp.rinn
                         
-                    planet.mass += planet.dmdt *self.jumpT
+                    jumpmass = planet.dmdt* self.jumpT
 
                     #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
                     #       planet.dmdt = [dmdt comp 1, dmdt comp 2, ...]
-                    sil_comp = planet.fcomp[0]-planet.fcomp[0]/self.minTimes.planetsComp *self.jumpT
-                    planet.fcomp -=[sil_comp, 1-sil_comp]
+                    paridx = np.argmin(abs(self.particles.locL - planet.loc))
+                    planet.fcomp = (self.particles.fcomp[paridx]*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
+                    planet.mass += jumpmass
 
         if pars.doIcelines:
             for iceline in self.icelineL:
