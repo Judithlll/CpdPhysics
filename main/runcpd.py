@@ -11,6 +11,7 @@ import cgs
 import userfun
 import time 
 import functions as f
+import fileio
 
 start=time.time()
 argL = sys.argv #maybe use later
@@ -58,7 +59,7 @@ while system.time<pars.tmax:
         system.time += djump['jumpT']
         #system.deltaT = system.jumpT
         
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         system.new_timestep(pars.tmax, afterjump = True, **pars.dtimesteppars)
         system.reset_after_jump()
     else:
@@ -73,12 +74,14 @@ while system.time<pars.tmax:
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
     
-    
     userfun.do_stuff(system, doJump = doJump)
 
 
     end = time.time()
     runTime = end-start
+
+#store the finally state of system, not sure if this is userful
+#fileio.store_system(system)
 
 print('[runcpd]:finished')
 
