@@ -81,7 +81,7 @@ while system.time<pars.tmax:
     runTime = end-start
 
 #store the finally state of system, not sure if this is userful
-#fileio.store_system(system)
+fileio.store_system(userfun.data)
 
 print('[runcpd]:finished')
 

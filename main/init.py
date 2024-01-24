@@ -180,7 +180,7 @@ def sim_init (calldir, dsystempars={},*args):
     #add the planets
     if pars.doPlanets is None:
         pars.doPLanets = False
-    elif pars.doPlanets:
+    elif pars.doPlanets: #from file?
         #TBD: perhaps better to work with dictionaries
         tarr, radarr, mplanarr, fcomparr = userfun.init_planets ()
 

@@ -359,7 +359,7 @@ class System(object):
                                 planet.max_jumpT = np.inf
                             else:
                                 planet.max_jumpT = thre_jump_max*planet.mass /denom
-
+                            #TBD: other conditions (migrate into icelines or no gas region...)
                         else:
                             planet.dmdt = 0
                             planet.relp_mass = np.inf 
