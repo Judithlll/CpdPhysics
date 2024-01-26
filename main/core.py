@@ -500,7 +500,6 @@ class System(object):
             jumptf = con0 & con1
 
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
-        #if jumptf: import pdb; pdb.set_trace()
 
         return jumptf, djump
 
@@ -520,7 +519,7 @@ class System(object):
         """
         self.jumpT = djump['jumpT']
         
-        # parameters needs to be upda`ted:
+        # parameters needs to be updated:
         # planets: location and mass and composition(this maybe very complex)
         # icelines :location
         

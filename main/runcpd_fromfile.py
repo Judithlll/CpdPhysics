@@ -13,6 +13,31 @@ import time
 import functions as f
 import fileio
 
+def find_pickles(path):
+    files = os.listdir(path)
+    pickles = []
+    for file in files:
+        if '.pickle' in file:
+            pickles.append(file)
+    return pickles
+
+#read data from files
+pickle_path = './pickles/'
+pickles = find_pickles(pickle_path)
+classes = {}
+for pcs in pickles:
+    classes[pcs.rsplit('.',1)[0]] = fileio.load_class(pickle_path, pcs)
+
+#put the classes into sim_init
+#maybe: 
+#   sim_init(.., from_file=True)
+
+
+import pdb;pdb.set_trace()
+
+
+
+
 start=time.time()
 argL = sys.argv #maybe use later
 calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
@@ -79,14 +104,3 @@ while system.time<pars.tmax:
 
     end = time.time()
     runTime = end-start
-
-#store the finally state of system, not sure if this is userful
-fileio.store_class(system.particles, 'particles')
-fileio.store_class(system.gas, 'gas')
-for i in range(system.nplanet):
-    fileio.store_class(system.planetL[i], 'planet'+str(i+1))
-
-
-print('[runcpd]:finished')
-
-

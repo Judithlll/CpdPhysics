@@ -1,15 +1,15 @@
 import pickle
 
-def store_system(system):
-    with open('system.pickle','wb') as f:
-        pickle.dump(system, f)
-    print('system class has been stored into system.pickle')
+def store_class(class_name, filename):
+    with open('./pickles/'+filename+'.pickle','wb') as f:
+        pickle.dump(class_name, f)
+    print(filename+' class has been stored into system.pickle')
 
 
-def load_system(path):
-    with open(path+'system.pickle','rb') as f:
-        system = pickle.load(f)
-    return system
+def load_class(path,filename):
+    with open(path+filename,'rb') as f:
+        class_object = pickle.load(f)
+    return class_object
 
 ## SAVE the current state (-> pickle) --> run1234.pickle
 
