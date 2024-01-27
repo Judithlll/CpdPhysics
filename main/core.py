@@ -26,6 +26,12 @@ class COPY (object):
         for attr in attributeL:
             setattr(self, attr, copy.deepcopy(getattr(state,attr)))
 
+class store_system(object):
+    def __init__(self, SystemPd):
+        for k, v in SystemPd.items() :
+            setattr(self, k, v)
+
+
 class Mintimes (object):
     """
     store the minimam times
@@ -82,19 +88,10 @@ class System(object):
         self.njumptime = 0
 
         self.milestones = {}
-        #d = self.milestones
-        #d[0] = 'initialization'
-        #d[time1] = 'insert planet'
-        #d[time2] = 'insert planet'
-        #d[tmax] = 'final time'
-        #
-        #
-        #timeM = d.keys()
-        #eventsM = d.values()
-        #for k,v in d.items(): if v=='event'
+
 
     
-    def init_particles(self, dparticleprops={}):
+    def init_particles(self, dparticleprops={}, fromfile=False, particles_fromfile=None):
         """
         because we need to consider iceline, so separatly 
         initiallize the particles, for now just water iceline is considered  
@@ -103,7 +100,10 @@ class System(object):
         [23.12.30]CWO: instead of forwarding diskmass, I supply self.gas to the superparticle class
         [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
         """
-        self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
+        if fromfile:
+            self.particles = particles_fromfile
+        else: 
+            self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
 
         
         self.mtot1 = self.particles.mtot1
@@ -276,15 +276,12 @@ class System(object):
             # import pdb; pdb.set_trace()
         
        
-        #Mass influx timescale
-        if self.time > 0:  # better to get rid of the first step one, but the effect is tiny
-            #[24.01.07]CWO: in cases there is no influx, this should evaluate the infinity...
-            #InfluxTscale = (1e-100 + np.float64(self.Minflux_step)) / abs(self.oldstate.Minflux_step - self.Minflux_step) *self.deltaT
-            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / abs(self.oldstate.dotMg - self.dotMg) *self.deltaT
-            mintimeL.append({'name': 'Mass_Influx', 'tmin': mdotgTscale})
 
         
         if self.oldstate is not None:   
+            #Mass influx timescale
+            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / abs(self.oldstate.dotMg - self.dotMg) *self.deltaT
+            mintimeL.append({'name': 'Mass_Influx', 'tmin': mdotgTscale})
             #timescale for the planets 
             # (including migration and mass growth)
             

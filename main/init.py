@@ -140,7 +140,7 @@ def load_composdata (calldir, composL):
 
 
 
-def sim_init (calldir, dsystempars={},*args):
+def sim_init (calldir, dsystempars={}, fromfile = False, classesdict={} ,*args):
     """
     The idea is that the system object is defined here
 
@@ -155,6 +155,21 @@ def sim_init (calldir, dsystempars={},*args):
 
     #let's System be initialized this way with keyword parameters... 
     #please don't change it again
+
+    if fromfile:
+        #TBD: somethings need to be know from system properties, like time and jumpT, doJump..., so maybe make a class to store it
+        system = core.System(classesdict['system_store'].time, classesdict['system_store'].rhoPlanet)
+        system.gas = classesdict['gas']
+        system.planetL = [classesdict['planet'+str(i+1)] for i in range(classesdict['system_store'].nplanet)]
+        system.icelineL = [classesdict['iceline'+str(i+1)] for i in range(classesdict['system_store'].niceline)]
+       
+        system.ntime = classesdict['system_store'].ntime
+        system.jumpT = classesdict['system_store'].jumpT
+        system.nplanet = classesdict['system_store'].nplanet
+        system.niceline = classesdict['system_store'].niceline
+        system.milestones = classesdict['system_store'].milestones
+        return system 
+    
     system = core.System(**dsystempars)
 
 

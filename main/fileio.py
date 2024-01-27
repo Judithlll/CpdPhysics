@@ -3,7 +3,7 @@ import pickle
 def store_class(class_name, filename):
     with open('./pickles/'+filename+'.pickle','wb') as f:
         pickle.dump(class_name, f)
-    print(filename+' class has been stored into system.pickle')
+    print('[fileio]: '+filename+' class has been stored into system.pickle')
 
 
 def load_class(path,filename):

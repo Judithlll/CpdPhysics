@@ -31,22 +31,16 @@ for pcs in pickles:
 #put the classes into sim_init
 #maybe: 
 #   sim_init(.., from_file=True)
-
-
-import pdb;pdb.set_trace()
-
-
-
-
+#need to be changed: sim_init, init_particles, 
 start=time.time()
 argL = sys.argv #maybe use later
 calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
 #this initializes the system...
-system, gasL = init.sim_init (calldir, pars.dsystempars)
-system.init_particles(pars.dparticleprops)
+system = init.sim_init (calldir, pars.dsystempars, fromfile = True , classesdict=classes)
+system.init_particles(fromfile= True, particles_fromfile=classes['particles'])
 system.milestones[pars.tmax] = 'Ending_time'
-#initialize userfun's data class
+
 userfun.do_stuff(system, init=True)
 #import pdb; pdb.set_trace()
 #get the initial deltaT
