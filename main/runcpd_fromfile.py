@@ -13,17 +13,16 @@ import time
 import functions as f
 import fileio
 
-def find_pickles(path):
-    files = os.listdir(path)
-    pickles = []
-    for file in files:
-        if '.pickle' in file:
-            pickles.append(file)
-    return pickles
 
 #read data from files
 pickle_path = './pickles/'
-pickles = find_pickles(pickle_path)
+pickles = f.find_pickles(pickle_path)
+#need to judge whether the pickles is complete
+
+completeness = f.check_pickles(pickles)
+if not completeness:
+    print('[runcpd_fromfile]: the pickles file is not complete' )
+    sys.exit()
 classes = {}
 for pcs in pickles:
     classes[pcs.rsplit('.',1)[0]] = fileio.load_class(pickle_path, pcs)
@@ -98,3 +97,19 @@ while system.time<pars.tmax:
 
     end = time.time()
     runTime = end-start
+
+#store  finally state of system, not sure if this is userful
+fileio.store_class(system.particles, 'particles')
+fileio.store_class(system.gas, 'gas')
+for i in range(system.nplanet):
+    fileio.store_class(system.planetL[i], 'planet'+str(i+1))
+
+for i in range(system.niceline):
+    fileio.store_class(system.icelineL[i], 'iceline'+str(i+1))
+
+#put some necessary properties into store_systemclass and store it
+nece_pd = {'time':system.time, 'jumpT': system.jumpT, 'ntime':system.ntime, 'rhoPlanet':system.rhoPlanet, 'nplanet': system.nplanet, 'niceline':system.niceline, 'milestones':system.milestones}
+
+system_store = core.store_system(nece_pd)
+fileio.store_class(system_store, 'system_store')
+
