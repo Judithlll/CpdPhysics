@@ -91,15 +91,15 @@ def init_compos (material):
 
     return dcompos
 
-def do_stuff (sys, init=False, doJump =False):
+def do_stuff (sys, init=False):
     #data class is available...
     system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()
     if init:
-        data.data_process(system, doJump = doJump)
+        data.data_process(system)
         #initialize your data class
     else:
-        data.data_process(system, doJump = doJump)        
+        data.data_process(system)        
         #data object should be available...
         tminarr = system.minTimes.tminarr        
         sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
@@ -149,7 +149,7 @@ class Data(object):
         if 'add' in daction.keys():
             self.cumulative_change['add']+=daction['add']
     
-    def data_process(self, system, doJump = False):
+    def data_process(self, system):
         """
         time: the system.time 
         Y2d: the particles properties' list
@@ -213,7 +213,7 @@ class Data(object):
             self.icelinesloc.setdefault(system.time, [iceline.loc for iceline in system.icelineL])
         
         #if jump is done, then shore something about jump
-        if doJump:
+        if system.doJump:
             stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumptime':system.time-system.jumpT, 'jumpT': system.jumpT, 'jump_limitation':system.jump_limitation}
             self.jumpstuff.append(stuff)
 

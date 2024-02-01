@@ -48,9 +48,8 @@ while system.time<pars.tmax:
         core.advance_iceline(system)
 
 
-    doJump, djump = system.query_system_jump(jumpfrac=0.2)
-    
-    if doJump:
+    djump = system.query_system_jump(jumpfrac=0.2)
+    if system.doJump:
         #1)do jump,
         #2)update the system time with jumpT
         #3)then the deltaT should be the jumpT

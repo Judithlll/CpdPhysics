@@ -89,7 +89,7 @@ class System(object):
 
         self.milestones = {}
 
-
+        self.doJump = False
     
     def init_particles(self, dparticleprops={}, fromfile=False, particles_fromfile=None):
         """
@@ -437,7 +437,8 @@ class System(object):
             Tscale_ratio.append( t/self.minTimes.particles)
         #print(self.minTimes.tminarr) 
         if len(self.minTimes.tminarr[1:])==0:
-            return False, {}
+            self.doJump = False
+            return {}
 
         #jump time is given by the min evol. timescales, excluding those of the particles
         max_tevol = jumpfrac*min(self.minTimes.tminarr[1:])
@@ -492,13 +493,13 @@ class System(object):
             else:
                 con3 = False
 
-            jumptf = con1 & con2 &con3
+            self.doJump = con1 & con2 &con3
         else:
-            jumptf = con0 & con1
+            self.doJump = con0 & con1
 
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
 
-        return jumptf, djump
+        return djump
 
 
     def reset_after_jump(self):
