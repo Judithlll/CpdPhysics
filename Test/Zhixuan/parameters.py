@@ -22,7 +22,7 @@ dintegratorpars = {'name':'RK5', 'timestepn':3}
 dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
 gasmodel = 'prescribed'
 
-tmax = 5e3 *cgs.yr
+tmax = 1e3 *cgs.yr
 
 doPlanets = True
 doIcelines = True

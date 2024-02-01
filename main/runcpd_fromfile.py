@@ -16,6 +16,10 @@ import fileio
 
 #read data from files
 pickle_path = './pickles/'
+if not os.path.exists(pickle_path):
+    print("WARNING: you don't have pickle directory [runcpd_fromfile]")
+    sys.exit()
+
 pickles = f.find_pickles(pickle_path)
 #need to judge whether the pickles is complete
 
@@ -23,6 +27,7 @@ completeness = f.check_pickles(pickles)
 if not completeness:
     print('[runcpd_fromfile]: the pickles file is not complete' )
     sys.exit()
+
 classes = {}
 for pcs in pickles:
     classes[pcs.rsplit('.',1)[0]] = fileio.load_class(pickle_path, pcs)
