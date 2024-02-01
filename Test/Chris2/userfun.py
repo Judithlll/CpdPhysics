@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pl
 import cgs
 import datetime
 import csv
@@ -84,18 +84,19 @@ def init_compos (material):
 
     return dcompos
 
-def do_stuff (system, init=False):
+def do_stuff (system, init=False, final=False):
     #data class is available...
-    #system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()
     if init:
         #data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #initialize your data class
+        #data = 
         pass
     else:
-        pass
         #data.data_process(system.particles.locL,system.particles.massL,system.particles.mtotL,system.time,system.daction,system.planetL)
         #data object should be available...
+
+        data.data_add(system)
         
         tminarr = np.array([ddum['tmin'] for ddum in system.mintimeL])
         isort = tminarr.argsort()
@@ -107,8 +108,23 @@ def do_stuff (system, init=False):
 
         sfmt = '{:7d} {:5d} {:10.2e} {:10.2e} {:10.2e}'
         line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, tevol/cgs.yr, system.time/cgs.yr)
-        print(line)
+        #print(line)
 
+        if system.time>1.1*data.time_lastplot and system.ntime>100+data.ntime_lastplot or final:
+            data.data_plot(copy.copy(system.time), copy.copy(system.ntime))
+
+
+class Planet(object):
+
+    def __init__(self, time, mass, loc):
+        self.massL = [mass]
+        self.locL = [loc]
+        self.timeL = [time]
+
+    def add_tpoint (self, time, mass, loc):
+        self.massL.append(mass)
+        self.timeL.append(time)
+        self.locL.append(loc)
 
 
 class Data(object):
@@ -119,14 +135,9 @@ class Data(object):
     def __init__(self):
 
         self.timeL=[]
-        self.radL=np.array([])
-        self.mL=np.array([])
-        self.mtotL=np.array([])
-        self.radD={}
-        self.mD={}
-        self.mtotD={}
-        self.cumulative_change={'remove':[],'add':0}
         self.planetL=[]
+        self.time_lastplot = 0
+        self.ntime_lastplot = 0
         
     def update_cumulative_change(self,daction):
         if 'remove' in daction.keys():
@@ -134,96 +145,36 @@ class Data(object):
         if 'add' in daction.keys():
             self.cumulative_change['add']+=daction['add']
     
-    def data_process(self,locL,massL,mtotL,time,daction,planetL):
+    def data_add (self,system):
         """
         time: the system.time 
         Y2d: the particles properties' list
         """
+
+        self.timeL.append(system.time)
+        for k, planet in enumerate(system.planetL):
+            if k<len(self.planetL):
+                self.planetL[k].add_tpoint(system.time, planet.mass, planet.loc)
+            else:
+                self.planetL.append(Planet(system.time, planet.mass, planet.loc))
+
+
+    def data_plot(self, time, ntime):
+
+        fg, ax = pl.subplots(1,1)
+        for k,planet in enumerate(self.planetL):
+            rad = np.array(planet.locL)
+            mass = np.array(planet.massL)
+
+            ax.loglog(rad, mass, '-')
+
+
         
-        self.update_cumulative_change(daction)
+        pl.savefig('test.jpg')
+        pl.close(fg)
+        self.time_lastplot = time
+        self.ntime_lastplot = ntime
 
-        self.timeL.append(time/cgs.yr2s)
-
-        # if particles ware removed, then put a np.nan into this location. 
-        # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
-        if len(self.cumulative_change['remove'])>0:
-            rL=np.insert(locL,0,np.full(len(self.cumulative_change['remove']),np.nan))
-            mL=np.insert(massL,0,np.full(len(self.cumulative_change['remove']),np.nan))
-            mtL=np.insert(mtotL,0,np.full(len(self.cumulative_change['remove']),np.nan))
-
-        else:
-
-            rL=locL
-            mL=massL
-            mtL=mtotL
-
-        self.radD.setdefault(time/cgs.yr2s,rL/cgs.RJ)
-        self.mD.setdefault(time/cgs.yr2s,mL)
-        self.mtotD.setdefault(time/cgs.yr2s,mtL)
-
-        max_len=max(len(v) for v in self.radD.values())
-
-        # want to make the data dict in the same length
-        for k,v in self.radD.items():
-            
-            #if particles were added, then add np.nan to the former list to make the length the same.
-            if len(v)< max_len:
-                self.radD[k]=np.pad(v, (0, max_len - len(v)), constant_values=np.nan)
-                self.mD[k]=np.pad(self.mD[k], (0, max_len - len(v)), constant_values=np.nan)
-                self.mtotD[k]=np.pad(self.mtotD[k], (0, max_len - len(v)), constant_values=np.nan)
-        
-        self.get_particles_plot_list()
-        self.planetL=planetL
-
-
-    def get_particles_plot_list(self):
-        self.radL=np.array(list(self.radD.values())).T
-        self.mL=  np.array(list(self.mD.values())).T
-        self.mtotL=np.array(list(self.mtotD.values())).T
-
-    def data_store(self,path):
-        with open(path+str(datetime.datetime.now())+'data_particles.csv', 'w', newline='') as csvfile:
-            writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
-            writer.writeheader()
-            writer.writerows([self.radD,self.mD,self.mtotD])
-
-        # with open(str(datetime.datetime.now())+'data_mass.csv', 'w', newline='') as csvfile:
-        #     writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
-        #     writer.writeheader()
-        #     writer.writerows(self.mD)       
-
-    
-    def plot_stuff(self,disk):
-        
-        [time,loc]=np.meshgrid(self.timeL,np.linspace(disk.rinn/cgs.RJ,disk.rout/cgs.RJ,len(self.timeL)))
-        sigmag=disk.update_disk_prop(loc,time)
-
-
-        plt.figure(figsize=(12,18))
-        plt.subplot(211)
-        plt.title('Particles Location')
-        plt.xlabel('time [year]')
-        plt.ylabel('Distance from central planet')
-        
-        
-
-        plt.subplot(212)
-        plt.title('Particles Mass')
-        plt.xlabel('time [year]')
-        plt.ylabel('Mass [g]')   
-
-
-        for i in range(len(self.radL)):
-            plt.subplot(211)
-            plt.plot(self.timeL,self.radL[i])
-            plt.subplot(212)
-            plt.plot(self.timeL,self.mL[i])
-        
-        plt.subplot(211)
-        plt.contourf(time,loc,sigmag,alpha=0.3)
-        plt.colorbar()
-
-        plt.savefig('test.jpg')
 
     def plot_disk(self,time,disk):
         r_Span=np.linspace(disk.rinn,disk.rout)

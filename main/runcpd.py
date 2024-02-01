@@ -29,7 +29,7 @@ system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through compa
 #backup the initial data
 system.back_up_last_data()       #back up the data of last step
 
-while system.time<pars.tmax:
+while True:
 
     #[24.01.01]:determines the timestep for this step
     #[24.01.02],LZX: don't understand why this should be here
@@ -75,11 +75,16 @@ while system.time<pars.tmax:
     
     #[24.01.30]cwo: dont append other arguments to "do_stuff"
     #so, find a way to append "djump" to system
-    userfun.do_stuff(system)
 
+    #[24.02.01]cwo: added stopping condition // we could add more
+    final = system.time>=pars.tmax
 
-    end = time.time()
-    runTime = end-start
+    userfun.do_stuff(system, final=final)
+
+    if final: 
+        end = time.time()
+        runTime = end-start
+        break
 
 #store  finally state of system, not sure if this is userful
 fileio.store_class(system.particles, 'particles')

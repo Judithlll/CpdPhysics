@@ -336,7 +336,7 @@ class System(object):
                                     relp = psig/np.abs(pidx)
                                 else:
                                     break
-                                Nfit = int(Nfit*1.2) +1
+                                Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
                             planet.relp_mass = relp
                             #if Npts>=10 and self.ntime>1000:
                             #    import pdb; pdb.set_trace()
@@ -356,6 +356,7 @@ class System(object):
                                 planet.max_jumpT = np.inf
                             else:
                                 planet.max_jumpT = thre_jump_max*planet.mass /denom
+                                #print(f'{self.ntime} {i} {Nfit} {Npts} {planet.max_jumpT/cgs.yr:10.3e}')
                             #TBD: other conditions (migrate into icelines or no gas region...)
                         else:
                             planet.dmdt = 0
@@ -553,7 +554,7 @@ class System(object):
         tminarr = np.array([d['tmin'] for d in self.mintimeL])
         imin = 1 +tminarr[1:].argmin() #minimum evolution
 
-        print(f'[system.jump]:at {self.time/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
+        print(f'[core.system.jump]:at {self.time/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
         print(f'[core.system_jump]:jump time limited by: {self.jump_limitation}')
         print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:8.2e} yr')
         
