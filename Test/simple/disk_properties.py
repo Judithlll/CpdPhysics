@@ -13,12 +13,17 @@ sigmol=2e-15
 def Mcp_t (t):
     return cgs.Msun
 
+def dot_Mg (t):
+    return 0
 
 def M_influx (t0, tEnd):
     return 0.0
 
 def user_add_var ():
-    return {}
+    """
+    a list of attributes to be added to the disk class
+    """
+    return {'alpha':1e-3}
 
 def user_add_fun ():
     return []

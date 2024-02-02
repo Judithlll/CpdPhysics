@@ -35,8 +35,9 @@ def init_default_pars (fcall):
                     sss = val[1:-1]
                     subL = sss.split(';')
                     for sub in subL:
-                        key1, val1 = sub.split(':')
-                        dout[key1] = functions.determine_type(val1)
+                        if ':' in sub:#cwo: sub can be empty
+                            key1, val1 = sub.split(':')
+                            dout[key1] = functions.determine_type(val1)
 
                     #update it
                     if hasattr(pars, key):
@@ -214,41 +215,29 @@ def sim_init (calldir, dsystempars={}, fromfile = False, classesdict={} ,*args):
         system.planetL = [] 
         system.nplanet = 0
 
-    #add the icelines
-    if pars.doIcelines is None:
-        pars.doIcelines = False
-    elif pars.doIcelines:
-        # speciesarr,temparr,fracarr = userfun.init_icelines()
-        icelineL = []
-        # icelineLocL=[]
+    #[24.02.02] cwo
+    #for simplicity, let's always enter this block ...
+    #such that we always have a "construct_mask_icl" function
 
-        for dcompos in dcomposL:
-            if dcompos['iceline']==True:
-                iceline = core.ICELINE (dcompos['name'], dcompos['iceline_temp'])  
-                iceline.get_icelines_location(system.gas,system.time)      
-                icelineL.append(iceline)
-               #(initial) position of iceline
-                rice = iceline.loc
-                
-            elif dcompos['iceline'] == 'None': #all vapor
-                rice = np.inf
-            elif dcompos['iceline'] == False: #all refractory
-                rice = 0.0
+    icelineL = []
+    for dcompos in dcomposL:
+        if dcompos['iceline']==True:
+            iceline = core.ICELINE (dcompos['name'], dcompos['iceline_temp'])  
+            iceline.get_icelines_location(system.gas,system.time)      
+            icelineL.append(iceline)
+           #(initial) position of iceline
+            rice = iceline.loc
+            
+        elif dcompos['iceline'] == 'None': #all vapor
+            rice = np.inf
+        elif dcompos['iceline'] == False: #all refractory
+            rice = 0.0
 
-            dcompos['mask_icl'] = construct_mask_icl (rice)
+        dcompos['mask_icl'] = construct_mask_icl (rice)
 
-        #niceline = len(speciesarr)
-        #for i in range (niceline):
-        #    iceline=core.ICELINE (speciesarr[i], temparr[i], fracarr[i])
-        #    
-        system.icelineL = icelineL
-        system.niceline = len(icelineL)
-        
-    else:
-        system.icelineL = []
-        system.niceline = 0
+    system.icelineL = icelineL
+    system.niceline = len(icelineL)
     system.dcomposL = dcomposL
-
 
     return system,gasL
 

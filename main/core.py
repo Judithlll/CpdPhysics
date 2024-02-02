@@ -90,7 +90,7 @@ class System(object):
         self.milestones = {}
 
         self.doJump = False
-    
+
     def init_particles(self, dparticleprops={}, fromfile=False, particles_fromfile=None):
         """
         because we need to consider iceline, so separatly 
@@ -713,7 +713,6 @@ def advance_planets (system):
                 #           incorporate in planet object?
                 if Mc<planet.mass:                    
 
-
                     epsilon = userfun.epsilon_PA(planet.loc,planet.mass,spk)
 
                     #accreted mass by composition
@@ -955,8 +954,9 @@ class Superparticles(object):
         #assume the relative velocity to be the half of radial velocity
         #v_dd = np.abs(v_r)/2    
 
-        #make the dust scale height to be user defined
-        Hd = physics.H_d(disk.Hg, St)     
+
+        #[24.02.02]cwo moved this physics->userfun, where the user can of course invoke physics
+        Hd = userfun.H_d(St, disk)     
 
         drdt = v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
@@ -974,6 +974,7 @@ class Superparticles(object):
         Y2ddt = np.zeros_like(self.Y2d)
         Y2ddt[0] = drdt
         Y2ddt[1] = dmdt
+
 
         #[24.01.05]:also return additional particle properties
         if returnMore:

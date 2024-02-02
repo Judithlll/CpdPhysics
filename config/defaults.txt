@@ -6,6 +6,8 @@ initial_paras = {Rdi:0.01;nini:10;time:0.0}
 gasmodel = prescribed
 initrule = equalmass
 
+dtimesteppars = {}
+
 doPlanets = False
 
 #saveDir = Data

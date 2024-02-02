@@ -14,3 +14,6 @@ def do_stuff (system, init=False):
 
 def del_v (St, rhoD, disk):
     return 0.0
+
+def H_d (St, disk):
+    return disk.Hg
