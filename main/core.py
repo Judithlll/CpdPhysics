@@ -26,12 +26,6 @@ class COPY (object):
         for attr in attributeL:
             setattr(self, attr, copy.deepcopy(getattr(state,attr)))
 
-class store_system(object):
-    def __init__(self, SystemPd):
-        for k, v in SystemPd.items() :
-            setattr(self, k, v)
-
-
 class Mintimes (object):
     """
     store the minimam times

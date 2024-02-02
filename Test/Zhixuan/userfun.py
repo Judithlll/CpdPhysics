@@ -21,6 +21,9 @@ def del_v (St, rhoD, disk):
     return np.abs(vr)/2
 
 
+def H_d (St, disk):
+    return physics.H_d(disk.Hg, St, disk.alpha) 
+
 def dm_dt(Rd, delv, Hd, sigD):
     """
     the time derivetive of particles's mass, determine how particles grow
@@ -33,8 +36,7 @@ def epsilon_PA (PlanetsLoc,PlanetsMass,cross_p):
     """
 
     mus=PlanetsMass/cross_p.mcp
-
-    Hp= physics.H_d(cross_p.Hg, cross_p.St)
+    Hp = physics.H_d(cross_p.Hg, cross_p.St, cross_p.alpha)
     # Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
     hp=Hp/PlanetsLoc
 
@@ -91,7 +93,7 @@ def init_compos (material):
 
     return dcompos
 
-def do_stuff (sys, init=False):
+def do_stuff (sys, init=False, final= False):
     #data class is available...
     system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()

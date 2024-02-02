@@ -86,20 +86,8 @@ while True:
         runTime = end-start
         break
 
-#store  finally state of system, not sure if this is userful
-fileio.store_class(system.particles, 'particles')
-fileio.store_class(system.gas, 'gas')
-for i in range(system.nplanet):
-    fileio.store_class(system.planetL[i], 'planet'+str(i+1))
-
-for i in range(system.niceline):
-    fileio.store_class(system.icelineL[i], 'iceline'+str(i+1))
-
-#put some necessary properties into store_systemclass and store it
-nece_pd = {'time':system.time, 'jumpT': system.jumpT, 'ntime':system.ntime, 'rhoPlanet':system.rhoPlanet, 'nplanet': system.nplanet, 'niceline':system.niceline, 'milestones':system.milestones}
-
-system_store = core.store_system(nece_pd)
-fileio.store_class(system_store, 'system_store')
+#store system components as pickles
+fileio.store_state(system)
 
 print('[runcpd]:finished')
 
