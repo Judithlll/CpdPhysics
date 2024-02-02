@@ -45,27 +45,6 @@ def sample_equal (fx, x0, xf, Nsample=100, ttol=1e-5):
 
     return xL
 
-def find_pickles(path):
-    files = os.listdir(path)
-    pickles = []
-    for file in files:
-        if '.pickle' in file:
-            pickles.append(file)
-    return pickles
-
-def check_pickles(pickles):
-    pk1 = 'particles.pickle' in pickles
-    pk2 = 'gas.pickle' in pickles
-    pk3 = 'planet1.pickle' in pickles
-    pk4 = ('iceline1.pickle' in pickles) or (pars.doIcelines == False)
-    pk5 = ('system_store.pickle' in pickles) or (pars.doPlanets == False)
-    if pk1 *pk2*pk3*pk4*pk5:
-        tf = True
-    else:
-        tf = False
-
-    return tf
-
 def load_dict_from_file (fname):
     dout = {}
     with open(fname,'r') as f:

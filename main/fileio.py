@@ -1,5 +1,7 @@
 import pickle
 import os
+import sys
+import parameters as pars
 
 def store_class(class_name, filename):
     if not os.path.exists('./pickles/'):
@@ -38,6 +40,46 @@ def store_state(system):
     system_store = store_system(nece_pd)
     store_class(system_store, 'system_store')
 
+def find_pickles(path):
+    files = os.listdir(path)
+    pickles = []
+    for file in files:
+        if '.pickle' in file:
+            pickles.append(file)
+    return pickles
+
+def check_pickles(pickles):
+    pk1 = 'particles.pickle' in pickles
+    pk2 = 'gas.pickle' in pickles
+    pk3 = 'planet1.pickle' in pickles
+    pk4 = ('iceline1.pickle' in pickles) or (pars.doIcelines == False)
+    pk5 = ('system_store.pickle' in pickles) or (pars.doPlanets == False)
+    if pk1 *pk2*pk3*pk4*pk5:
+        tf = True
+    else:
+        tf = False
+
+    return tf
+
+def load_state(pickle_path):
+
+    if not os.path.exists(pickle_path):
+        print("WARNING: you don't have pickle directory [runcpd_fromfile]")
+        sys.exit()
+
+    pickles = find_pickles(pickle_path)
+    #need to judge whether the pickles is complete
+
+    completeness = check_pickles(pickles)
+    if not completeness:
+        print('[runcpd_fromfile]: the pickles file is not complete' )
+        sys.exit()
+
+    classes = {}
+    for pcs in pickles:
+        classes[pcs.rsplit('.',1)[0]] = load_class(pickle_path, pcs)
+
+    return classes
 ## SAVE the current state (-> pickle) --> run1234.pickle
 
 ## LOAD a state.

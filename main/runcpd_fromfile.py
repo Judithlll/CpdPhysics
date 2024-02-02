@@ -16,22 +16,7 @@ import fileio
 
 #read data from files
 pickle_path = './pickles/'
-if not os.path.exists(pickle_path):
-    print("WARNING: you don't have pickle directory [runcpd_fromfile]")
-    sys.exit()
-
-pickles = f.find_pickles(pickle_path)
-#need to judge whether the pickles is complete
-
-completeness = f.check_pickles(pickles)
-if not completeness:
-    print('[runcpd_fromfile]: the pickles file is not complete' )
-    sys.exit()
-
-classes = {}
-for pcs in pickles:
-    classes[pcs.rsplit('.',1)[0]] = fileio.load_class(pickle_path, pcs)
-
+classes = fileio.load_state(pickle_path)
 #put the classes into sim_init
 #maybe: 
 #   sim_init(.., from_file=True)
@@ -115,6 +100,6 @@ for i in range(system.niceline):
 #put some necessary properties into store_systemclass and store it
 nece_pd = {'time':system.time, 'jumpT': system.jumpT, 'ntime':system.ntime, 'rhoPlanet':system.rhoPlanet, 'nplanet': system.nplanet, 'niceline':system.niceline, 'milestones':system.milestones}
 
-system_store = core.store_system(nece_pd)
+system_store = fileio.store_system(nece_pd)
 fileio.store_class(system_store, 'system_store')
 
