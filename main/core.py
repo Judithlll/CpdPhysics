@@ -521,9 +521,6 @@ class System(object):
                 if self.time > planet.starttime:
                     
                     planet.loc += planet.dlocdt *self.jumpT
-                    # if planet migration into the cavity, then stop
-                    if planet.loc < dp.rinn:
-                        planet.loc = dp.rinn
                         
                     jumpmass = planet.dmdt* self.jumpT
 
@@ -646,7 +643,10 @@ def advance_planets (system):
                     userfun.XY_planet (sim.time, planet.loc, planet.mass, planet.fcomp, 
                             crossL)
                 else:
-                    loc_t = -pp.planet_migration(system.gas,system.planetL[0].loc,system.planetL[0].mass,system.time,system.rhoPlanet)     #migration rate of planet
+                    if planet.loc > dp.rinn:
+                        loc_t = -pp.planet_migration(system.gas,system.planetL[0].loc,system.planetL[0].mass,system.time,system.rhoPlanet)
+                    else:
+                        loc_t = 0.0#migration rate of planet
                     mass_t = 0.0    #gas accretion of planet, TBD
                     fcomp_t = 0.0   #how its composition changes
 
@@ -689,8 +689,6 @@ def advance_planets (system):
                 #       class to such simple functions..
                 #
                 #       (for the moment I ignore it... we can discuss)
-
-
                 spk = crossL[k]
                 Mc = userfun.M_critical(spk.eta, spk.St, spk.mcp)
 
