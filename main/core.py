@@ -551,7 +551,8 @@ class System(object):
         
         if self.planetL[0].loc <dp.rinn:
             print('[core.system.jump]: the first planet migrates across the inner edge')
-            import pdb;pdb.set_trace()
+           #import pdb;pdb.set_trace()
+
         #"erase" previous planet.crossL OR record the jump time to planet.
         #such that new fit for dm/dt starts w/ N=0 particles
 
