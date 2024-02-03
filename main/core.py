@@ -858,6 +858,10 @@ class Superparticles(object):
         self.mini = self.massL[-1]   #for adding particles
 
         self.generate_Y2d()   #get a Y2d used to integrate
+        
+        for i in range(len(dcomposL)):
+            del dcomposL[i]['Z_init']
+            del dcomposL[i]['mask_icl']
 
 
     def generate_Y2d(self):
