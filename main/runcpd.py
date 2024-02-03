@@ -48,6 +48,20 @@ while True:
         core.advance_iceline(system)
 
 
+    ## cwo: resonance crossing criteria
+    if False:
+        #check if any planets crossed resonances
+        for iplanet in range(1,system.nplanet):
+            prat = (system.yvec[iplanet,0]/system.yvec[iplanet-1,0])**1.5
+            inxt = (dres['prat']<prat).argmax()
+
+            pinfoi = system.planetinfo[iplanet]
+
+            #it locks into a resonance
+            if inxt>pinfoi['inxt'] and pinfoi['resS']!='R':
+
+
+
     djump = system.query_system_jump(jumpfrac=0.2)
     if system.doJump:
         #1)do jump,

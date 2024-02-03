@@ -85,6 +85,49 @@ class System(object):
 
         self.doJump = False
 
+        #some resonance information
+        dres = core.make_resL (jmax=10)
+
+
+    def make_resL (jmax=4):
+        dres = {}
+        dres['res'] = []
+        dres['prat'] = []
+        for j in range(1,jmax):
+            sj = str(j)
+            sj1 = str(j+1)
+            dres['res'].append(sj1+':'+sj)
+            dres['prat'].append((j+1)/j)
+
+        #final one (hack)
+        dres['res'].append('inf')
+        dres['prat'].append(1.0)
+
+        dres['prat'] = np.array(dres['prat'])
+        return dres
+
+
+
+    ## CWO: let's add planet by the system like this..
+    #   This is copied from another program from mine
+    def add_planet (self, abirth, m0, **others):
+
+        iplanet = self.nplanet
+        self.planetinfo.append({}) #planet info dict. But you we can replace this with our planet class here
+        self.planetinfo[iplanet]['name'] = hr8799.names[iplanet]
+
+        #consider the next resonance
+        if self.nplanet>0:
+            prat = (self.yvec[-1,0]/self.yvec[-2,0])**1.5
+            inxt = (dres['prat']<prat).argmax()
+
+            ## "inxt": this is the next resonance
+            self.planetinfo[iplanet]['inxt'] = min(9,inxt) #HACK [23.10.19]changed to "9"
+            self.planetinfo[iplanet]['resS'] = -1
+
+        self.nplanet += 1
+
+
     def init_particles(self, dparticleprops={}, fromfile=False, particles_fromfile=None):
         """
         because we need to consider iceline, so separatly 
@@ -1069,6 +1112,7 @@ class PLANET ():
         #self.compData = [[time,fcomp[0]]]
         self.relp_comp = np.nan
         self.max_jumpT = 0.0
+
 
     def record_cross_sp (self, time, sp, idxcross):
         for k in idxcross:
