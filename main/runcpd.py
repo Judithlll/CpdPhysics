@@ -58,7 +58,7 @@ while True:
             pinfoi = system.planetinfo[iplanet]
 
             #it locks into a resonance
-            if inxt>pinfoi['inxt'] and pinfoi['resS']!='R':
+            #if inxt>pinfoi['inxt'] and pinfoi['resS']!='R':
 
 
 

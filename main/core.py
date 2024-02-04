@@ -86,7 +86,7 @@ class System(object):
         self.doJump = False
 
         #some resonance information
-        dres = core.make_resL (jmax=10)
+        dres = None #self.make_resL (jmax=10)
 
 
     def make_resL (jmax=4):
@@ -688,10 +688,10 @@ def advance_planets (system):
                             crossL)
                 else:
                     if planet.loc > dp.rinn:
-                        loc_t = -pp.planet_migration(system.gas,system.planetL[0].loc,system.planetL[0].mass,system.time,system.rhoPlanet)
+                        loc_t = -userfun.planet_migration(system.gas,system.planetL[0].loc,system.planetL[0].mass,system.time,system.rhoPlanet)
                     else:
                         loc_t = 0.0#migration rate of planet
-                    mass_t = 0.0    #gas accretion of planet, TBD
+                    mass_t = 0.0    #gas accretion of planet, TBD:-later
                     fcomp_t = 0.0   #how its composition changes
 
                 #update planet properties from rates supplied by user
