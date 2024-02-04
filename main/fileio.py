@@ -16,6 +16,10 @@ def load_class(path,filename):
         class_object = pickle.load(f)
     return class_object
 
+
+
+
+
 class store_system(object):
     def __init__(self, SystemPd):
         for k, v in SystemPd.items() :
@@ -23,6 +27,7 @@ class store_system(object):
 
 def store_state(system):
     """
+    Not used now!
     this function store the system components respectively
     """
 #store  finally state of system, not sure if this is userful
@@ -62,7 +67,9 @@ def check_pickles(pickles):
     return tf
 
 def load_state(pickle_path):
-
+    """
+    not used now!
+    """
     if not os.path.exists(pickle_path):
         print("WARNING: you don't have pickle directory [runcpd_fromfile]")
         sys.exit()

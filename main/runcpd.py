@@ -12,22 +12,32 @@ import userfun
 import time 
 import functions as f
 import fileio
-
+import time
 start=time.time()
 argL = sys.argv #maybe use later
-calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
+if 'fromfile' in argL:
+    system = fileio.load_class('./pickles/', 'system.pickle')
+    if pars.tmax <= system.time:
+        print('\033[31m WARNING\033[0m : the ending time is smaller than the current system time [runcpd]')
+        sys.exit()
+    print('\033[32m [runcpd]: run from pickle file \033[0m')
+    time.sleep(3)  
+else:
+    calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
 #this initializes the system...
-system, gasL = init.sim_init (calldir, pars.dsystempars)
-system.init_particles(pars.dparticleprops)
-system.milestones[pars.tmax] = 'Ending_time'
+    system, gasL = init.sim_init (calldir, pars.dsystempars)
+    system.init_particles(pars.dparticleprops)
+    system.milestones[pars.tmax] = 'Ending_time'
 #initialize userfun's data class
-userfun.do_stuff(system, init=True)
+    userfun.do_stuff(system, init=True)
 #import pdb; pdb.set_trace()
 #get the initial deltaT
-system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
+    system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
 #backup the initial data
-system.back_up_last_data()       #back up the data of last step
+    system.back_up_last_data()       #back up the data of last step
+    print('\033[32m [runcpd]: run from the beginning \033[0m')
+    time.sleep(3)  
 
 while True:
 
@@ -101,7 +111,7 @@ while True:
         break
 
 #store system components as pickles
-fileio.store_state(system)
+fileio.store_class(system, 'system')
 
 print('[runcpd]:finished')
 
