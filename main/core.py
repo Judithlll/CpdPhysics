@@ -106,26 +106,24 @@ class System(object):
         dres['prat'] = np.array(dres['prat'])
         return dres
 
-
-
     ## CWO: let's add planet by the system like this..
     #   This is copied from another program from mine
-    def add_planet (self, abirth, m0, **others):
-
-        iplanet = self.nplanet
-        self.planetinfo.append({}) #planet info dict. But you we can replace this with our planet class here
-        self.planetinfo[iplanet]['name'] = hr8799.names[iplanet]
-
-        #consider the next resonance
-        if self.nplanet>0:
-            prat = (self.yvec[-1,0]/self.yvec[-2,0])**1.5
-            inxt = (dres['prat']<prat).argmax()
-
-            ## "inxt": this is the next resonance
-            self.planetinfo[iplanet]['inxt'] = min(9,inxt) #HACK [23.10.19]changed to "9"
-            self.planetinfo[iplanet]['resS'] = -1
-
+    def add_planet (self, planet):
+        self.planetL.append(planet)
         self.nplanet += 1
+        if False:
+            iplanet = self.nplanet
+            self.planetinfo.append({}) #planet info dict. But you we can replace this with our planet class here
+            self.planetinfo[iplanet]['name'] = hr8799.names[iplanet]
+
+            #consider the next resonance
+            if self.nplanet>0:
+                prat = (self.yvec[-1,0]/self.yvec[-2,0])**1.5
+                inxt = (dres['prat']<prat).argmax()
+
+                ## "inxt": this is the next resonance
+                self.planetinfo[iplanet]['inxt'] = min(9,inxt) #HACK [23.10.19]changed to "9"
+                self.planetinfo[iplanet]['resS'] = -1
 
 
     def init_particles(self, dparticleprops={}, fromfile=False, particles_fromfile=None):
@@ -185,8 +183,8 @@ class System(object):
         """
         copies present state to "old" 
         """
-
-        self.oldstate = COPY (self, ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step', 'dotMg'])
+        copy_list = ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step', 'dotMg']
+        self.oldstate = COPY (self, copy_list)
 
 
 
@@ -322,12 +320,13 @@ class System(object):
             #timescale for the planets 
             # (including migration and mass growth)
             
-            if pars.doPlanets:
+            if pars.doPlanets & self.nplanet > 0:
                 PmassTscale = np.inf*np.ones(self.nplanet)
                 PlocaTscale = np.inf*np.ones(self.nplanet) 
                 PcompTscale = np.inf*np.ones(self.nplanet)
                 thre_jump_max = 1e-3  #threshold when getting the max jumpT
                 for i in range(self.nplanet):
+                    import pdb; pdb.set_trace()
                     planet = self.planetL[i]
                     if self.time>planet.starttime:
 

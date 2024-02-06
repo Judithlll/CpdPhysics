@@ -30,7 +30,7 @@ else:
     system.init_particles(pars.dparticleprops)
     system.milestones[pars.tmax] = 'Ending_time'
 #initialize userfun's data class
-    userfun.do_stuff(system, init=True)
+    #userfun.do_stuff(system, init=True)
 #import pdb; pdb.set_trace()
 #get the initial deltaT
     system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
@@ -47,6 +47,12 @@ while True:
     #     import pdb; pdb.set_trace()
                         
     #integrate the super particles
+    if len(system.planet_candidate)>0:
+        for planet in system.planet_candidate:
+            if planet.starttime <= system.time:
+                system.add_planet(planet)
+                system.planet_candidate.remove(planet)
+                import pdb;pdb.set_trace()
     Yt = system.update_particles (**pars.dtimesteppars)
     
     #change planet and super particle properties

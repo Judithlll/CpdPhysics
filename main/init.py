@@ -141,7 +141,7 @@ def load_composdata (calldir, composL):
 
 
 
-def sim_init (calldir, dsystempars={}, fromfile = False, classesdict={} ,*args):
+def sim_init (calldir, dsystempars={},*args):
     """
     The idea is that the system object is defined here
 
@@ -156,20 +156,6 @@ def sim_init (calldir, dsystempars={}, fromfile = False, classesdict={} ,*args):
 
     #let's System be initialized this way with keyword parameters... 
     #please don't change it again
-
-    if fromfile:
-        #TBD: somethings need to be know from system properties, like time and jumpT, doJump..., so maybe make a class to store it
-        system = core.System(classesdict['system_store'].time, classesdict['system_store'].rhoPlanet)
-        system.gas = classesdict['gas']
-        system.planetL = [classesdict['planet'+str(i+1)] for i in range(classesdict['system_store'].nplanet)]
-        system.icelineL = [classesdict['iceline'+str(i+1)] for i in range(classesdict['system_store'].niceline)]
-       
-        system.ntime = classesdict['system_store'].ntime
-        system.jumpT = classesdict['system_store'].jumpT
-        system.nplanet = classesdict['system_store'].nplanet
-        system.niceline = classesdict['system_store'].niceline
-        system.milestones = classesdict['system_store'].milestones
-        return system 
     
     system = core.System(**dsystempars)
 
@@ -200,7 +186,6 @@ def sim_init (calldir, dsystempars={}, fromfile = False, classesdict={} ,*args):
         #TBD: perhaps better to work with dictionaries
         tarr, radarr, mplanarr, fcomparr = userfun.init_planets ()
 
-
         nplan = len(radarr)
 
         #planet list
@@ -208,13 +193,12 @@ def sim_init (calldir, dsystempars={}, fromfile = False, classesdict={} ,*args):
         for k in range(nplan):
             planL.append(core.PLANET (tarr[k], radarr[k], mplanarr[k], fcomparr[k]))
             system.milestones[tarr[k]] = 'insert_planet'
-        system.planetL = planL
-        system.nplanet = nplan
+        system.planet_candidate = planL
     else:
         # the planet list
-        system.planetL = [] 
-        system.nplanet = 0
-
+        system.planet_candidate = [] 
+    system.planetL = []
+    system.nplanet = 0
     #[24.02.02] cwo
     #for simplicity, let's always enter this block ...
     #such that we always have a "construct_mask_icl" function
