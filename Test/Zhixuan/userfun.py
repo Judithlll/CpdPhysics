@@ -55,6 +55,7 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     # v_mig=vt1+vd
 
     return vt1 # v_mig
+
 def del_v (St, rhoD, disk):
     vr = 2*disk.eta *disk.vK *St/(1+St**2)
 
@@ -111,7 +112,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1*cgs.yr, 2e3*cgs.yr] 
+    timeL = [1*cgs.yr, 4.5e3*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [25*cgs.rJup, 25*cgs.rJup] 
@@ -249,6 +250,10 @@ class Data(object):
         #store palnets' data
         if pars.doPlanets:
             self.planetsmass.setdefault(system.time, [planet.mass for planet in system.planetL])
+            
+            a = list(self.planetsmass.values())
+            if np.isnan(a[0]):
+                import pdb;pdb.set_trace()
             self.planetsloc.setdefault(system.time, [planet.loc for planet in system.planetL])
 
         #store icelines' data
@@ -266,8 +271,16 @@ class Data(object):
         self.mtotL=np.array(list(self.mtotD.values()))
         self.fcompL = np.array(list(self.fcompD.values()))
         
-        self.planetsmassL = np.array(list(self.planetsmass.values()))
-        self.planetslocL = np.array(list(self.planetsloc.values()))
+        pmL = copy.deepcopy(list(self.planetsmass.values()))
+        plL = copy.deepcopy(list(self.planetsloc.values()))
+        for i in range (len(pmL)):
+            if len(pmL[i]) != len(pmL[-1]):
+                length = len(pmL[-1]) - len(pmL[i])
+                pmL[i].extend([np.nan]*length)
+                plL[i].extend([np.nan]*length)
+        
+        self.planetsmassL = np.array(pmL)
+        self.planetslocL = np.array(plL)
 
         self.icelineslocL = np.array(list(self.icelinesloc.values()))
 
@@ -429,11 +442,12 @@ class Data(object):
         plt.close()
     
     def plot_planet_migration(self):
+        self.get_plot_list()
         plt.figure()
         plt.title('PLanet migration')
         plt.xlabel('Planets location [$R_J$]' )
         plt.ylabel('System time [yr]')
-        loclist = np.array(list(self.planetsloc.values())).T
+        loclist = self.planetslocL.T
         time = np.array(list(self.planetsloc.keys()))
         for i,loc in enumerate(loclist):
             plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'planet'+str(i+1))

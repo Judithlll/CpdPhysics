@@ -20,7 +20,7 @@ if 'fromfile' in argL:
     if pars.tmax <= system.time:
         print('\033[31m WARNING\033[0m : the ending time is smaller than the current system time [runcpd]')
         sys.exit()
-    print('\033[32m [runcpd]: run from pickle file \033[0m')
+    print('\033[32m [runcpd]: run from pickle file at {system.time/cgs.yr} \033[0m')
     time.sleep(3)  
 else:
     calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
@@ -52,7 +52,7 @@ while True:
             if planet.starttime <= system.time:
                 system.add_planet(planet)
                 system.planet_candidate.remove(planet)
-                import pdb;pdb.set_trace()
+    
     Yt = system.update_particles (**pars.dtimesteppars)
     
     #change planet and super particle properties
@@ -118,7 +118,9 @@ while True:
 
 #store system components as pickles
 fileio.store_class(system, 'system')
-
+userfun.data.plot_planet_migration()
+userfun.data.plot_jumpT()
+import pdb;pdb.set_trace()
 print('[runcpd]:finished')
 
 

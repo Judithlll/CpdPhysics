@@ -80,6 +80,7 @@ class System(object):
         #self.planetMassData=[]
         self.njump = 0
         self.njumptime = 0
+        self.jumptime = 0.0
 
         self.milestones = {}
 
@@ -183,7 +184,7 @@ class System(object):
         """
         copies present state to "old" 
         """
-        copy_list = ['time', 'particles', 'planetL', 'icelineL', 'Minflux_step', 'dotMg']
+        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg']
         self.oldstate = COPY (self, copy_list)
 
 
@@ -320,13 +321,12 @@ class System(object):
             #timescale for the planets 
             # (including migration and mass growth)
             
-            if pars.doPlanets & self.nplanet > 0:
+            if pars.doPlanets & (self.oldstate.nplanet == self.nplanet) &(self.nplanet >0):
                 PmassTscale = np.inf*np.ones(self.nplanet)
                 PlocaTscale = np.inf*np.ones(self.nplanet) 
                 PcompTscale = np.inf*np.ones(self.nplanet)
                 thre_jump_max = 1e-3  #threshold when getting the max jumpT
                 for i in range(self.nplanet):
-                    import pdb; pdb.set_trace()
                     planet = self.planetL[i]
                     if self.time>planet.starttime:
 
@@ -533,7 +533,7 @@ class System(object):
             self.doJump = con1 & con2 &con3
         else:
             self.doJump = con0 & con1
-
+        
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
 
         return djump
@@ -578,6 +578,7 @@ class System(object):
         
         self.njump +=1
         self.njumptime = self.ntime
+        self.jumptime = self.time
 
         im = djump['tjumparr'].argmin()
         #maybe interesting to store and plot which factor limits the jumpT
@@ -692,7 +693,8 @@ def advance_planets (system):
                         loc_t = 0.0#migration rate of planet
                     mass_t = 0.0    #gas accretion of planet, TBD:-later
                     fcomp_t = 0.0   #how its composition changes
-
+                if loc_t >0:
+                    import pdb;pdb.set_trace()
                 #update planet properties from rates supplied by user
                 planet_loc_nw = planet.loc + loc_t *system.deltaT
 
