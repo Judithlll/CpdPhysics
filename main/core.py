@@ -562,8 +562,10 @@ class System(object):
             for planet in self.planetL:
                 if self.time > planet.starttime:
                     
-                    planet.loc += planet.dlocdt *self.jumpT
-                        
+                    if planet.loc + planet.dlocdt *self.jumpT <dp.rinn:
+                        planet.loc = dp.rinn
+                    else:
+                        planet.loc += planet.dlocdt *self.jumpT
                     jumpmass = planet.dmdt* self.jumpT
 
                     #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector

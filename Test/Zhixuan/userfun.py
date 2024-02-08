@@ -345,8 +345,8 @@ class Data(object):
     
     def plot_stuff(self,gas):
         
-        [time,loc]=np.meshgrid(self.timeL,np.linspace(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ,len(self.timeL)))
-        sigmag=gas.get_key_disk_properties(loc,time)[0]
+        #[time,loc]=np.meshgrid(self.timeL,np.linspace(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ,len(self.timeL)))
+        #sigmag=gas.get_key_disk_properties(loc,time)[0]
 
         # import pdb; pdb.set_trace()
         plt.figure(figsize=(12,18))
@@ -363,15 +363,15 @@ class Data(object):
         plt.ylabel('Mass [g]')   
 
 
-        for i in range(len(self.radL)):
+        for i in range(len(self.radL[0])):
             plt.subplot(211)
-            plt.plot(self.timeL,self.radL[i])
+            plt.plot(self.timeL,self.radL[:,i])
             plt.subplot(212)
-            plt.plot(self.timeL,self.mL[i])
+            plt.plot(self.timeL,self.mL[:,i])
         
         plt.subplot(211)
-        plt.contourf(time,loc,sigmag,alpha=0.3)
-        plt.colorbar()
+        #plt.contourf(time,loc,sigmag,alpha=0.3)
+        #plt.colorbar()
 
         plt.savefig('test.jpg')
 

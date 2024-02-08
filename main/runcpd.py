@@ -79,6 +79,7 @@ while True:
 
 
     djump = system.query_system_jump(jumpfrac=0.2)
+    system.doJump = False
     if system.doJump:
         #1)do jump,
         #2)update the system time with jumpT
@@ -120,6 +121,7 @@ while True:
 fileio.store_class(system, 'system')
 userfun.data.plot_planet_migration()
 userfun.data.plot_jumpT()
+userfun.data.plot_stuff(system.gas)
 import pdb;pdb.set_trace()
 print('[runcpd]:finished')
 
