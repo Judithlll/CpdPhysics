@@ -21,7 +21,7 @@ if 'fromfile' in argL:
         print('\033[31m WARNING\033[0m : the ending time is smaller than the current system time [runcpd]')
         sys.exit()
     print('\033[32m [runcpd]: run from pickle file at {system.time/cgs.yr} \033[0m')
-    time.sleep(3)  
+    time.sleep(2)  
 else:
     calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
@@ -37,7 +37,7 @@ else:
 #backup the initial data
     system.back_up_last_data()       #back up the data of last step
     print('\033[32m [runcpd]: run from the beginning \033[0m')
-    time.sleep(3)  
+    time.sleep(2)  
 
 while True:
 
@@ -79,7 +79,7 @@ while True:
 
 
     djump = system.query_system_jump(jumpfrac=0.2)
-    system.doJump = False
+    #system.doJump = False
     if system.doJump:
         #1)do jump,
         #2)update the system time with jumpT
