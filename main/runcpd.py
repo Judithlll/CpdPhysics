@@ -5,12 +5,9 @@ sys.path.append(getwcd) #on my desktop (I don't know why)
 import parameters as pars
 sys.path.append('../../main/')
 import core
-import numpy as np
 import init
-import cgs
 import userfun
 import time 
-import functions as f
 import fileio
 import time
 start=time.time()

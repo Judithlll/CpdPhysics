@@ -87,10 +87,10 @@ class System(object):
         self.doJump = False
 
         #some resonance information
-        dres = None #self.make_resL (jmax=10)
+        self.dres = self.make_resL (jmax=10)
 
 
-    def make_resL (jmax=4):
+    def make_resL (self,jmax=4):
         dres = {}
         dres['res'] = []
         dres['prat'] = []
@@ -127,7 +127,7 @@ class System(object):
                 self.planetinfo[iplanet]['resS'] = -1
 
 
-    def init_particles(self, dparticleprops={}, fromfile=False, particles_fromfile=None):
+    def init_particles(self, dparticleprops={}):
         """
         because we need to consider iceline, so separatly 
         initiallize the particles, for now just water iceline is considered  
@@ -136,10 +136,8 @@ class System(object):
         [23.12.30]CWO: instead of forwarding diskmass, I supply self.gas to the superparticle class
         [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
         """
-        if fromfile:
-            self.particles = particles_fromfile
-        else: 
-            self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
+
+        self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
 
         
         self.mtot1 = self.particles.mtot1
@@ -321,10 +319,23 @@ class System(object):
             #timescale for the planets 
             # (including migration and mass growth)
             
+
             if pars.doPlanets & (self.oldstate.nplanet == self.nplanet) &(self.nplanet >0):
                 PmassTscale = np.inf*np.ones(self.nplanet)
                 PlocaTscale = np.inf*np.ones(self.nplanet) 
                 PcompTscale = np.inf*np.ones(self.nplanet)
+                #calculate the period ratio
+                pratTscale = np.array([])
+                if self.oldstate.nplanet >= 2:
+                    prat_old = np.array([self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc for i in range(self.nplanet-1)])
+                    prat_new = np.array([self.planetL[i+1].loc/self.planetL[i].loc for i in range(self.nplanet-1)])
+                    
+                    for pratio in self.dres['prat']:
+                        if prat_new > pratio:
+                            tc = abs((pratio-prat_new) / (prat_new-prat_old))*self.deltaT
+                            pratTscale = np.append(pratTscale, tc)
+                    mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale.min()}) 
+                    import pdb;pdb.set_trace()
                 thre_jump_max = 1e-3  #threshold when getting the max jumpT
                 for i in range(self.nplanet):
                     planet = self.planetL[i]

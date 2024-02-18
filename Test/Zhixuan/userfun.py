@@ -115,7 +115,7 @@ def init_planets ():
     timeL = [1*cgs.yr, 4.5e3*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
-    locationL = [25*cgs.rJup, 25*cgs.rJup] 
+    locationL = [15*cgs.rJup, 25*cgs.rJup] 
     massL = [3e23, 3e23] 
     compoL = np.array([[1.0, 0.0], [1.0, 0.0]])
 
