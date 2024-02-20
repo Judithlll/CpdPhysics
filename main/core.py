@@ -329,8 +329,8 @@ class System(object):
                     #calculate the period ratio
                     pratTscale = np.array([])
                     if self.oldstate.nplanet >= 2:
-                        prat_old = np.array(([self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(2/3) for i in range(self.nplanet-1)])
-                        prat_new = np.array(([self.planetL[i+1].loc/self.planetL[i].loc)**(2/3) for i in range(self.nplanet-1)])
+                        prat_old = np.array([(self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(2/3) for i in range(self.nplanet-1)])
+                        prat_new = np.array([(self.planetL[i+1].loc/self.planetL[i].loc)**(2/3) for i in range(self.nplanet-1)])
                         
                         for i in range(len(prat_new)):
                             if (prat_new[i] > prat_old[i]) & (prat_new[i] > self.dres['prat'][-1]):
