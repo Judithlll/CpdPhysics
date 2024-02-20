@@ -337,9 +337,10 @@ class System(object):
                                 tc = (prat_new-self.dres['prat']) / (prat_new-prat_old)*self.deltaT
                                 pratTscale = np.append(pratTscale, tc)
                         
-                        mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale[pratTscale>0].min()})
+                        if len(pratTscale[pratTscale>0]) >0:
+                            mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale[pratTscale>0].min()})
                         
-                        print(pratTscale/cgs.yr)
+                            print(pratTscale[pratTscale>0].min())
                         #if prat_new < 2:
                              
                         #   import pdb;pdb.set_trace()
