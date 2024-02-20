@@ -88,6 +88,7 @@ class System(object):
 
         #some resonance information
         self.dres = self.make_resL (jmax=10)
+        self.nplanet = 0 #start with 0 planets (??)
 
 
     def make_resL (self,jmax=4):
@@ -323,16 +324,16 @@ class System(object):
         #calculate mass flow change Timescale
         if self.oldstate is not None:   
             #Mass influx timescale
-            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / abs(self.oldstate.dotMg - self.dotMg) *self.deltaT
+            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / (1e-100 +abs(self.oldstate.dotMg - self.dotMg)) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': mdotgTscale})
             #timescale for the planets 
             # (including migration and mass growth)
         
 
-        if pars.doPlanets & (self.oldstate.nplanet == self.nplanet) & (self.nplanet >0):
-            PmassTscale = np.inf*np.ones(self.nplanet) #mass growth T.
-            PlocaTscale = np.inf*np.ones(self.nplanet) #migration T. 
-            PcompTscale = np.inf*np.ones(self.nplanet) #composition T. (later)
+        #if pars.doPlanets & (self.oldstate.nplanet == self.nplanet) & (self.nplanet >0):
+        PmassTscale = np.inf*np.ones(self.nplanet) #mass growth T.
+        PlocaTscale = np.inf*np.ones(self.nplanet) #migration T. 
+        PcompTscale = np.inf*np.ones(self.nplanet) #composition T. (later)
 
 
         pratTscale = np.inf*np.ones(self.nplanet)
@@ -361,22 +362,22 @@ class System(object):
             #resonance approaching T.
             if pars.doResonance:
 
-                if i>0:
+                if i>0 and iold>0:
                     jres = planet.inxt +1#for 3:2 reson, inxt=1, and j=2 (j+1:j)
-                    prat = (planet.loc/self.planetL[i-1])**(3/2)
-                    pratold = (self.oldstate.planetL[iold]/self.oldstate.planetL[iold-1])**(3/2) #please check...
+                    prat = (planet.loc/self.planetL[i-1].loc)**(3/2)
+                    pratold = (self.oldstate.planetL[iold].loc/self.oldstate.planetL[iold-1].loc)**(3/2) #please check...
 
                     #resonace offset (positive quantity)
                     pdel = prat -(jres+1)/jres
                     pdelold = pratold -(jres+1)/jres
 
                     #calculate how fast the planets approach resonance 
-                    peps = 1e-3
-                    dum2 = (peps +np.abs(pdel)) /(peps +np.abs(pdelold)) #...
+                    #the timescale on which planets approach resonance
+                    pratTscale[i] = np.float64(pdel) /(1e-100 +abs(pdel-pdelold)) *self.deltaT
 
 
                 #calculate the period ratio
-                if self.oldstate.nplanet >= 2:
+                if self.oldstate.nplanet >= 2 and False:
                     prat_old = np.array([(self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
                     prat_new = np.array([(self.planetL[i+1].loc/self.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
                     
@@ -496,9 +497,9 @@ class System(object):
                     else:
                         planet.relp_comp = np.nan
                         
-                mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
-                mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
-                mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
+            mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
+            mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
+            mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
 
 
         #timescale for the icelines
@@ -506,7 +507,8 @@ class System(object):
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
             for i,iceline in enumerate(self.icelineL):
                 if not np.isnan(iceline.loc):
-                    tscale = np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
+                    #[24.02.20]cwo:added a small number to the denominator
+                    tscale = np.float64(iceline.loc)/(1e-100+abs(self.oldstate.icelineL[i].loc-iceline.loc))*self.deltaT
                     iceline.loc_tc = tscale
                     IlocaTscale[i] = tscale
         
@@ -658,7 +660,7 @@ class System(object):
 
         print(f'[core.system.jump]:at {self.time/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
         print(f'[core.system_jump]:jump time limited by: {self.jump_limitation}')
-        print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:8.2e} yr')
+        print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:9.2e} yr')
         
         if self.planetL[0].loc <dp.rinn:
             print('[core.system.jump]: the first planet migrates across the inner edge')
