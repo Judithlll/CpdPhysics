@@ -10,6 +10,9 @@ import userfun
 import time 
 import fileio
 import time
+import matplotlib.pyplot as plt
+import numpy as np
+
 start=time.time()
 argL = sys.argv #maybe use later
 if 'fromfile' in argL:
@@ -113,13 +116,16 @@ while True:
         end = time.time()
         runTime = end-start
         break
-
 #store system components as pickles
 fileio.store_class(system, 'system')
 userfun.data.plot_planet_migration()
 userfun.data.plot_jumpT()
 userfun.data.plot_stuff(system.gas)
 import pdb;pdb.set_trace()
+plt.figure()
+plt.plot(userfun.data.timeL, userfun.data.planetslocL.T[1]/userfun.data.planetslocL.T[0])
+plt.plot(userfun.data.timeL, 2*np.ones_like(userfun.data.timeL))
+plt.savefig("pratio.jpg")
 print('[runcpd]:finished')
 
 

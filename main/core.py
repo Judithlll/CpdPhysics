@@ -324,18 +324,25 @@ class System(object):
                 PmassTscale = np.inf*np.ones(self.nplanet)
                 PlocaTscale = np.inf*np.ones(self.nplanet) 
                 PcompTscale = np.inf*np.ones(self.nplanet)
-                #calculate the period ratio
-                pratTscale = np.array([])
-                if self.oldstate.nplanet >= 2:
-                    prat_old = np.array([self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc for i in range(self.nplanet-1)])
-                    prat_new = np.array([self.planetL[i+1].loc/self.planetL[i].loc for i in range(self.nplanet-1)])
-                    
-                    for pratio in self.dres['prat']:
-                        if prat_new > pratio:
-                            tc = abs((pratio-prat_new) / (prat_new-prat_old))*self.deltaT
-                            pratTscale = np.append(pratTscale, tc)
-                    mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale.min()}) 
-                    import pdb;pdb.set_trace()
+                
+                if pars.doResonance:
+                    #calculate the period ratio
+                    pratTscale = np.array([])
+                    if self.oldstate.nplanet >= 2:
+                        prat_old = np.array([self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc for i in range(self.nplanet-1)])
+                        prat_new = np.array([self.planetL[i+1].loc/self.planetL[i].loc for i in range(self.nplanet-1)])
+                        
+                        for i in range(len(prat_new)):
+                            if (prat_new[i] > prat_old[i]) & (prat_new[i] > self.dres['prat'][-1]):
+                                tc = (prat_new-self.dres['prat']) / (prat_new-prat_old)*self.deltaT
+                                pratTscale = np.append(pratTscale, tc)
+                        
+                        mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale[pratTscale>0].min()})
+                        
+                        print(pratTscale/cgs.yr)
+                        #if prat_new < 2:
+                             
+                        #   import pdb;pdb.set_trace()
                 thre_jump_max = 1e-3  #threshold when getting the max jumpT
                 for i in range(self.nplanet):
                     planet = self.planetL[i]

@@ -26,3 +26,4 @@ tmax = 8e3 *cgs.yr
 
 doPlanets = True
 doIcelines = True
+doResonance = True
