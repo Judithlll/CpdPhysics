@@ -112,27 +112,28 @@ class System(object):
     def add_planet (self, planet):
         self.planetL.append(planet)
         self.nplanet += 1
+        locpl = planet.loc
         
-        if self.nplanet >=2:
-            locL = [self.planetL[i].loc for i in range(self.nplanet)]
-            #sort the planetL 
-            
+        #sort the planetL (TBD)
 
-            prat = self.planetL
-            
-        if False:
-            iplanet = self.nplanet
-            self.planetinfo.append({}) #planet info dict. But you we can replace this with our planet class here
-            self.planetinfo[iplanet]['name'] = hr8799.names[iplanet]
+        locL = [self.planetL[i].loc for i in range(self.nplanet)]
+        iloc = locL.index(locpl)#provides the new sorted location of the added planet
 
-            #consider the next resonance
-            if self.nplanet>0:
-                prat = (self.yvec[-1,0]/self.yvec[-2,0])**1.5
-                inxt = (dres['prat']<prat).argmax()
+        #there is an interior planet
+        if iloc>0:
+            prat = (locpl/self.planetL[iloc-1].loc)**1.5
+            inxt = (self.dres['prat']<prat).argmax()
+            planet.inxt = inxt  #next upcoming res.
+            planet.resS = -1    #-1: not yet in resonance
 
-                ## "inxt": this is the next resonance
-                self.planetinfo[iplanet]['inxt'] = min(9,inxt) #HACK [23.10.19]changed to "9"
-                self.planetinfo[iplanet]['resS'] = -1
+        #there's an exterior planet
+        if iloc<self.nplanet-1:
+            prat = (planetL[iloc+1]/locpl)**1.5
+            inxt = (self.dres['prat']<prat).argmax()
+            planetE = self.planetL[iloc+1]
+            planetE.inxt = inxt  #next upcoming res.
+            planetE.resS = -1    #-1: not yet in resonance
+
 
 
     def init_particles(self, dparticleprops={}):
@@ -352,6 +353,8 @@ class System(object):
                         #if prat_new < 2:
                              
                         #   import pdb;pdb.set_trace()
+
+                #fit the planet growth by pebble accretion
                 thre_jump_max = 1e-3  #threshold when getting the max jumpT
                 for i in range(self.nplanet):
                     planet = self.planetL[i]
@@ -363,14 +366,14 @@ class System(object):
                             planet.planetMassData.append([self.time , planet.mass])
 
 
-                        #then try to fit the mass to a curve
                         #planet.loc_t
                         PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
                         
-                        #consider the data is not large enough to make the fit
 
+                        #then try to fit the mass to a curve
                         Npts = len(planet.planetMassData)
                         Nfit = 10
+                        #consider the data is not large enough to make the fit
                         if Npts >= Nfit:
                             #better way to do
                             timedots, massdots = np.log(np.array(planet.planetMassData).T)
