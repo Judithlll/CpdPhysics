@@ -111,6 +111,7 @@ class System(object):
     #   This is copied from another program from mine
     def add_planet (self, planet):
         self.planetL.append(planet)
+        planet.number = self.nplanet
         self.nplanet += 1
         locpl = planet.loc
         
@@ -317,166 +318,201 @@ class System(object):
         #    Mcpold = Mcpnew
         #    mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
-        
-       
 
-        
+
+        #calculate mass flow change Timescale
         if self.oldstate is not None:   
             #Mass influx timescale
             mdotgTscale = (1e-100 + np.float64(self.dotMg)) / abs(self.oldstate.dotMg - self.dotMg) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': mdotgTscale})
             #timescale for the planets 
             # (including migration and mass growth)
-            
+        
 
-            if pars.doPlanets & (self.oldstate.nplanet == self.nplanet) &(self.nplanet >0):
-                PmassTscale = np.inf*np.ones(self.nplanet)
-                PlocaTscale = np.inf*np.ones(self.nplanet) 
-                PcompTscale = np.inf*np.ones(self.nplanet)
+        if pars.doPlanets & (self.oldstate.nplanet == self.nplanet) & (self.nplanet >0):
+            PmassTscale = np.inf*np.ones(self.nplanet) #mass growth T.
+            PlocaTscale = np.inf*np.ones(self.nplanet) #migration T. 
+            PcompTscale = np.inf*np.ones(self.nplanet) #composition T. (later)
+
+
+        pratTscale = np.inf*np.ones(self.nplanet)
+       
+        #loop over all planets to monitor their changes in ...
+        for i in range(self.nplanet):
+            planet = self.planetL[i]
+
+            #match the planet with its oldstate by their name (unique number)
+            uname = planet.number #its unique name
+            uoldL = [planet.number for planet in self.oldstate.planetL]
+
+            try:
+                iold = uoldL.index(uname)
+            except:#it did not exist yet
+                iold = -1
+
+
+            #planet migration T.
+            #oldstate needs to have the same shape (otherwise not the same planet)
+            #TBD: This should be improved. Better if we can refer it like: planet.previoustime.loc 
+            if iold>=0:
+                PlocaTscale[i] = np.float64(planet.loc)/abs(self.oldstate.planetL[iold].loc-planet.loc)*self.deltaT
                 
-                if pars.doResonance:
-                    #calculate the period ratio
-                    pratTscale = np.array([])
-                    if self.oldstate.nplanet >= 2:
-                        prat_old = np.array([(self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
-                        prat_new = np.array([(self.planetL[i+1].loc/self.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
+
+            #resonance approaching T.
+            if pars.doResonance:
+
+                if i>0:
+                    jres = planet.inxt +1#for 3:2 reson, inxt=1, and j=2 (j+1:j)
+                    prat = (planet.loc/self.planetL[i-1])**(3/2)
+                    pratold = (self.oldstate.planetL[iold]/self.oldstate.planetL[iold-1])**(3/2) #please check...
+
+                    #resonace offset (positive quantity)
+                    pdel = prat -(jres+1)/jres
+                    pdelold = pratold -(jres+1)/jres
+
+                    #calculate how fast the planets approach resonance 
+                    peps = 1e-3
+                    dum2 = (peps +np.abs(pdel)) /(peps +np.abs(pdelold)) #...
+
+
+                #calculate the period ratio
+                if self.oldstate.nplanet >= 2:
+                    prat_old = np.array([(self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
+                    prat_new = np.array([(self.planetL[i+1].loc/self.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
+                    
+                    for i in range(len(prat_new)):
+                        if (prat_new[i] < prat_old[i]) & (prat_new[i] > self.dres['prat'][-1]):
+                            tc = (prat_new-self.dres['prat']) / (prat_new-prat_old)*self.deltaT
+                            pratTscale = np.append(pratTscale, tc)
+                    
+                    if len(pratTscale[pratTscale>0]) >0:
+                        mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale[pratTscale>0].min()})
+                    
+                        print(pratTscale[pratTscale>0].min())
+                    #if prat_new < 2:
+                         
+                    #   import pdb;pdb.set_trace()
+
+
+
+            #fit the planet growth by pebble accretion
+            thre_jump_max = 1e-3  #threshold when getting the max jumpT
+
+            #store mass data first
+            if iold>=0 and self.oldstate.planetL[i].mass != planet.mass:
+                # self.masstime=
+                planet.planetMassData.append([self.time , planet.mass])
+
+
+            #then try to fit the mass to a curve
+            Npts = len(planet.planetMassData)
+            Nfit = 10
+            #consider the data is not large enough to make the fit
+            if Npts >= Nfit:
+                #better way to do
+                timedots, massdots = np.log(np.array(planet.planetMassData).T)
+                #timedots = np.log10([planet.planetMassData[j][0] for j in range(len(planet.planetMassData))])
+                def mass_fit(logt,p,b):
+                    logm = p*logt+b
+                    return logm 
+                def jac_mass_fit (logt,p,b):
+                    jac = np.array([logt, np.ones_like(logt)]).T
+                    return jac
+
+                #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
+
+                relp = np.inf #relative error/uncertainty in pwl index
+                popt = np.array([1,1]) #initial guess (p0)
+                while Nfit<=Npts:
+                    ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
+                    #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
+                    popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
+
+                    #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
+                    #print(line)
+                    if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
+                        pidx = popt[0]
+                        psig = np.sqrt(pcov[0,0])
+                        relp = psig/np.abs(pidx)
+                    else:
+                        break
+                    Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
+                planet.relp_mass = relp
+                #if Npts>=10 and self.ntime>1000:
+                #    import pdb; pdb.set_trace()
+                #plt.scatter(timedots, massdots)
+                #t_list=np.linspace(timedots[0], timedots[-1], 30)
+                #plt.plot(t_list, mass_fit(t_list, *popt))
+                #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+                
+                planet.dmdt = pidx *planet.mass/(self.time) 
+                planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
+                PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
+                #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
+                
+                #jump time is limited by uncertainty in the fit
+                denom = (planet.dmdt_err - planet.dmdt*thre_jump_max)
+                if denom<0:
+                    planet.max_jumpT = np.inf
+                else:
+                    planet.max_jumpT = thre_jump_max*planet.mass /denom
+                    #print(f'{self.ntime} {i} {Nfit} {Npts} {planet.max_jumpT/cgs.yr:10.3e}')
+                #TBD: other conditions (migrate into icelines or no gas region...)
+            else:
+                planet.dmdt = 0
+                planet.relp_mass = np.inf 
+                planet.max_jumpT = 0.0 #np.nan
                         
-                        for i in range(len(prat_new)):
-                            if (prat_new[i] < prat_old[i]) & (prat_new[i] > self.dres['prat'][-1]):
-                                tc = (prat_new-self.dres['prat']) / (prat_new-prat_old)*self.deltaT
-                                pratTscale = np.append(pratTscale, tc)
+                #get the planet composition change time scale
+                #TBD: do the composition 'crude' for the moment, assuming the comp of added mass during the jump is the same as the nearest particles
+                if False:
+                    if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
+                        planet.compData.append([self.time, planet.fcomp[0]])
+                    
+                    if len(planet.compData) >10:
+                        timedots, compdots = np.array(planet.compData).T
+                        timedots = np.log(timedots)
+                        def comp_fit(t,a,b):
+                            c = a*t+b
+                            return c
                         
-                        if len(pratTscale[pratTscale>0]) >0:
-                            mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale[pratTscale>0].min()})
-                        
-                            print(pratTscale[pratTscale>0].min())
-                        #if prat_new < 2:
-                             
-                        #   import pdb;pdb.set_trace()
-
-                #fit the planet growth by pebble accretion
-                thre_jump_max = 1e-3  #threshold when getting the max jumpT
-                for i in range(self.nplanet):
-                    planet = self.planetL[i]
-                    if self.time>planet.starttime:
-
-                            #store mass data first
-                        if self.oldstate.planetL[i].mass != planet.mass:
-                            # self.masstime=
-                            planet.planetMassData.append([self.time , planet.mass])
-
-
-                        #planet.loc_t
-                        PlocaTscale[i]=np.float64(self.planetL[i].loc)/abs(self.oldstate.planetL[i].loc-self.planetL[i].loc)*self.deltaT
-                        
-
-                        #then try to fit the mass to a curve
-                        Npts = len(planet.planetMassData)
-                        Nfit = 10
-                        #consider the data is not large enough to make the fit
-                        if Npts >= Nfit:
-                            #better way to do
-                            timedots, massdots = np.log(np.array(planet.planetMassData).T)
-                            #timedots = np.log10([planet.planetMassData[j][0] for j in range(len(planet.planetMassData))])
-                            def mass_fit(logt,p,b):
-                                logm = p*logt+b
-                                return logm 
-                            def jac_mass_fit (logt,p,b):
-                                jac = np.array([logt, np.ones_like(logt)]).T
-                                return jac
-
-                            #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
-
-                            relp = np.inf #relative error/uncertainty in pwl index
-                            popt = np.array([1,1]) #initial guess (p0)
-                            while Nfit<=Npts:
-                                ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
-                                #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
-                                popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
-
-                                #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
-                                #print(line)
-                                if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
-                                    pidx = popt[0]
-                                    psig = np.sqrt(pcov[0,0])
-                                    relp = psig/np.abs(pidx)
-                                else:
-                                    break
-                                Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
-                            planet.relp_mass = relp
-                            #if Npts>=10 and self.ntime>1000:
-                            #    import pdb; pdb.set_trace()
-                            #plt.scatter(timedots, massdots)
-                            #t_list=np.linspace(timedots[0], timedots[-1], 30)
-                            #plt.plot(t_list, mass_fit(t_list, *popt))
-                            #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
-                            
-                            planet.dmdt = pidx *planet.mass/(self.time) 
-                            planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
-                            PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
-                            #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
-                            
-                            #jump time is limited by uncertainty in the fit
-                            denom = (planet.dmdt_err - planet.dmdt*thre_jump_max)
-                            if denom<0:
-                                planet.max_jumpT = np.inf
+                        relp = np.inf
+                        while Nfit<=Npts:
+                            popt, pcov = curve_fit(mass_fit, timedots[-Nfit:], compdots[-Nfit:])
+                            #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
+                            #print(line)
+                            if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
+                                pidx = popt[0]
+                                psig = np.sqrt(pcov[0,0])
+                                relp = psig/np.abs(pidx)
                             else:
-                                planet.max_jumpT = thre_jump_max*planet.mass /denom
-                                #print(f'{self.ntime} {i} {Nfit} {Npts} {planet.max_jumpT/cgs.yr:10.3e}')
-                            #TBD: other conditions (migrate into icelines or no gas region...)
-                        else:
-                            planet.dmdt = 0
-                            planet.relp_mass = np.inf 
-                            planet.max_jumpT = 0.0 #np.nan
+                                break
+                            Nfit = int(Nfit*1.2) +1
+                        planet.relp_comp = relp
                         
-                        #get the planet composition change time scale
-                        #TBD: do the composition 'crude' for the moment, assuming the comp of added mass during the jump is the same as the nearest particles
-                        if False:
-                            if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
-                                planet.compData.append([self.time, planet.fcomp[0]])
-                            
-                            if len(planet.compData) >10:
-                                timedots, compdots = np.array(planet.compData).T
-                                timedots = np.log(timedots)
-                                def comp_fit(t,a,b):
-                                    c = a*t+b
-                                    return c
-                                
-                                relp = np.inf
-                                while Nfit<=Npts:
-                                    popt, pcov = curve_fit(mass_fit, timedots[-Nfit:], compdots[-Nfit:])
-                                    #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
-                                    #print(line)
-                                    if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
-                                        pidx = popt[0]
-                                        psig = np.sqrt(pcov[0,0])
-                                        relp = psig/np.abs(pidx)
-                                    else:
-                                        break
-                                    Nfit = int(Nfit*1.2) +1
-                                planet.relp_comp = relp
-                                
-                                PcompTscale[i] = (np.exp(timedots[-1])-planet.starttime)* compdots[-1]/abs(popt[0]) 
-                                planet.comp_tc = PcompTscale[i]
+                        PcompTscale[i] = (np.exp(timedots[-1])-planet.starttime)* compdots[-1]/abs(popt[0]) 
+                        planet.comp_tc = PcompTscale[i]
 
-                            else:
-                                planet.relp_comp = np.nan
+                    else:
+                        planet.relp_comp = np.nan
                         
                 mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
                 mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
                 mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
 
-            #timescale for the icelines
-            if pars.doIcelines:
-                IlocaTscale=np.inf*np.ones_like(self.icelineL)
-                for i,iceline in enumerate(self.icelineL):
-                    if not np.isnan(iceline.loc):
-                        tscale = np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
-                        iceline.loc_tc = tscale
-                        IlocaTscale[i] = tscale
-            
-                mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
+
+        #timescale for the icelines
+        if pars.doIcelines and self.oldstate is not None:
+            IlocaTscale=np.inf*np.ones_like(self.icelineL)
+            for i,iceline in enumerate(self.icelineL):
+                if not np.isnan(iceline.loc):
+                    tscale = np.float64(iceline.loc)/abs(self.oldstate.icelineL[i].loc-iceline.loc)*self.deltaT
+                    iceline.loc_tc = tscale
+                    IlocaTscale[i] = tscale
         
+            mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
+
+    
         # put mintimeL into system object for now to check
         self.mintimeL=mintimeL
         #make a class to use this mintimeL, change the name 
