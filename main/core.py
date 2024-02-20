@@ -112,6 +112,14 @@ class System(object):
     def add_planet (self, planet):
         self.planetL.append(planet)
         self.nplanet += 1
+        
+        if self.nplanet >=2:
+            locL = [self.planetL[i].loc for i in range(self.nplanet)]
+            #sort the planetL 
+            
+
+            prat = self.planetL
+            
         if False:
             iplanet = self.nplanet
             self.planetinfo.append({}) #planet info dict. But you we can replace this with our planet class here
@@ -329,11 +337,11 @@ class System(object):
                     #calculate the period ratio
                     pratTscale = np.array([])
                     if self.oldstate.nplanet >= 2:
-                        prat_old = np.array([(self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(2/3) for i in range(self.nplanet-1)])
-                        prat_new = np.array([(self.planetL[i+1].loc/self.planetL[i].loc)**(2/3) for i in range(self.nplanet-1)])
+                        prat_old = np.array([(self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
+                        prat_new = np.array([(self.planetL[i+1].loc/self.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
                         
                         for i in range(len(prat_new)):
-                            if (prat_new[i] > prat_old[i]) & (prat_new[i] > self.dres['prat'][-1]):
+                            if (prat_new[i] < prat_old[i]) & (prat_new[i] > self.dres['prat'][-1]):
                                 tc = (prat_new-self.dres['prat']) / (prat_new-prat_old)*self.deltaT
                                 pratTscale = np.append(pratTscale, tc)
                         
