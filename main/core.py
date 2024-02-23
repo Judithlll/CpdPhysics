@@ -330,13 +330,13 @@ class System(object):
             # (including migration and mass growth)
         
 
-        #if pars.doPlanets & (self.oldstate.nplanet == self.nplanet) & (self.nplanet >0):
-        PmassTscale = np.inf*np.ones(self.nplanet) #mass growth T.
-        PlocaTscale = np.inf*np.ones(self.nplanet) #migration T. 
-        PcompTscale = np.inf*np.ones(self.nplanet) #composition T. (later)
+        if pars.doPlanets:
+            PmassTscale = np.inf*np.ones(self.nplanet) #mass growth T.
+            PlocaTscale = np.inf*np.ones(self.nplanet) #migration T. 
+            PcompTscale = np.inf*np.ones(self.nplanet) #composition T. (later)
+            pratTscale = np.inf*np.ones(self.nplanet)
 
 
-        pratTscale = np.inf*np.ones(self.nplanet)
        
         #loop over all planets to monitor their changes in ...
         for i in range(self.nplanet):
@@ -344,8 +344,8 @@ class System(object):
 
             #match the planet with its oldstate by their name (unique number)
             uname = planet.number #its unique name
-            uoldL = [planet.number for planet in self.oldstate.planetL]
 
+            uoldL = [planet.number for planet in self.oldstate.planetL]
             try:
                 iold = uoldL.index(uname)
             except:#it did not exist yet
@@ -376,26 +376,6 @@ class System(object):
                     pratTscale[i] = np.float64(pdel) /(1e-100 +abs(pdel-pdelold)) *self.deltaT
 
 
-                #calculate the period ratio
-                if self.oldstate.nplanet >= 2 and False:
-                    prat_old = np.array([(self.oldstate.planetL[i+1].loc/self.oldstate.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
-                    prat_new = np.array([(self.planetL[i+1].loc/self.planetL[i].loc)**(3/2) for i in range(self.nplanet-1)])
-                    
-                    for i in range(len(prat_new)):
-                        if (prat_new[i] < prat_old[i]) & (prat_new[i] > self.dres['prat'][-1]):
-                            tc = (prat_new-self.dres['prat']) / (prat_new-prat_old)*self.deltaT
-                            pratTscale = np.append(pratTscale, tc)
-                    
-                    if len(pratTscale[pratTscale>0]) >0:
-                        mintimeL.append({'name': 'Caught_into_res', 'tmin': pratTscale[pratTscale>0].min()})
-                    
-                        print(pratTscale[pratTscale>0].min())
-                    #if prat_new < 2:
-                         
-                    #   import pdb;pdb.set_trace()
-
-
-
             #fit the planet growth by pebble accretion
             thre_jump_max = 1e-3  #threshold when getting the max jumpT
 
@@ -424,6 +404,7 @@ class System(object):
 
                 relp = np.inf #relative error/uncertainty in pwl index
                 popt = np.array([1,1]) #initial guess (p0)
+                
                 while Nfit<=Npts:
                     ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
                     #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
@@ -641,6 +622,8 @@ class System(object):
                     paridx = np.argmin(abs(self.particles.locL - planet.loc))
                     planet.fcomp = (self.particles.fcomp[paridx]*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
                     planet.mass += jumpmass
+            if self.planetL[0].loc <dp.rinn:
+                print('[core.system.jump]: the first planet migrates across the inner edge')
 
         if pars.doIcelines:
             for iceline in self.icelineL:
@@ -662,8 +645,6 @@ class System(object):
         print(f'[core.system_jump]:jump time limited by: {self.jump_limitation}')
         print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:9.2e} yr')
         
-        if self.planetL[0].loc <dp.rinn:
-            print('[core.system.jump]: the first planet migrates across the inner edge')
            #import pdb;pdb.set_trace()
 
         #"erase" previous planet.crossL OR record the jump time to planet.
