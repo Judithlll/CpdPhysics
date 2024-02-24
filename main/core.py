@@ -373,7 +373,7 @@ class System(object):
 
                     #calculate how fast the planets approach resonance 
                     #the timescale on which planets approach resonance
-                    pratTscale[i] = np.float64(pdel) /(1e-100 +abs(pdel-pdelold)) *self.deltaT
+                    pratTscale[i] = np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT
 
 
             #fit the planet growth by pebble accretion
@@ -482,8 +482,13 @@ class System(object):
             mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
             mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
             mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
+            
             if pars.doResonance:
-                mintimeL.append({'name': 'PlanetsRes', 'tmin': min(pratTscale)})
+                for k,v in self.milestones.items():
+                    if v == 'resonance':
+                        del self.milestones[k]
+                self.milestones[min(pratTscale)] = 'resonance'
+                mintimeL.append({'name': 'PlanetsRes', 'tmin': min(pratTscale[pratTscale >0])})
             print (pratTscale, mintimeL[-1])
 
         #timescale for the icelines
