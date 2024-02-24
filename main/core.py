@@ -330,7 +330,7 @@ class System(object):
             # (including migration and mass growth)
         
 
-        if pars.doPlanets:
+        if pars.doPlanets and self.nplanet > 0:
             PmassTscale = np.inf*np.ones(self.nplanet) #mass growth T.
             PlocaTscale = np.inf*np.ones(self.nplanet) #migration T. 
             PcompTscale = np.inf*np.ones(self.nplanet) #composition T. (later)
@@ -477,11 +477,14 @@ class System(object):
 
                     else:
                         planet.relp_comp = np.nan
-                        
+        
+        if pars.doPlanets and self.nplanet >0:                        
             mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
             mintimeL.append({'name': 'planetsGrowth', 'tmin': min(PmassTscale)})
             mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
-
+            if pars.doResonance:
+                mintimeL.append({'name': 'PlanetsRes', 'tmin': min(pratTscale)})
+            print (pratTscale, mintimeL[-1])
 
         #timescale for the icelines
         if pars.doIcelines and self.oldstate is not None:
