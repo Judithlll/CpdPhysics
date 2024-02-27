@@ -373,8 +373,16 @@ class System(object):
 
                     #calculate how fast the planets approach resonance 
                     #the timescale on which planets approach resonance
-                    pratTscale[i] = np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT
+                    if pdel > 0:
+                        pratTscale[i] = np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT
+                    else:
+                        # this means planets go across the resonance point, for the moment set it to 0.0
+                        pratTscale[i] = 0.0
 
+
+                    if prat<2.00001:
+                        print(prat)
+                        import pdb;pdb.set_trace()
 
             #fit the planet growth by pebble accretion
             thre_jump_max = 1e-3  #threshold when getting the max jumpT
@@ -484,12 +492,12 @@ class System(object):
             mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
             
             if pars.doResonance:
-                for k,v in self.milestones.items():
+                tempd = copy.deepcopy(self.milestones)
+                for k,v in tempd.items():
                     if v == 'resonance':
-                        del self.milestones[k]
+                        self.milestones.pop(k)
                 self.milestones[min(pratTscale)] = 'resonance'
                 mintimeL.append({'name': 'PlanetsRes', 'tmin': min(pratTscale[pratTscale >0])})
-            print (pratTscale, mintimeL[-1])
 
         #timescale for the icelines
         if pars.doIcelines and self.oldstate is not None:

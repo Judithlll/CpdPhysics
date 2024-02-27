@@ -101,6 +101,10 @@ while True:
     #   system.post_process()
     system.post_process()
     
+    if system.deltaT <= 0:
+        print('[runcpd]: something wrong with deltaT')
+        import pdb; pdb.set_trace()
+
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
     
