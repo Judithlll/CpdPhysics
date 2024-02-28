@@ -496,7 +496,7 @@ class System(object):
                 for k,v in tempd.items():
                     if v == 'resonance':
                         self.milestones.pop(k)
-                self.milestones[min(pratTscale)] = 'resonance'
+                self.milestones[self.time+ 1e-3 +min(pratTscale)] = 'resonance'
                 mintimeL.append({'name': 'PlanetsRes', 'tmin': min(pratTscale[pratTscale >0])})
 
         #timescale for the icelines
