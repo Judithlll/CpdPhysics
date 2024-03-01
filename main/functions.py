@@ -7,6 +7,27 @@ import disk_properties as dp
 import os
 import parameters as pars
 
+def get_res_chain(res_setL):
+    newsetL = []
+    for ss in res_setL:
+        for k,nwss in enumerate(newsetL):
+            if nwss.intersection(ss):
+                newsetL[k] = nwss.union(ss) #merges
+                ss = None
+                break
+
+        if ss is not None:
+            newsetL.append(ss)
+
+    return newsetL
+
+def locate_chain(res_chainL, planetnumber):
+    
+    numset = {planetnumber}
+    for chain in res_chainL:
+        if numset.issubset(chain):
+            return chain
+
 def sample_equal (fx, x0, xf, Nsample=100, ttol=1e-5):
     """
     [23.12.30]: function copied from /NewLagrance by CWO

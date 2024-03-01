@@ -88,8 +88,9 @@ class System(object):
 
         #some resonance information
         self.dres = self.make_resL (jmax=10)
-        self.nplanet = 0 #start with 0 planets (??)
+        self.res_setL = []
 
+        self.nplanet = 0 #start with 0 planets (??)
 
     def make_resL (self,jmax=4):
         dres = {}
@@ -196,7 +197,31 @@ class System(object):
         copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg']
         self.oldstate = COPY (self, copy_list)
 
+    def remove_planet(self):
+        """
+        remove the planet
 
+        seems very stupid now, let's think about this later TBD:
+        """
+        for planet in self.planetL:
+            if planet.loc <= 0.0:
+                #remove the planet firstly
+                self.planetL.remove(planet)
+                
+                #remove this planet from the resonance sets and delete conresponding sets
+                uname = planet.number
+                for ss in self.res_setL:
+                    if {uname}.issubset(ss):
+                        # change the resS of the planet within this set to -1 
+                        # I cannot get a better way to do this... TBD:
+                        for p in self.planetL:
+                            if {p.number}.issubset(ss):
+                                p.resS = -1
+
+                        self.res_setL.remove(ss)
+                import pdb;pdb.set_trace()
+
+                print('[system.remove_planet]: planet {planet.number} is removed.')
 
     def post_process (self):
         """
@@ -283,6 +308,9 @@ class System(object):
         #N<90: mtot *= 0.9 && (wait some time?)
         self.particles.generate_Y2d()
 
+        # remove the planet if the planet location is too small, not sure if it should be here
+        self.remove_planet()
+
 
     def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, **kwargs):
         """
@@ -355,9 +383,7 @@ class System(object):
             #planet migration T.
             #oldstate needs to have the same shape (otherwise not the same planet)
             #TBD: This should be improved. Better if we can refer it like: planet.previoustime.loc 
-            if iold>=0:
-                PlocaTscale[i] = np.float64(planet.loc)/abs(self.oldstate.planetL[iold].loc-planet.loc)*self.deltaT
-                
+            PlocaTscale[i] = np.float64(planet.loc)/abs(planet.dlocdt)                
 
             #resonance approaching T.
             if pars.doResonance:
@@ -370,19 +396,26 @@ class System(object):
                     #resonace offset (positive quantity)
                     pdel = prat -(jres+1)/jres
                     pdelold = pratold -(jres+1)/jres
-
+                    
+                    # change the resonance state here, id the pdel is small enough, then teh resS = 'R'
+                    # for now we don't consider the condition that the planet jump over the resonance.
+                    if pdel < 1e-4: #a little arbitrary now
+                        planet.resS = 'R'
+                        # make sure every planet in the rasonance chain will be taken into consider when getting the migration rate
+                        self.planetL[uname-1].resS = 'R'
+                        pratTscale[i] = np.inf
+                        
+                        # make the resonance pairs into set list
+                        self.res_setL.append({self.planetL[i-1].number, uname})
+                    
                     #calculate how fast the planets approach resonance 
                     #the timescale on which planets approach resonance
-                    if pdel > 0:
-                        pratTscale[i] = np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT
                     else:
-                        # this means planets go across the resonance point, for the moment set it to 0.0
-                        pratTscale[i] = 0.0
+                        pratTscale[i] = np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT
 
 
-                    if prat<2.00001:
+                    if prat<2.01:
                         print(prat)
-                        import pdb;pdb.set_trace()
 
             #fit the planet growth by pebble accretion
             thre_jump_max = 1e-3  #threshold when getting the max jumpT
@@ -497,8 +530,8 @@ class System(object):
                     if v == 'resonance':
                         self.milestones.pop(k)
                 self.milestones[self.time+ 1e-3 +min(pratTscale)] = 'resonance'
-                mintimeL.append({'name': 'PlanetsRes', 'tmin': min(pratTscale[pratTscale >0])})
-
+                mintimeL.append({'name': 'PlanetsRes', 'tmin': np.min(pratTscale[pratTscale >= 0.0])})
+        
         #timescale for the icelines
         if pars.doIcelines and self.oldstate is not None:
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
@@ -520,6 +553,8 @@ class System(object):
         for ddum in mintimeL:
             if ddum['tmin'] < deltaT:
                 deltaT = ddum['tmin']
+            if ddum['tmin'] < 0:
+                import pdb;pdb.set_trace()
             
         if self.time+deltaT>tEnd:
             deltaT = tEnd - self.time
@@ -627,10 +662,7 @@ class System(object):
             for planet in self.planetL:
                 if self.time > planet.starttime:
                     
-                    if planet.loc + planet.dlocdt *self.jumpT <dp.rinn:
-                        planet.loc = dp.rinn
-                    else:
-                        planet.loc += planet.dlocdt *self.jumpT
+                    planet.loc += planet.dlocdt *self.jumpT
                     jumpmass = planet.dmdt* self.jumpT
 
                     #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
@@ -703,7 +735,6 @@ def advance_iceline (system):
 
 
 def advance_planets (system):
-    import planets_properties as pp
     """
     [23.12.06]copied/edited from NewLagrange
 
@@ -753,13 +784,33 @@ def advance_planets (system):
                     loc_t, mass_t, fcomp_t = \
                     userfun.XY_planet (sim.time, planet.loc, planet.mass, planet.fcomp, 
                             crossL)
-                else:
-                    if planet.loc > dp.rinn:
-                        loc_t = -userfun.planet_migration(system.gas,system.planetL[0].loc,system.planetL[0].mass,system.time,system.rhoPlanet)
+                else: 
+                    
+                    try:
+                        resS = planet.resS
+                    except:
+                        resS = None
+                    
+                    if resS == 'R':
+                        res_chainL = ff.get_res_chain(system.res_setL)
+                        chain = ff.locate_chain(res_chainL, planet.number) 
+                        loc_tL = []
+                        mL = []
+                        locL = []
+                        for p in system.planetL:
+                            if p.number in chain:
+                                loc_tL.append(-userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet))
+                                mL.append(p.mass)
+                                locL.append(p.loc)
+                        
+                        t_mig = np.sum(mL) / np.sum(np.array(loc_tL) * np.array(mL)/np.array(locL))
+                        loc_t = planet.loc / t_mig
                     else:
-                        loc_t = 0.0#migration rate of planet
+                        loc_t = -userfun.planet_migration(system.gas,planet.loc,planet.mass, system.time, system.rhoPlanet)
+                        
                     mass_t = 0.0    #gas accretion of planet, TBD:-later
                     fcomp_t = 0.0   #how its composition changes
+
                 if loc_t >0:
                     import pdb;pdb.set_trace()
                 #update planet properties from rates supplied by user
@@ -1180,6 +1231,7 @@ class PLANET ():
         #self.compData = [[time,fcomp[0]]]
         self.relp_comp = np.nan
         self.max_jumpT = 0.0
+        self.dlocdt = 0.0
 
 
     def record_cross_sp (self, time, sp, idxcross):

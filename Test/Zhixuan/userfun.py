@@ -45,12 +45,20 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
 
     # Stpl,vd=f.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rpl)
 
+    try:
+        rinn = disk.rinn
+    except:
+        rinn = 0.0
+    
+    if planetLoc < rinn:
+        vt1 = 0.0
+    else:
     #Type I migration
-    qr=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
+        qr=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
 
-    CI=0.1
-    bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
-    vt1=bt1*(planetMass/disk.mcp)*(disk.sigmaG*planetLoc**2/disk.mcp)*(disk.vK/disk.cs)**2*disk.vK
+        CI=0.1
+        bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
+        vt1=bt1*(planetMass/disk.mcp)*(disk.sigmaG*planetLoc**2/disk.mcp)*(disk.vK/disk.cs)**2*disk.vK
 
     # v_mig=vt1+vd
 
@@ -112,7 +120,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1*cgs.yr, 4.5e3*cgs.yr] 
+    timeL = [1*cgs.yr, 1e3*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [15*cgs.rJup, 25*cgs.rJup] 
