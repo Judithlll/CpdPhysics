@@ -485,7 +485,13 @@ class System(object):
                 planet.dmdt = 0
                 planet.relp_mass = np.inf 
                 planet.max_jumpT = 0.0 #np.nan
-                        
+            
+            # if the planet mmigrates into cavity, ths max_jumpT should be infinity
+            if planet.loc < dp.rinn:
+                planet.dmdt = 0
+                planet.relp_mass = np.inf
+                planet.max_jumpT = np.inf
+
                 #get the planet composition change time scale
                 #TBD: do the composition 'crude' for the moment, assuming the comp of added mass during the jump is the same as the nearest particles
                 if False:
@@ -635,6 +641,7 @@ class System(object):
             self.doJump = con0 & con1
         
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
+
 
         return djump
 
