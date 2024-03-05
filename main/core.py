@@ -204,9 +204,10 @@ class System(object):
         seems very stupid now, let's think about this later TBD:
         """
         for planet in self.planetL:
-            if planet.loc <= 0.0:
+            if planet.loc <= 4*cgs.RJ:
                 #remove the planet firstly
                 self.planetL.remove(planet)
+                self.nplanet -= 1
                 
                 #remove this planet from the resonance sets and delete conresponding sets
                 uname = planet.number
@@ -406,7 +407,9 @@ class System(object):
                         pratTscale[i] = np.inf
                         
                         # make the resonance pairs into set list
-                        self.res_setL.append({self.planetL[i-1].number, uname})
+                        res_set = {self.planetL[i-1].number, uname}
+                        if res_set not in self.res_setL:
+                            self.res_setL.append(res_set)
                     
                     #calculate how fast the planets approach resonance 
                     #the timescale on which planets approach resonance

@@ -257,12 +257,21 @@ class Data(object):
 
         #store palnets' data
         if pars.doPlanets:
-            self.planetsmass.setdefault(system.time, [planet.mass for planet in system.planetL])
+            # for now we assume the planets are in order 
+            plD = {p.number: p for p in system.planetL}
+            try:
+                lengt = max(plD.keys()) +1
+            except:
+                lengt = 0
+            pmassL = [np.nan] * lengt
+            plocL  = [np.nan] * lengt
+            for k,v in plD.items():
+                pmassL[k] = v.mass
+                plocL [k] = v.loc
+
+            self.planetsmass.setdefault(system.time,pmassL)
             
-            a = list(self.planetsmass.values())
-            if np.isnan(a[0]):
-                import pdb;pdb.set_trace()
-            self.planetsloc.setdefault(system.time, [planet.loc for planet in system.planetL])
+            self.planetsloc.setdefault(system.time,plocL )
 
         #store icelines' data
         if pars.doIcelines:
@@ -281,12 +290,15 @@ class Data(object):
         
         pmL = copy.deepcopy(list(self.planetsmass.values()))
         plL = copy.deepcopy(list(self.planetsloc.values()))
+        max_len = max([len(l) for l in pmL])
+        
+        import pdb;pdb.set_trace() 
+#maybe can use the number of planet
         for i in range (len(pmL)):
-            if len(pmL[i]) != len(pmL[-1]):
-                length = len(pmL[-1]) - len(pmL[i])
+            if len(pmL[i]) != max_len:
+                length = max_len - len(pmL[i])
                 pmL[i].extend([np.nan]*length)
                 plL[i].extend([np.nan]*length)
-        
         self.planetsmassL = np.array(pmL)
         self.planetslocL = np.array(plL)
 
