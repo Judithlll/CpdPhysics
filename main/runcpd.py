@@ -12,6 +12,7 @@ import fileio
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+import cgs
 
 start=time.time()
 argL = sys.argv #maybe use later
@@ -115,13 +116,15 @@ while True:
     final = system.time>=pars.tmax
 
     userfun.do_stuff(system, final=final)
-
+    
+    print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
         end = time.time()
         runTime = end-start
         break
 #store system components as pickles
 fileio.store_class(system, 'system')
+fileio.store_class(userfun.data, 'data')
 userfun.data.plot_planet_migration()
 userfun.data.plot_jumpT()
 userfun.data.plot_stuff(system.gas)

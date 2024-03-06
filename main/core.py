@@ -214,15 +214,13 @@ class System(object):
                 for ss in self.res_setL:
                     if {uname}.issubset(ss):
                         # change the resS of the planet within this set to -1 
-                        # I cannot get a better way to do this... TBD:
                         for p in self.planetL:
                             if {p.number}.issubset(ss):
                                 p.resS = -1
 
                         self.res_setL.remove(ss)
-                import pdb;pdb.set_trace()
 
-                print('[system.remove_planet]: planet {planet.number} is removed.')
+                print('[system.remove_planet]: planet '+str(planet.number)+ ' is removed.')
 
     def post_process (self):
         """
@@ -416,9 +414,6 @@ class System(object):
                     else:
                         pratTscale[i] = np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT
 
-
-                    if prat<2.01:
-                        print(prat)
 
             #fit the planet growth by pebble accretion
             thre_jump_max = 1e-3  #threshold when getting the max jumpT
@@ -754,6 +749,14 @@ def advance_planets (system):
         - add composition changes to planets
         - add migration rate
     """
+    res_chainL = ff.get_res_chain(system.res_setL)
+
+    #TBD: move to system level, such that system.dpname[uname] = i
+    dpname = {}
+    for i, planet in enumerate(system.planetL):
+        uname = planet.number
+        dpname[uname] = i
+
     for planet in system.planetL:
 
         #planet exists only after planet.time
@@ -802,19 +805,24 @@ def advance_planets (system):
                         resS = None
                     
                     if resS == 'R':
-                        res_chainL = ff.get_res_chain(system.res_setL)
                         chain = ff.locate_chain(res_chainL, planet.number) 
-                        loc_tL = []
-                        mL = []
-                        locL = []
+                        invtmigL = [] #inverse migration time
+                        weightL = []
+                        #mL = [] locL = []
                         for p in system.planetL:
                             if p.number in chain:
-                                loc_tL.append(-userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet))
-                                mL.append(p.mass)
-                                locL.append(p.loc)
-                        
-                        t_mig = np.sum(mL) / np.sum(np.array(loc_tL) * np.array(mL)/np.array(locL))
-                        loc_t = planet.loc / t_mig
+                                dum_t = -userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet)
+                                invtmigL.append(dum_t/p.loc)
+                                weightL.append(p.mass*p.loc**0.5)
+                                #mL.append(p.mass)
+                                #locL.append(p.loc)
+
+                        #joint migration timescale
+                        invmigtime = np.sum(np.array(weightL)*np.array(invtmigL)) /np.sum(np.array(weightL))
+                        loc_t = planet.loc *invmigtime
+
+                        #t_mig = np.sum(mL) / np.sum(np.array(loc_tL) * np.array(mL)/np.array(locL))
+                        #loc_t = planet.loc / t_mig
                     else:
                         loc_t = -userfun.planet_migration(system.gas,planet.loc,planet.mass, system.time, system.rhoPlanet)
                         

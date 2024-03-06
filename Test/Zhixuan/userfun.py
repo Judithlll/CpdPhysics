@@ -153,10 +153,10 @@ def do_stuff (sys, init=False, final= False):
     else:
         data.data_process(system)        
         #data object should be available...
-        tminarr = system.minTimes.tminarr        
-        sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
-        line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr)
-        print(line) #TBD: print more things 
+        #tminarr = system.minTimes.tminarr        
+        #sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
+        #line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr)
+        #print(line) #TBD: print more things 
 
 def plot_massfit(planetMassData):
     def mass_fit(t,a,b):
@@ -292,8 +292,7 @@ class Data(object):
         plL = copy.deepcopy(list(self.planetsloc.values()))
         max_len = max([len(l) for l in pmL])
         
-        import pdb;pdb.set_trace() 
-#maybe can use the number of planet
+        #maybe can use the number of planet
         for i in range (len(pmL)):
             if len(pmL[i]) != max_len:
                 length = max_len - len(pmL[i])
@@ -470,12 +469,14 @@ class Data(object):
         loclist = self.planetslocL.T
         time = np.array(list(self.planetsloc.keys()))
         for i,loc in enumerate(loclist):
-            plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'planet'+str(i+1))
+            plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'planet'+str(i+1), linewidth = 1)
         for jump in self.jumpstuff:
             plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.5)
+            plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
 
+        plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5)
         plt.legend()
-        plt.savefig('planet_migration.jpg')
+        plt.savefig('planet_migration.jpg',dpi=600)
         plt.close()
     
     def plot_jumpT(self):
