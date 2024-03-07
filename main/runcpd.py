@@ -115,9 +115,9 @@ while True:
     #[24.02.01]cwo: added stopping condition // we could add more
     final = system.time>=pars.tmax
 
-    userfun.do_stuff(system, final=final)
+    #userfun.do_stuff(system, final=final)
     
-    print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
+   # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
         end = time.time()
         runTime = end-start

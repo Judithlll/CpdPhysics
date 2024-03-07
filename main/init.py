@@ -199,6 +199,7 @@ def sim_init (calldir, dsystempars={},*args):
         system.planet_candidate = [] 
     system.planetL = []
     system.nplanet = 0
+    system.planetD = {}
     #[24.02.02] cwo
     #for simplicity, let's always enter this block ...
     #such that we always have a "construct_mask_icl" function

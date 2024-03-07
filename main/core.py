@@ -115,6 +115,7 @@ class System(object):
         self.planetL.append(planet)
         planet.number = self.nplanet
         self.nplanet += 1
+        self.planetD.setdefault(planet.number, planet)
         locpl = planet.loc
         
         #sort the planetL (TBD)
@@ -203,24 +204,46 @@ class System(object):
 
         seems very stupid now, let's think about this later TBD:
         """
-        for planet in self.planetL:
-            if planet.loc <= 4*cgs.RJ:
-                #remove the planet firstly
-                self.planetL.remove(planet)
-                self.nplanet -= 1
-                
-                #remove this planet from the resonance sets and delete conresponding sets
-                uname = planet.number
+
+        for num, pl in self.planetD.items():
+            if pl.loc <= 4*cgs.RJ:
+                #let's test what if we change the resonance state first
+                remove_setL = []
+                import pdb;pdb.set_trace()
                 for ss in self.res_setL:
-                    if {uname}.issubset(ss):
-                        # change the resS of the planet within this set to -1 
-                        for p in self.planetL:
-                            if {p.number}.issubset(ss):
-                                p.resS = -1
+                    if {num}.issubset(ss):
+                        plnum = list(ss-{num})[0]
+                        self.planetD[plnum].resS = -1
+                        remove_setL.append(ss)
+                
+                #then remove the planet 
+                self.planetL.remove(pl)
+                self.nplanet -= 1
+                print('[system.remove_planet]: planet '+str(pl.number)+ ' is removed.')
 
-                        self.res_setL.remove(ss)
+                for rs in remove_setL:
+                    self.res_setL.remove(rs)
+        self.planetD = {p.number:p for p in self.planetL}
 
-                print('[system.remove_planet]: planet '+str(planet.number)+ ' is removed.')
+
+        if False:
+            for planet in self.planetL:
+                if planet.loc <= 4*cgs.RJ:
+                    #remove the planet firstly
+                    self.planetL.remove(planet)
+                    self.nplanet -= 1
+
+                    #remove this planet from the resonance sets and delete conresponding sets
+                    uname = planet.number
+                    for ss in self.res_setL:
+                        if {uname}.issubset(ss):
+                            # change the resS of the planet within this set to -1 
+                            for p in self.planetL:
+                                if {p.number}.issubset(ss):
+                                    p.resS = -1
+
+                            self.res_setL.remove(ss)
+
 
     def post_process (self):
         """
@@ -529,13 +552,12 @@ class System(object):
             mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
             
             if pars.doResonance:
-                tempd = copy.deepcopy(self.milestones)
-                for k,v in tempd.items():
-                    if v == 'resonance':
-                        self.milestones.pop(k)
+                for value in self.milestones.keys():
+                    if value == 'resonance':
+                        del self.milestones[value]
+                 
                 self.milestones[self.time+ 1e-3 +min(pratTscale)] = 'resonance'
                 mintimeL.append({'name': 'PlanetsRes', 'tmin': np.min(pratTscale[pratTscale >= 0.0])})
-        
         #timescale for the icelines
         if pars.doIcelines and self.oldstate is not None:
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
@@ -751,11 +773,6 @@ def advance_planets (system):
     """
     res_chainL = ff.get_res_chain(system.res_setL)
 
-    #TBD: move to system level, such that system.dpname[uname] = i
-    dpname = {}
-    for i, planet in enumerate(system.planetL):
-        uname = planet.number
-        dpname[uname] = i
 
     for planet in system.planetL:
 
@@ -808,21 +825,15 @@ def advance_planets (system):
                         chain = ff.locate_chain(res_chainL, planet.number) 
                         invtmigL = [] #inverse migration time
                         weightL = []
-                        #mL = [] locL = []
-                        for p in system.planetL:
-                            if p.number in chain:
-                                dum_t = -userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet)
-                                invtmigL.append(dum_t/p.loc)
-                                weightL.append(p.mass*p.loc**0.5)
-                                #mL.append(p.mass)
-                                #locL.append(p.loc)
-
+                        for num in chain:
+                            p = system.planetD[num]
+                            dum_t = -userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet)
+                            invtmigL.append(dum_t/p.loc)
+                            weightL.append(p.mass*p.loc**0.5)
+                        
                         #joint migration timescale
                         invmigtime = np.sum(np.array(weightL)*np.array(invtmigL)) /np.sum(np.array(weightL))
                         loc_t = planet.loc *invmigtime
-
-                        #t_mig = np.sum(mL) / np.sum(np.array(loc_tL) * np.array(mL)/np.array(locL))
-                        #loc_t = planet.loc / t_mig
                     else:
                         loc_t = -userfun.planet_migration(system.gas,planet.loc,planet.mass, system.time, system.rhoPlanet)
                         
@@ -831,6 +842,20 @@ def advance_planets (system):
 
                 if loc_t >0:
                     import pdb;pdb.set_trace()
+
+                # set a milestone: when planet will reach to the inner edge
+                msg = 'planet-reach-rinn-'+str(planet.number)
+                #update the time corr. to the message
+                #find the key corresponding to the value
+                for key,val in system.milestones.items():
+                    if val==msg:
+                        del system.milestones[key] ## doesnt work?
+                        break
+
+                #add/update milestone
+                key = (planet.loc-dp.rinn)/abs(loc_t)
+                system.milestones[key + system.time] = msg
+
                 #update planet properties from rates supplied by user
                 planet_loc_nw = planet.loc + loc_t *system.deltaT
 

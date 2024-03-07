@@ -474,7 +474,7 @@ class Data(object):
             plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.5)
             plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
 
-        plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5)
+        plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
         plt.legend()
         plt.savefig('planet_migration.jpg',dpi=600)
         plt.close()
