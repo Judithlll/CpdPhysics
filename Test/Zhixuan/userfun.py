@@ -250,7 +250,7 @@ class Data(object):
             self.jumpstuff.append(stuff)
 
 
-    def get_plot_list(self):
+    def get_plot_list(self, doParticles = False):
         """
         process data and make it in order 
         """
@@ -258,26 +258,33 @@ class Data(object):
         
         # if particles ware removed, then put a np.nan into this location. 
         # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
-        complen = len(self.fcompD[self.timeL[0]][0])
-        for tt, daction in self.dactionD.items():
-            idx = self.timeL.index(tt)
-            if 'remove' in daction.keys():
-                added_L = np.array([np.nan]*len(daction['remove']))
-                fcomp_adL = np.array([[np.nan]*complen]*len(daction['remove']))
-                for re_time in self.timeL[idx:]:
-                    self.radD[re_time] = np.append(added_L, self.radD[re_time])
-                    self.mD[re_time] = np.append(added_L, self.mD[re_time])
-                    self.mtotD[re_time] = np.append(added_L, self.mtotD[re_time])
-                    self.fcompD[re_time] = np.append(fcomp_adL, self.fcompD[re_time],0)
-           
-            if 'add' in daction.keys():
-                added_L = np.array([np.nan]*daction['add'])
-                fcomp_adL = np.array([[np.nan]*complen]*daction['add'])
-                for ad_time in self.timeL[:idx]:
-                    self.radD[ad_time] = np.append(self.radD[ad_time], added_L)
-                    self.mD[ad_time] = np.append(self.mD[ad_time], added_L)
-                    self.mtotD[ad_time] = np.append(self.mtotD[ad_time], added_L)
-                    self.fcompD[ad_time] = np.append(self.fcompD[ad_time], fcomp_adL, 0)
+        if doParticles:
+            complen = len(self.fcompD[self.timeL[0]][0])
+            for tt, daction in self.dactionD.items():
+                idx = self.timeL.index(tt)
+                if 'remove' in daction.keys():
+                    added_L = np.array([np.nan]*len(daction['remove']))
+                    fcomp_adL = np.array([[np.nan]*complen]*len(daction['remove']))
+                    for re_time in self.timeL[idx:]:
+                        self.radD[re_time] = np.append(added_L, self.radD[re_time])
+                        self.mD[re_time] = np.append(added_L, self.mD[re_time])
+                        self.mtotD[re_time] = np.append(added_L, self.mtotD[re_time])
+                        self.fcompD[re_time] = np.append(fcomp_adL, self.fcompD[re_time],0)
+               
+                if 'add' in daction.keys():
+                    added_L = np.array([np.nan]*daction['add'])
+                    fcomp_adL = np.array([[np.nan]*complen]*daction['add'])
+                    for ad_time in self.timeL[:idx]:
+                        self.radD[ad_time] = np.append(self.radD[ad_time], added_L)
+                        self.mD[ad_time] = np.append(self.mD[ad_time], added_L)
+                        self.mtotD[ad_time] = np.append(self.mtotD[ad_time], added_L)
+                        self.fcompD[ad_time] = np.append(self.fcompD[ad_time], fcomp_adL, 0)
+            
+            self.radL=np.array(list(self.radD.values()))
+            self.mL=  np.array(list(self.mD.values()))
+            self.mtotL=np.array(list(self.mtotD.values()))
+            self.fcompL = np.array(list(self.fcompD.values()))
+        
                 
 
         if False:
@@ -310,13 +317,6 @@ class Data(object):
                     self.fcompD[k] = np.append(self.fcompD[k], apdv, axis = 0)
 
 
-
-
-        self.radL=np.array(list(self.radD.values()))
-        self.mL=  np.array(list(self.mD.values()))
-        self.mtotL=np.array(list(self.mtotD.values()))
-        self.fcompL = np.array(list(self.fcompD.values()))
-        
         pmL = copy.deepcopy(list(self.planetsmass.values()))
         plL = copy.deepcopy(list(self.planetsloc.values()))
         max_len = max([len(l) for l in pmL])

@@ -8,7 +8,7 @@ def store_class(class_name, filename):
         os.makedirs('./pickles')
     with open('./pickles/'+filename+'.pickle','wb') as f:
         pickle.dump(class_name, f)
-    print('[fileio]: '+filename+' class has been stored into system.pickle')
+    print('[fileio]: '+filename+' class has been stored as '+filename+'.pickle')
 
 
 def load_class(path,filename):

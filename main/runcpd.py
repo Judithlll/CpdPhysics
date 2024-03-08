@@ -126,11 +126,9 @@ while True:
 #store system components as pickles
 fileio.store_class(system, 'system')
 fileio.store_class(userfun.data, 'data')
-userfun.data.get_plot_list()
-userfun.data.plot_stuff(system.gas)
+userfun.data.get_plot_list(doParticles = False)
 userfun.data.plot_planet_migration()
 userfun.data.plot_jumpT()
-userfun.data.plot_stuff(system.gas)
 import pdb;pdb.set_trace()
 plt.figure()
 plt.plot(userfun.data.timeL, userfun.data.planetslocL.T[1]/userfun.data.planetslocL.T[0])
