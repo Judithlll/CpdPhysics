@@ -209,7 +209,6 @@ class System(object):
             if pl.loc <= 4*cgs.RJ:
                 #let's test what if we change the resonance state first
                 remove_setL = []
-                import pdb;pdb.set_trace()
                 for ss in self.res_setL:
                     if {num}.issubset(ss):
                         plnum = list(ss-{num})[0]

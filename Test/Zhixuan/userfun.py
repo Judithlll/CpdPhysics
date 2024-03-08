@@ -194,12 +194,15 @@ class Data(object):
         self.planetsloc = {}
         self.icelinesloc = {}
         self.jumpstuff = []
+
+        self.dactionD ={}
         
     def update_cumulative_change(self,daction):
-        if 'remove' in daction.keys():
-            self.cumulative_change['remove']+=list(daction['remove'])
-        if 'add' in daction.keys():
-            self.cumulative_change['add']+=daction['add']
+        for daction in self.dactionD.values():
+            if 'remove' in daction.keys():
+                self.cumulative_change['remove']+=list(daction['remove'])
+            if 'add' in daction.keys():
+                self.cumulative_change['add']+=daction['add']
     
     def data_process(self, system):
         """
@@ -207,65 +210,29 @@ class Data(object):
         Y2d: the particles properties' list
         """
         
-        locL = system.particles.locL
-        massL = system.particles.massL
-        mtotL = system.particles.mtotL
-        fcompL = system.particles.fcomp
-        daction = system.daction
         time = system.time
-        self.update_cumulative_change(daction)
         
         # store time series 
-        self.timeL.append(time/cgs.yr2s)
+        self.timeL.append(time)
         
         # store particles data
-        # if particles ware removed, then put a np.nan into this location. 
-        # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
-        if len(self.cumulative_change['remove'])>0:
-            rL=np.insert(locL,0,np.full(len(self.cumulative_change['remove']),np.nan))
-            mL=np.insert(massL,0,np.full(len(self.cumulative_change['remove']),np.nan))
-            mtL=np.insert(mtotL,0,np.full(len(self.cumulative_change['remove']),np.nan))
-            
-            insertv = np.full((len(self.cumulative_change['remove']),len(fcompL[0])), np.nan)
-            fL=np.append(insertv, fcompL, axis =0)
-        else:
 
-            rL=locL
-            mL=massL
-            mtL=mtotL
-            fL = fcompL
-
-        self.radD.setdefault(time/cgs.yr2s,rL/cgs.RJ)
-        self.mD.setdefault(time/cgs.yr2s,mL)
-        self.mtotD.setdefault(time/cgs.yr2s,mtL)
-        self.fcompD.setdefault(time/cgs.yr2s, fL)
-
-        max_len=max(len(v) for v in self.radD.values())
-
-        # want to make the data dict in the same length
-        for k,v in self.radD.items():
-            
-            #if particles were added, then add np.nan to the former list to make the length the same.
-            if len(v)< max_len:
-                self.radD[k]=np.pad(v, (0, max_len - len(v)), constant_values=np.nan)
-                self.mD[k]=np.pad(self.mD[k], (0, max_len - len(v)), constant_values=np.nan)
-                self.mtotD[k]=np.pad(self.mtotD[k], (0, max_len - len(v)), constant_values=np.nan)
-                
-                apdv = np.full((max_len-len(v), len(fcompL[0])), np.nan)
-                self.fcompD[k] = np.append(self.fcompD[k], apdv, axis = 0)
-
+        self.radD.setdefault(time,system.particles.locL)
+        self.mD.setdefault(time, system.particles.massL)
+        self.mtotD.setdefault(time, system.particles.mtotL)
+        self.fcompD.setdefault(time, system.particles.fcomp)
+        self.dactionD.setdefault(time, system.daction)
 
         #store palnets' data
         if pars.doPlanets:
             # for now we assume the planets are in order 
-            plD = {p.number: p for p in system.planetL}
             try:
-                lengt = max(plD.keys()) +1
+                lengt = max(system.planetD.keys()) +1
             except:
                 lengt = 0
             pmassL = [np.nan] * lengt
             plocL  = [np.nan] * lengt
-            for k,v in plD.items():
+            for k,v in system.planetD.items():
                 pmassL[k] = v.mass
                 plocL [k] = v.loc
 
@@ -282,7 +249,69 @@ class Data(object):
             stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumptime':system.time-system.jumpT, 'jumpT': system.jumpT, 'jump_limitation':system.jump_limitation}
             self.jumpstuff.append(stuff)
 
+
     def get_plot_list(self):
+        """
+        process data and make it in order 
+        """
+        #TBD: here process the particles data with dactionD
+        
+        # if particles ware removed, then put a np.nan into this location. 
+        # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
+        complen = len(self.fcompD[self.timeL[0]][0])
+        for tt, daction in self.dactionD.items():
+            idx = self.timeL.index(tt)
+            if 'remove' in daction.keys():
+                added_L = np.array([np.nan]*len(daction['remove']))
+                fcomp_adL = np.array([[np.nan]*complen]*len(daction['remove']))
+                for re_time in self.timeL[idx:]:
+                    self.radD[re_time] = np.append(added_L, self.radD[re_time])
+                    self.mD[re_time] = np.append(added_L, self.mD[re_time])
+                    self.mtotD[re_time] = np.append(added_L, self.mtotD[re_time])
+                    self.fcompD[re_time] = np.append(fcomp_adL, self.fcompD[re_time],0)
+           
+            if 'add' in daction.keys():
+                added_L = np.array([np.nan]*daction['add'])
+                fcomp_adL = np.array([[np.nan]*complen]*daction['add'])
+                for ad_time in self.timeL[:idx]:
+                    self.radD[ad_time] = np.append(self.radD[ad_time], added_L)
+                    self.mD[ad_time] = np.append(self.mD[ad_time], added_L)
+                    self.mtotD[ad_time] = np.append(self.mtotD[ad_time], added_L)
+                    self.fcompD[ad_time] = np.append(self.fcompD[ad_time], fcomp_adL, 0)
+                
+
+        if False:
+            if len(self.cumulative_change['remove'])>0:
+                rL=np.insert(locL,0,np.full(len(self.cumulative_change['remove']),np.nan))
+                mL=np.insert(massL,0,np.full(len(self.cumulative_change['remove']),np.nan))
+                mtL=np.insert(mtotL,0,np.full(len(self.cumulative_change['remove']),np.nan))
+               
+                insertv = np.full((len(self.cumulative_change['remove']),len(fcompL[0])), np.nan)
+                fL=np.append(insertv, fcompL, axis =0)
+            else:
+
+                rL=locL
+                mL=massL
+                mtL=mtotL
+                fL = fcompL
+
+            max_len=max(len(v) for v in self.radD.values())
+
+            # want to make the data dict in the same length
+            for k,v in self.radD.items():
+                
+                #if particles were added, then add np.nan to the former list to make the length the same.
+                if len(v)< max_len:
+                    self.radD[k]=np.pad(v, (0, max_len - len(v)), constant_values=np.nan)
+                    self.mD[k]=np.pad(self.mD[k], (0, max_len - len(v)), constant_values=np.nan)
+                    self.mtotD[k]=np.pad(self.mtotD[k], (0, max_len - len(v)), constant_values=np.nan)
+                    
+                    apdv = np.full((max_len-len(v), len(fcompL[0])), np.nan)
+                    self.fcompD[k] = np.append(self.fcompD[k], apdv, axis = 0)
+
+
+
+
         self.radL=np.array(list(self.radD.values()))
         self.mL=  np.array(list(self.mD.values()))
         self.mtotL=np.array(list(self.mtotD.values()))
@@ -292,7 +321,8 @@ class Data(object):
         plL = copy.deepcopy(list(self.planetsloc.values()))
         max_len = max([len(l) for l in pmL])
         
-        #maybe can use the number of planet
+        # maybe can use the number of planet
+        
         for i in range (len(pmL)):
             if len(pmL[i]) != max_len:
                 length = max_len - len(pmL[i])
@@ -384,9 +414,9 @@ class Data(object):
 
         for i in range(len(self.radL[0])):
             plt.subplot(211)
-            plt.plot(self.timeL,self.radL[:,i])
+            plt.plot(np.array(self.timeL)/cgs.yr ,self.radL[:,i]/cgs.RJ)
             plt.subplot(212)
-            plt.plot(self.timeL,self.mL[:,i])
+            plt.plot(np.array(self.timeL)/cgs.yr ,self.mL[:,i])
         
         plt.subplot(211)
         #plt.contourf(time,loc,sigmag,alpha=0.3)
@@ -461,7 +491,6 @@ class Data(object):
         plt.close()
     
     def plot_planet_migration(self):
-        self.get_plot_list()
         plt.figure()
         plt.title('PLanet migration')
         plt.xlabel('Planets location [$R_J$]' )

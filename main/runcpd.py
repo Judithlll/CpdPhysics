@@ -22,7 +22,7 @@ if 'fromfile' in argL:
         print('\033[31m WARNING\033[0m : the ending time is smaller than the current system time [runcpd]')
         sys.exit()
     print('\033[32m [runcpd]: run from pickle file at {system.time/cgs.yr} \033[0m')
-    time.sleep(2)  
+    time.sleep(1)  
 else:
     calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
@@ -38,7 +38,7 @@ else:
 #backup the initial data
     system.back_up_last_data()       #back up the data of last step
     print('\033[32m [runcpd]: run from the beginning \033[0m')
-    time.sleep(2)  
+    time.sleep(1)  
 
 while True:
 
@@ -115,16 +115,19 @@ while True:
     #[24.02.01]cwo: added stopping condition // we could add more
     final = system.time>=pars.tmax
 
-    #userfun.do_stuff(system, final=final)
-    
-   # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
+    userfun.do_stuff(system, final=final)
+   
+    # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
         end = time.time()
         runTime = end-start
         break
+
 #store system components as pickles
 fileio.store_class(system, 'system')
 fileio.store_class(userfun.data, 'data')
+userfun.data.get_plot_list()
+userfun.data.plot_stuff(system.gas)
 userfun.data.plot_planet_migration()
 userfun.data.plot_jumpT()
 userfun.data.plot_stuff(system.gas)
