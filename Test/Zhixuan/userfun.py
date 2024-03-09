@@ -143,9 +143,8 @@ def init_compos (material):
 
     return dcompos
 
-def do_stuff (sys, init=False, final= False):
+def do_stuff (system, init=False, final= False):
     #data class is available...
-    system=copy.deepcopy(sys)
     # import pdb; pdb.set_trace()
     if init:
         data.data_process(system)

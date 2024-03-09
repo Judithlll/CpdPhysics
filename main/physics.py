@@ -10,14 +10,14 @@ def crossedResonance (ta, qinn):
     ta:     relative migration timescale
     qinn:   mass of inner planet (the perturber)
     """
-    ta_crit = HO23.ta_crit(..)
+    #ta_crit = HO23.ta_crit(..)
 
-    ta<ta_crit:
-        trappedinResonance = False
-    else:
-        trappedinResonance = True
-
-    return trappedinResonance
+    #ta<ta_crit:
+    #    trappedinResonance = False
+    #else:
+    #    trappedinResonance = True
+    pass
+    #return trappedinResonance
 
 
 
