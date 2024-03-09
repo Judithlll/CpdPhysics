@@ -216,7 +216,6 @@ class Data(object):
         self.timeL.append(time)
         
         # store particles data
-
         self.radD.setdefault(time,system.particles.locL)
         self.mD.setdefault(time, system.particles.massL)
         self.mtotD.setdefault(time, system.particles.mtotL)
@@ -252,7 +251,9 @@ class Data(object):
 
     def get_plot_list(self, doParticles = False):
         """
-        process data and make it in order 
+        process data and make it in order
+
+        doParticles: decide to process particles' data or not
         """
         #TBD: here process the particles data with dactionD
         
