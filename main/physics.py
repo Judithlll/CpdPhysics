@@ -4,6 +4,23 @@ import cgs
 ##[24.02.02] functions listed here are general and should not depend on disk_properites
 #import disk_properties as dp
 
+## import the Huang & Ormel resonance trapping criterion
+def crossedResonance (ta, qinn):
+    """
+    ta:     relative migration timescale
+    qinn:   mass of inner planet (the perturber)
+    """
+    ta_crit = HO23.ta_crit(..)
+
+    ta<ta_crit:
+        trappedinResonance = False
+    else:
+        trappedinResonance = True
+
+    return trappedinResonance
+
+
+
 def get_auxiliary (mcp, loc, sigmaG, temp, mu, sigmol):
 
     omega = np.sqrt(cgs.gC *mcp/loc**3)      
