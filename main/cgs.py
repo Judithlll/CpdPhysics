@@ -56,7 +56,8 @@ yr = 31558196.02038122
 #speed
 c=2.9979e10  #light speed in cm/s
 
-
+#densities
+rhoRJ = 1.326 
 
 
 

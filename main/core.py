@@ -91,276 +91,292 @@ class System(object):
         self.res_setL = []
 
         self.nplanet = 0 #start with 0 planets (??)
-
-    def make_resL (self,jmax=4):
-        dres = {}
-        dres['res'] = []
-        dres['prat'] = []
-        for j in range(1,jmax):
-            sj = str(j)
-            sj1 = str(j+1)
-            dres['res'].append(sj1+':'+sj)
-            dres['prat'].append((j+1)/j)
-
-        #final one (hack)
-        dres['res'].append('inf')
-        dres['prat'].append(1.0)
-
-        dres['prat'] = np.array(dres['prat'])
-        return dres
-
-    ## CWO: let's add planet by the system like this..
-    #   This is copied from another program from mine
-    def add_planet (self, planet):
-        self.planetL.append(planet)
-        planet.number = self.nplanet
-        self.nplanet += 1
-        self.planetD.setdefault(planet.number, planet)
-        locpl = planet.loc
         
-        #sort the planetL (TBD)
+        self.rinn = self.get_rinn()
 
-        locL = [self.planetL[i].loc for i in range(self.nplanet)]
-        iloc = locL.index(locpl)#provides the new sorted location of the added planet
-
-        #there is an interior planet
-        if iloc>0:
-            prat = (locpl/self.planetL[iloc-1].loc)**1.5
-            inxt = (self.dres['prat']<prat).argmax()
-            planet.inxt = inxt  #next upcoming res.
-            planet.resS = -1    #-1: not yet in resonance
-
-        #there's an exterior planet
-        if iloc<self.nplanet-1:
-            prat = (planetL[iloc+1]/locpl)**1.5
-            inxt = (self.dres['prat']<prat).argmax()
-            planetE = self.planetL[iloc+1]
-            planetE.inxt = inxt  #next upcoming res.
-            planetE.resS = -1    #-1: not yet in resonance
-
-
-
-    def init_particles(self, dparticleprops={}):
+    def get_rinn(self):
         """
-        because we need to consider iceline, so separatly 
-        initiallize the particles, for now just water iceline is considered  
+        get the rinn from the disk_properties or the central object's radius
 
-        history:
-        [23.12.30]CWO: instead of forwarding diskmass, I supply self.gas to the superparticle class
-        [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
         """
-
-        self.particles = Superparticles(dp.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
-
+        try:
+            rinn = dp.rinn
+        except:
+            mcp = dp.Mcp(system.time)    
+            rinn = (system.mcp/(4/3*np.pi*cgs.rhoRJ)
         
-        self.mtot1 = self.particles.mtot1
+        return rinn
 
 
-    def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
-        """
-        init_gas is called at initialization. It adds an instance of the GAS class
+        def make_resL (self,jmax=4):
+            dres = {}
+            dres['res'] = []
+            dres['prat'] = []
+            for j in range(1,jmax):
+                sj = str(j)
+                sj1 = str(j+1)
+                dres['res'].append(sj1+':'+sj)
+                dres['prat'].append((j+1)/j)
 
-        history:
-        [23.12.13]:this is copied from /NewLagrange code base...
-                  :for the moment gasL and dcomposL are put to None
+            #final one (hack)
+            dres['res'].append('inf')
+            dres['prat'].append(1.0)
 
-        """
-        #also initializes a gas class (nested class)
-        if pars.gasmodel=='gridstatic':
-            dgas = pars.dgasgrid
-        else:
-            dgas = {}
+            dres['prat'] = np.array(dres['prat'])
+            return dres
 
-        dum = GAS (gasL, dcomposL, mode=pars.gasmodel, time=self.time, **dgas)
+        ## CWO: let's add planet by the system like this..
+        #   This is copied from another program from mine
+        def add_planet (self, planet):
+            self.planetL.append(planet)
+            planet.number = self.nplanet
+            self.nplanet += 1
+            self.planetD.setdefault(planet.number, planet)
+            locpl = planet.loc
+            
+            #sort the planetL (TBD)
 
-        return dum
+            locL = [self.planetL[i].loc for i in range(self.nplanet)]
+            iloc = locL.index(locpl)#provides the new sorted location of the added planet
 
+            #there is an interior planet
+            if iloc>0:
+                prat = (locpl/self.planetL[iloc-1].loc)**1.5
+                inxt = (self.dres['prat']<prat).argmax()
+                planet.inxt = inxt  #next upcoming res.
+                planet.resS = -1    #-1: not yet in resonance
 
-    def update_particles (self, timestepn=3, **kwargs):
-        """
-        Integrate the particles forward by amount deltaT
-
-        Evolving system to the self.time
-        """
-        Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,timestepn)
-
-
-        if self.time==np.nan or self.deltaT==np.nan:
-            print('hello')
-            import pdb;pdb.set_trace()
-
-        return Yt
-
-    def back_up_last_data(self):
-        """
-        copies present state to "old" 
-        """
-        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg']
-        self.oldstate = COPY (self, copy_list)
-
-    def remove_planet(self):
-        """
-        remove the planet
-
-        seems very stupid now, let's think about this later TBD:
-        """
-
-        for num, pl in self.planetD.items():
-            if pl.loc <= 4*cgs.RJ:
-                #let's test what if we change the resonance state first
-                remove_setL = []
-                for ss in self.res_setL:
-                    if {num}.issubset(ss):
-                        plnum = list(ss-{num})[0]
-                        self.planetD[plnum].resS = -1
-                        remove_setL.append(ss)
-                
-                #then remove the planet 
-                self.planetL.remove(pl)
-                self.nplanet -= 1
-                print('[system.remove_planet]: planet '+str(pl.number)+ ' is removed.')
-
-                for rs in remove_setL:
-                    self.res_setL.remove(rs)
-        self.planetD = {p.number:p for p in self.planetL}
+            #there's an exterior planet
+            if iloc<self.nplanet-1:
+                prat = (planetL[iloc+1]/locpl)**1.5
+                inxt = (self.dres['prat']<prat).argmax()
+                planetE = self.planetL[iloc+1]
+                planetE.inxt = inxt  #next upcoming res.
+                planetE.resS = -1    #-1: not yet in resonance
 
 
-        if False:
-            for planet in self.planetL:
-                if planet.loc <= 4*cgs.RJ:
-                    #remove the planet firstly
-                    self.planetL.remove(planet)
-                    self.nplanet -= 1
 
-                    #remove this planet from the resonance sets and delete conresponding sets
-                    uname = planet.number
+        def init_particles(self, dparticleprops={}):
+            """
+            because we need to consider iceline, so separatly 
+            initiallize the particles, for now just water iceline is considered  
+
+            history:
+            [23.12.30]CWO: instead of forwarding diskmass, I supply self.gas to the superparticle class
+            [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
+            """
+
+            self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
+
+            
+            self.mtot1 = self.particles.mtot1
+
+
+        def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
+            """
+            init_gas is called at initialization. It adds an instance of the GAS class
+
+            history:
+            [23.12.13]:this is copied from /NewLagrange code base...
+                      :for the moment gasL and dcomposL are put to None
+
+            """
+            #also initializes a gas class (nested class)
+            if pars.gasmodel=='gridstatic':
+                dgas = pars.dgasgrid
+            else:
+                dgas = {}
+
+            dum = GAS (gasL, dcomposL, mode=pars.gasmodel, time=self.time, **dgas)
+
+            return dum
+
+
+        def update_particles (self, timestepn=3, **kwargs):
+            """
+            Integrate the particles forward by amount deltaT
+
+            Evolving system to the self.time
+            """
+            Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,timestepn)
+
+
+            if self.time==np.nan or self.deltaT==np.nan:
+                print('hello')
+                import pdb;pdb.set_trace()
+
+            return Yt
+
+        def back_up_last_data(self):
+            """
+            copies present state to "old" 
+            """
+            copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg']
+            self.oldstate = COPY (self, copy_list)
+
+        def remove_planet(self):
+            """
+            remove the planet
+
+            seems very stupid now, let's think about this later TBD:
+            """
+
+            for num, pl in self.planetD.items():
+                if pl.loc <= 4*cgs.RJ:
+                    #let's test what if we change the resonance state first
+                    remove_setL = []
                     for ss in self.res_setL:
-                        if {uname}.issubset(ss):
-                            # change the resS of the planet within this set to -1 
-                            for p in self.planetL:
-                                if {p.number}.issubset(ss):
-                                    p.resS = -1
+                        if {num}.issubset(ss):
+                            plnum = list(ss-{num})[0]
+                            self.planetD[plnum].resS = -1
+                            remove_setL.append(ss)
+                    
+                    #then remove the planet 
+                    self.planetL.remove(pl)
+                    self.nplanet -= 1
+                    print('[system.remove_planet]: planet '+str(pl.number)+ ' is removed.')
 
-                            self.res_setL.remove(ss)
-
-
-    def post_process (self):
-        """
-        returns indices of particles that cross boundaries 
-        (which needs to be removed or added)
-        """
-
-        self.daction = {}
-
-        loc = self.particles.Y2d[0]
-
-        #particles that cross the inner disk edge
-        idx, = (loc<dp.rinn).nonzero()
-        if len(idx)>0:
-            self.daction['remove'] = idx
-        
-        #particles that enter the domain
-        Nadd = 0
+                    for rs in remove_setL:
+                        self.res_setL.remove(rs)
+            self.planetD = {p.number:p for p in self.planetL}
 
 
-        delmgasIn, error = sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)
-        self.dotMg = dp.dot_Mg(self.time)
+            if False:
+                for planet in self.planetL:
+                    if planet.loc <= 4*cgs.RJ:
+                        #remove the planet firstly
+                        self.planetL.remove(planet)
+                        self.nplanet -= 1
+
+                        #remove this planet from the resonance sets and delete conresponding sets
+                        uname = planet.number
+                        for ss in self.res_setL:
+                            if {uname}.issubset(ss):
+                                # change the resS of the planet within this set to -1 
+                                for p in self.planetL:
+                                    if {p.number}.issubset(ss):
+                                        p.resS = -1
+
+                                self.res_setL.remove(ss)
+
+
+        def post_process (self):
+            """
+            returns indices of particles that cross boundaries 
+            (which needs to be removed or added)
+            """
+
+            self.daction = {}
+
+            loc = self.particles.Y2d[0]
+
+            #particles that cross the inner disk edge
+            idx, = (loc<self.rinn).nonzero()
+            if len(idx)>0:
+                self.daction['remove'] = idx
             
-        #self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
-        self.Minflux_step = delmgasIn
-        self.Minflux += self.Minflux_step
+            #particles that enter the domain
+            Nadd = 0
 
-        while self.Minflux>self.mtot1:
-            Nadd += 1
-            self.Minflux -= self.mtot1
-        
-        if Nadd>0:
-            self.daction['add'] = Nadd
-        
-        #post_process particles
-        if 'remove' in self.daction.keys():
-            #remove the particles from Y2d!
+
+            delmgasIn, error = sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)
+            self.dotMg = dp.dot_Mg(self.time)
+                
+            #self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
+            self.Minflux_step = delmgasIn
+            self.Minflux += self.Minflux_step
+
+            while self.Minflux>self.mtot1:
+                Nadd += 1
+                self.Minflux -= self.mtot1
             
-            self.particles.remove_particles(self.daction['remove'])
+            if Nadd>0:
+                self.daction['add'] = Nadd
+            
+            #post_process particles
+            if 'remove' in self.daction.keys():
+                #remove the particles from Y2d!
+                
+                self.particles.remove_particles(self.daction['remove'])
 
 
-        if 'add' in self.daction.keys():
-            self.particles.add_particles(self.daction['add'])
+            if 'add' in self.daction.keys():
+                self.particles.add_particles(self.daction['add'])
 
 
-        #[24.01.04]
-        #it is really difficult to stabalize particle numbers, b/c 
-        #of the huge lag... I think the below algorith accomplishes smth
-        #but is a bit ugly
+            #[24.01.04]
+            #it is really difficult to stabalize particle numbers, b/c 
+            #of the huge lag... I think the below algorith accomplishes smth
+            #but is a bit ugly
 
-        #to be brief..
-        part = self.particles
+            #to be brief..
+            part = self.particles
 
-        Np = len(part.massL)
+            Np = len(part.massL)
 
-        nch = 4
-        if Np==part.ninit: part.Nplevel = part.ninit #reset
+            nch = 4
+            if Np==part.ninit: part.Nplevel = part.ninit #reset
 
-        #particle level is decreasing...
-        if Np<part.Nplevel -nch and Np<part.ninit:
-            part.Nplevel -= nch
-            eps = abs(part.ninit -part.Nplevel) /part.ninit
-            self.mtot1 *= 1 -eps
+            #particle level is decreasing...
+            if Np<part.Nplevel -nch and Np<part.ninit:
+                part.Nplevel -= nch
+                eps = abs(part.ninit -part.Nplevel) /part.ninit
+                self.mtot1 *= 1 -eps
 
-        #particle level is decreasing, but above ninit: modest decrease mtot1
-        elif Np<part.Nplevel -nch and Np>part.ninit:
-            part.Nplevel -= nch
-            eps = nch /part.ninit
-            self.mtot1 *= 1 -eps
+            #particle level is decreasing, but above ninit: modest decrease mtot1
+            elif Np<part.Nplevel -nch and Np>part.ninit:
+                part.Nplevel -= nch
+                eps = nch /part.ninit
+                self.mtot1 *= 1 -eps
 
-        #particle level is increasing, but below ninit: modest increase mtot1
-        elif Np>part.Nplevel +nch and Np<part.ninit:
-            part.Nplevel += nch
-            eps = nch /part.ninit
-            self.mtot1 *= 1 +eps
+            #particle level is increasing, but below ninit: modest increase mtot1
+            elif Np>part.Nplevel +nch and Np<part.ninit:
+                part.Nplevel += nch
+                eps = nch /part.ninit
+                self.mtot1 *= 1 +eps
 
-        #particle level is increasing...
-        elif Np>part.Nplevel +nch and Np>part.ninit:
-            part.Nplevel += nch
-            eps = abs(part.ninit -part.Nplevel) /part.ninit
-            self.mtot1 *= 1 +eps
+            #particle level is increasing...
+            elif Np>part.Nplevel +nch and Np>part.ninit:
+                part.Nplevel += nch
+                eps = abs(part.ninit -part.Nplevel) /part.ninit
+                self.mtot1 *= 1 +eps
 
-        #Ncrit = 100
-        #N<90: mtot *= 0.9 && (wait some time?)
-        self.particles.generate_Y2d()
+            #Ncrit = 100
+            #N<90: mtot *= 0.9 && (wait some time?)
+            self.particles.generate_Y2d()
 
-        # remove the planet if the planet location is too small, not sure if it should be here
-        self.remove_planet()
+            # remove the planet if the planet location is too small, not sure if it should be here
+            self.remove_planet()
 
 
-    def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, **kwargs):
-        """
-        chooses a timestep
-        """
-        #organize the procedure a bit (for quasi-steady evolution... later!)
-        mintimeL = []
-        
-        
-        Y2d = self.particles.make_Y2d()
-        Y2dp = self.particles.dY2d_dt(Y2d,self.time,self.gas)
+        def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, **kwargs):
+            """
+            chooses a timestep
+            """
+            #organize the procedure a bit (for quasi-steady evolution... later!)
+            mintimeL = []
+            
+            
+            Y2d = self.particles.make_Y2d()
+            Y2dp = self.particles.dY2d_dt(Y2d,self.time,self.gas)
 
-        #timescale for the particles
-        #I dont think there's need to use np.nanmin
-        tpart = np.abs(Y2d/Y2dp)
-        mintimeL.append({'name':'particles', 'tmin': deltaTfraction*tpart.min(), 
-                                'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
-        
-        #after the jump, we only have particles drift timescale
-        if afterjump:
-            self.minTimes = Mintimes(mintimeL)
-            self.mintimeL = mintimeL
-            self.deltaT = deltaTfraction*tpart.min() #min([ob['tmin'] for ob in mintimeL])
+            #timescale for the particles
+            #I dont think there's need to use np.nanmin
+            tpart = np.abs(Y2d/Y2dp)
+            mintimeL.append({'name':'particles', 'tmin': deltaTfraction*tpart.min(), 
+                                    'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
+            
+            #after the jump, we only have particles drift timescale
+            if afterjump:
+                self.minTimes = Mintimes(mintimeL)
+                self.mintimeL = mintimeL
+                self.deltaT = deltaTfraction*tpart.min() #min([ob['tmin'] for ob in mintimeL])
 
-            return
+                return
 
-        #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
-        #central mass growth timescale
-        #Mcpnew=dp.Mcp_t(self.time)  
+            #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
+            #central mass growth timescale
+            #Mcpnew=dp.Mcp_t(self.time)  
         #Mcpold=dp.Mcp0
         #McTscale = np.inf
         #if self.time > 0:
@@ -507,7 +523,7 @@ class System(object):
                 planet.max_jumpT = 0.0 #np.nan
             
             # if the planet mmigrates into cavity, ths max_jumpT should be infinity
-            if planet.loc < dp.rinn:
+            if planet.loc < system.rinn:
                 planet.dmdt = 0
                 planet.relp_mass = np.inf
                 planet.max_jumpT = np.inf
@@ -696,7 +712,7 @@ class System(object):
                     paridx = np.argmin(abs(self.particles.locL - planet.loc))
                     planet.fcomp = (self.particles.fcomp[paridx]*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
                     planet.mass += jumpmass
-            if self.planetL[0].loc <dp.rinn:
+            if self.planetL[0].loc <self.rinn:
                 print('[core.system.jump]: the first planet migrates across the inner edge')
 
         if pars.doIcelines:
@@ -852,7 +868,7 @@ def advance_planets (system):
                         break
 
                 #add/update milestone
-                key = (planet.loc-dp.rinn)/abs(loc_t)
+                key = (planet.loc-system.rinn)/abs(loc_t)
                 system.milestones[key + system.time] = msg
 
                 #update planet properties from rates supplied by user
