@@ -26,18 +26,18 @@ if 'fromfile' in argL:
 else:
     calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
-#this initializes the system...
+    #this initializes the system...
     system, gasL = init.sim_init (calldir, pars.dsystempars)
     system.init_particles(pars.dparticleprops)
     system.milestones[pars.tmax] = 'Ending_time'
-#initialize userfun's data class
+    #initialize userfun's data class
     #userfun.do_stuff(system, init=True)
-#import pdb; pdb.set_trace()
-#get the initial deltaT
+    #import pdb; pdb.set_trace()
+    #get the initial deltaT
     system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
-#backup the initial data
+    #backup the initial data
     system.back_up_last_data()       #back up the data of last step
-    print('\033[32m [runcpd]: run from the beginning \033[0m')
+    print('\033[32m[runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
 while True:
@@ -102,10 +102,6 @@ while True:
     #   system.post_process()
     system.post_process()
     
-    if system.deltaT <= 0:
-        print('[runcpd]: something wrong with deltaT')
-        import pdb; pdb.set_trace()
-
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
     
@@ -122,10 +118,14 @@ while True:
         end = time.time()
         runTime = end-start
         break
+    else:
+        if system.deltaT <= 0:
+            print('[runcpd]: something wrong with deltaT')
+
 
 #store system components as pickles
 fileio.store_class(system, 'system')
-fileio.store_class(userfun.data, 'data')
+fileio.store_class(userfun.data, 'data') ##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
 userfun.data.get_plot_list(doParticles = False)
 userfun.data.plot_planet_migration()
 userfun.data.plot_jumpT()

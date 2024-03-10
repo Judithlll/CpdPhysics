@@ -613,6 +613,9 @@ class System(object):
             deltaT = tEnd - self.time
 
         self.deltaT = deltaT
+        if self.deltaT<=0:
+            print('[new_timestep]warning:deltaT<=0')
+
 
 
     def query_system_jump(self, jumpfrac):
