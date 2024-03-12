@@ -1,23 +1,25 @@
 import numpy as np
 import cgs
+import HO23i
 
 ##[24.02.02] functions listed here are general and should not depend on disk_properites
 #import disk_properties as dp
 
 ## import the Huang & Ormel resonance trapping criterion
-def crossedResonance (ta, qinn):
+def crossedResonance (ta, jres, qinn, hasratio, per):
     """
     ta:     relative migration timescale
     qinn:   mass of inner planet (the perturber)
     """
-    #ta_crit = HO23.ta_crit(..)
 
-    #ta<ta_crit:
-    #    trappedinResonance = False
-    #else:
-    #    trappedinResonance = True
-    pass
-    #return trappedinResonance
+    ta_crit = HO23i.ta_crit(jres, qinn, innerperturber= True, haspect= hasratio, tPer = per)
+
+    if ta<ta_crit:
+        trappedinResonance = False
+    else:
+        trappedinResonance = True
+    #pass
+    return trappedinResonance
 
 
 

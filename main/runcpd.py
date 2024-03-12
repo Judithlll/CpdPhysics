@@ -20,10 +20,13 @@ if 'fromfile' in argL:
     system = fileio.load_class('./pickles/', 'system.pickle')
     if pars.tmax <= system.time:
         print('\033[31m WARNING\033[0m : the ending time is smaller than the current system time [runcpd]')
-        sys.exit()
-    print('\033[32m [runcpd]: run from pickle file at {system.time/cgs.yr} \033[0m')
-    time.sleep(1)  
+        data = fileio.load_class('./pickles/', 'data.pickle')
+        doEvo = False
+    else:
+        print('\033[32m [runcpd]: run from pickle file at {system.time/cgs.yr} \033[0m')
+        time.sleep(1)  
 else:
+    doEvo = True
     calldir = init.init_default_pars (argL[0]) #directory from which this is called (maybe we need later)
 
 #this initializes the system...
@@ -40,7 +43,7 @@ else:
     print('\033[32m [runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
-while True:
+while True and doEvo:
 
     #[24.01.01]:determines the timestep for this step
     #[24.01.02],LZX: don't understand why this should be here
@@ -122,17 +125,19 @@ while True:
         end = time.time()
         runTime = end-start
         break
+if doEvo:
+    data = userfun.data
+    fileio.store_class(system, 'system')
+    fileio.store_class(userfun.data, 'data')
 
 #store system components as pickles
-fileio.store_class(system, 'system')
-fileio.store_class(userfun.data, 'data')
-userfun.data.get_plot_list(doParticles = False)
-userfun.data.plot_planet_migration()
-userfun.data.plot_jumpT()
+data.get_plot_list(doParticles = False)
+data.plot_planet_evolution()
+data.plot_jumpT()
 import pdb;pdb.set_trace()
 plt.figure()
-plt.plot(userfun.data.timeL, userfun.data.planetslocL.T[1]/userfun.data.planetslocL.T[0])
-plt.plot(userfun.data.timeL, 2*np.ones_like(userfun.data.timeL))
+plt.plot(data.timeL, data.planetslocL.T[1]/data.planetslocL.T[0])
+plt.plot(data.timeL, 2*np.ones_like(userfun.data.timeL))
 plt.savefig("pratio.jpg")
 print('[runcpd]:finished')
 

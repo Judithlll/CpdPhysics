@@ -15,6 +15,7 @@ import time
 import scipy.optimize as sciop
 import physics
 import userfun
+from scipy.interpolate import interp1d
 
 class COPY (object):
     """
@@ -440,9 +441,18 @@ class System(object):
                     
                     # change the resonance state here, id the pdel is small enough, then teh resS = 'R'
                     # for now we don't consider the condition that the planet jump over the resonance.
-                    getTrapped = True
                     if pdel < 0.0: #a little arbitrary now
-
+                        
+                        ta = PlocaTscale[i]
+                        qinn = self.planetD[uname- 1].mass/ self.mcp
+                        #we can use the interpolation with particles Hg
+                        f_Hg = interp1d(self.particles.locL, self.particles.Hg, kind = 'linear', fill_value="extrapolate")
+                        Hg = f_Hg (planet.loc)
+                        #plt.plot(self.particles.locL, self.particles.Hg)
+                        #plt.scatter(planet.loc, f_Hg(planet.loc), )
+                        haspect = Hg/planet.loc
+                        tPer = physics.Omega_K(planet.loc, self.mcp)
+                        getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
                         if getTrapped:
                             planet.resS = 'R'
                             # make sure every planet in the rasonance chain will be taken into consider when getting the migration rate

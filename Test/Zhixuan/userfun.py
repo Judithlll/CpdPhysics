@@ -13,6 +13,7 @@ import parameters as pars
 import disk_properties as dp
 import physics
 from scipy.optimize import curve_fit
+from matplotlib.colors import LinearSegmentedColormap
 
 def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     #aerodynamic drag migration
@@ -123,7 +124,7 @@ def init_planets ():
     timeL = [1*cgs.yr, 1e3*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
-    locationL = [15*cgs.rJup, 25*cgs.rJup] 
+    locationL = [16*cgs.rJup, 25*cgs.rJup] 
     massL = [3e23, 3e23] 
     compoL = np.array([[1.0, 0.0], [1.0, 0.0]])
 
@@ -193,6 +194,7 @@ class Data(object):
         self.planetsloc = {}
         self.icelinesloc = {}
         self.jumpstuff = []
+        self.planetsfcomp = {}
 
         self.dactionD ={}
         
@@ -230,14 +232,15 @@ class Data(object):
                 lengt = 0
             pmassL = [np.nan] * lengt
             plocL  = [np.nan] * lengt
+            pcompL = [[np.nan]*2] *lengt #TBD:not general now 
             for k,v in system.planetD.items():
                 pmassL[k] = v.mass
                 plocL [k] = v.loc
+                pcompL[k] = v.fcomp
 
             self.planetsmass.setdefault(system.time,pmassL)
-            
             self.planetsloc.setdefault(system.time,plocL )
-
+            self.planetsfcomp.setdefault(system.time, pcompL)
         #store icelines' data
         if pars.doIcelines:
             self.icelinesloc.setdefault(system.time, [iceline.loc for iceline in system.icelineL])
@@ -319,6 +322,7 @@ class Data(object):
 
         pmL = copy.deepcopy(list(self.planetsmass.values()))
         plL = copy.deepcopy(list(self.planetsloc.values()))
+        pfL = copy.deepcopy(list(self.planetsfcomp.values()))
         max_len = max([len(l) for l in pmL])
         
         # maybe can use the number of planet
@@ -328,8 +332,10 @@ class Data(object):
                 length = max_len - len(pmL[i])
                 pmL[i].extend([np.nan]*length)
                 plL[i].extend([np.nan]*length)
+                pfL[i].extend([[np.nan]*2]*length)
         self.planetsmassL = np.array(pmL)
         self.planetslocL = np.array(plL)
+        self.planetsfcompL = np.array(pfL)
 
         self.icelineslocL = np.array(list(self.icelinesloc.values()))
 
@@ -490,24 +496,54 @@ class Data(object):
         plt.savefig('Delta_t.jpg')
         plt.close()
     
-    def plot_planet_migration(self):
+    def plot_planet_evolution(self):
         plt.figure()
-        plt.title('PLanet migration')
-        plt.xlabel('Planets location [$R_J$]' )
+        plt.title('Planet evolution')
+        plt.xlabel('Planets location [$R_{Jup}$]' )
         plt.ylabel('System time [yr]')
         loclist = self.planetslocL.T
+        masslist = self.planetsmassL.T
         time = np.array(list(self.planetsloc.keys()))
-        for i,loc in enumerate(loclist):
-            plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'planet'+str(i+1), linewidth = 1)
-        for jump in self.jumpstuff:
-            plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.5)
-            plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
 
+        dotssize = masslist/np.nanmin(masslist)*0.015
+        cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
+
+        for jump in self.jumpstuff:
+            plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
+        for i,loc in enumerate(loclist):
+
+            plt.scatter(loc/cgs.RJ, time/cgs.yr, s = dotssize[i], c =self.planetsfcompL[:,i][:,1], cmap ='Spectral', alpha =1 )
+
+
+            #plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
+        plt.colorbar()
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
+        plt.plot(self.icelineslocL[:,0]/cgs.RJ, time/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
         plt.savefig('planet_migration.jpg',dpi=600)
         plt.close()
-    
+   
+    def plot_planet_massloc(self):
+        plt.figure()
+        plt.title('PLanet mass-location')
+        plt.xlabel('Planets location [$R_J$]' )
+        plt.ylabel('Planets mass [$R_J$]')
+        loclist = self.planetslocL.T
+        masslist = self.planetsmassL.T
+        
+        for i,loc in enumerate(loclist):
+            plt.plot(loc/cgs.RJ, masslist[i]/cgs.MJ, label = 'planet'+str(i+1), linewidth = 3)
+        import pdb;pdb.set_trace()
+        #for jump in self.jumpstuff:
+        #    plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.5)
+        #    plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
+
+        plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
+        plt.legend()
+        plt.savefig('planet_massloc.jpg',dpi=600)
+        plt.close()
+
+
     def plot_jumpT(self):
         plt.figure()
         plt.title('Jump time')
