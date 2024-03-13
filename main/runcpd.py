@@ -115,7 +115,7 @@ while True and doEvo:
     final = system.time>=pars.tmax
 
     userfun.do_stuff(system, final=final)
-   
+
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
         end = time.time()

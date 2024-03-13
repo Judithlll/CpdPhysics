@@ -506,17 +506,16 @@ class Data(object):
         time = np.array(list(self.planetsloc.keys()))
 
         dotssize = masslist/np.nanmin(masslist)*0.015
-        cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
+        #cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
 
         for jump in self.jumpstuff:
             plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
-
             plt.scatter(loc/cgs.RJ, time/cgs.yr, s = dotssize[i], c =self.planetsfcompL[:,i][:,1], cmap ='Spectral', alpha =1 )
 
 
             #plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
-        plt.colorbar()
+        plt.colorbar(label = "Water Fraction [%]")
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
         plt.plot(self.icelineslocL[:,0]/cgs.RJ, time/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()

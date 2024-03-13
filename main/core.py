@@ -451,13 +451,13 @@ class System(object):
                         #plt.plot(self.particles.locL, self.particles.Hg)
                         #plt.scatter(planet.loc, f_Hg(planet.loc), )
                         haspect = Hg/planet.loc
-                        tPer = physics.Omega_K(planet.loc, self.mcp)
+                        tPer = 2*np.pi/physics.Omega_K(planet.loc, self.mcp)
                         getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
+                        
                         if getTrapped:
                             planet.resS = 'R'
                             # make sure every planet in the rasonance chain will be taken into consider when getting the migration rate
                             self.planetL[uname-1].resS = 'R'
-                            pratTscale[i] = np.inf
                             
                             # make the resonance pairs into set list
                             res_set = {self.planetL[i-1].number, uname}
@@ -466,8 +466,12 @@ class System(object):
 
                         #trapping fails
                         else:
-                            #inxt needs to increment
-                            pass
+                            planet.inxt += 1
+                            # and need the pratTscale immediately to avoid to be jumped over
+                            jres = planet.inxt +1
+                            pdel = prat - (jres+1)/jres
+                            pdelold = pratold - (jres+1)/jres
+                            pratTscale[i] =np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT 
                     
                     #calculate how fast the planets approach resonance 
                     #the timescale on which planets approach resonance
@@ -860,7 +864,7 @@ def advance_planets (system):
                         resS = planet.resS
                     except:
                         resS = None
-                    
+
                     if resS == 'R':
                         chain = ff.locate_chain(res_chainL, planet.number) 
                         invtmigL = [] #inverse migration time
@@ -913,6 +917,12 @@ def advance_planets (system):
             #update planet properties from rates supplied by user
             planet.loc += loc_t *system.deltaT
             planet.dlocdt = loc_t
+            
+            ## TBD 
+            # update some planet properties (like pdel) here?
+            # seems most natural point (after planets have advanced)
+            
+
 
             planet.time = system.time  ## add this time to planet
 
