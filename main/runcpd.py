@@ -34,7 +34,7 @@ else:
     system.init_particles(pars.dparticleprops)
     system.milestones[pars.tmax] = 'Ending_time'
     #initialize userfun's data class
-    #userfun.do_stuff(system, init=True)
+    userfun.do_stuff(system, init=True)
     #import pdb; pdb.set_trace()
     #get the initial deltaT
     system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
@@ -115,7 +115,7 @@ while True and doEvo:
     final = system.time>=pars.tmax
 
     userfun.do_stuff(system, final=final)
-   
+
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
         end = time.time()
@@ -126,15 +126,20 @@ while True and doEvo:
         if system.deltaT <= 0:
             print('[runcpd]: something wrong with deltaT')
 
+
+# lets do these things in another user-defined python file
 if doEvo:
     data = userfun.data
+    data.get_plot_list(doParticles = True)
     #store system components as pickles
     fileio.store_class(system, 'system')
     fileio.store_class(userfun.data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
-
-data.get_plot_list(doParticles = False)
+#data.plot_particles_number()
+#data.plot_disk(np.array([50,1e6,3e6])*cgs.yr)
 data.plot_planet_evolution()
-data.plot_jumpT()
+#data.plot_planet_migration()
+#data.plot_jumpT()
+#data.plot_disk_profile()
 import pdb;pdb.set_trace()
 plt.figure()
 plt.plot(data.timeL, data.planetslocL.T[1]/data.planetslocL.T[0])

@@ -149,6 +149,7 @@ def do_stuff (system, init=False, final= False):
     # import pdb; pdb.set_trace()
     if init:
         data.data_process(system)
+        data.gas = system.gas
         #initialize your data class
     else:
         data.data_process(system)
@@ -262,6 +263,7 @@ class Data(object):
         # if particles ware removed, then put a np.nan into this location. 
         # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
         if doParticles:
+            self.num = [len(v) for v in self.radD.values()]
             complen = len(self.fcompD[self.timeL[0]][0])
             for tt, daction in self.dactionD.items():
                 idx = self.timeL.index(tt)
@@ -430,32 +432,50 @@ class Data(object):
 
         plt.savefig('test.jpg')
 
-    def plot_disk(self,time,gas):
+    def plot_disk(self,time):
         r_Span=np.linspace(pars.dgasgrid['rinn'],pars.dgasgrid['rout'])
-        plt.figure(figsize=(24,9))
+        plt.figure(figsize=(8,12))
         if type(time) == float or type(time) == np.float64:
-            Sigmag=gas.get_key_disk_properties(r_Span,time)[0]
-            Td=gas.get_key_disk_properties(r_Span,time)[1]
+            Sigmag,Td=self.gas.get_key_disk_properties(r_Span,time)[0:2]
             plt.subplot(121)
-            plt.title('Surface dencity $[g/cm^2]$')
+            plt.title('Surface dencity $[g/cm^2]$', )
+            plt.xlabel('Location [$R_J$]')
             plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time/cgs.yr))
             plt.subplot(122)
             plt.title('Midplane Temperature $[K]$')
+            plt.xlabel('Location [$R_J$]')
             plt.plot(r_Span/cgs.RJ,Td,label=str(time/cgs.yr))
             plt.legend()
             plt.savefig('diskproperties.jpg')
         else:
+            plt.subplot(211)
+            plt.title('Surface dencity $[g/cm^2]$')
+            plt.xlabel('Location [$R_J$]')
+            
+            plt.subplot(212)
+            plt.title('Midplane Temperature $[K]$')
+            plt.xlabel('Location [$R_J$]')
+
             for i in range(len(time)):
-                Sigmag, Td = gas.get_key_disk_properties(r_Span, time[i])[0:2]
-                plt.subplot(121)
-                plt.title('Surface dencity $[g/cm^2]$')
+                Sigmag, Td = self.gas.get_key_disk_properties(r_Span, time[i])[0:2]
+                plt.subplot(211)
                 plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time[i]/cgs.yr))
-                plt.subplot(122)
-                plt.title('Midplane Temperature $[K]$')
+                plt.subplot(212)
                 plt.plot(r_Span/cgs.RJ,Td,label=str(time[i]/cgs.yr))
+
+            plt.subplot(212)
+            plt.axhline(160, label='iceline', color = 'skyblue', linestyle = 'dashed')
             plt.legend()
             plt.savefig('diskproperties.jpg')
-
+    
+    def plot_particles_number(self):
+        plt.figure()
+        plt.title('Particles number')
+        plt.xlabel('time [yr]')
+        plt.ylabel('number')
+        plt.plot(self.timeL, self.num, color = 'red')
+        plt.savefig('particleNum.jpg')
+        plt.close()
 
     def plot_planets_accretion(self,planet,system):
             
@@ -495,7 +515,27 @@ class Data(object):
         plt.plot(self.timeL[:-1],np.diff(self.timeL))
         plt.savefig('Delta_t.jpg')
         plt.close()
-    
+
+    def plot_planet_migration(self):
+        plt.figure()
+        plt.title('Planet migration')
+        plt.xlabel('Planets location [$R_{Jup}$]' )
+        plt.ylabel('System time [yr]')
+        loclist = self.planetslocL.T
+        time = np.array(list(self.planetsloc.keys()))
+
+        for jump in self.jumpstuff:
+            plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
+        for i,loc in enumerate(loclist):
+            plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'planet'+str(i+1))
+
+
+            plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
+        plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
+        plt.legend()
+        plt.savefig('planet_migration.jpg',dpi=600)
+        plt.close()   
+
     def plot_planet_evolution(self):
         plt.figure()
         plt.title('Planet evolution')
@@ -505,22 +545,21 @@ class Data(object):
         masslist = self.planetsmassL.T
         time = np.array(list(self.planetsloc.keys()))
 
-        dotssize = masslist/np.nanmin(masslist)*0.015
-        cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
+        dotssize = masslist/np.nanmin(masslist)*0.02
+        #cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
 
         for jump in self.jumpstuff:
             plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
-
             plt.scatter(loc/cgs.RJ, time/cgs.yr, s = dotssize[i], c =self.planetsfcompL[:,i][:,1], cmap ='Spectral', alpha =1 )
 
 
             #plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
-        plt.colorbar()
+        plt.colorbar(label = "Water Fraction [%]")
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
         plt.plot(self.icelineslocL[:,0]/cgs.RJ, time/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
-        plt.savefig('planet_migration.jpg',dpi=600)
+        plt.savefig('planet_evolution.jpg',dpi=600)
         plt.close()
    
     def plot_planet_massloc(self):
@@ -542,7 +581,41 @@ class Data(object):
         plt.legend()
         plt.savefig('planet_massloc.jpg',dpi=600)
         plt.close()
+    
+    def plot_disk_profile(self):
+        """
+        a little annoying, let's leave it here for now TBD 
+        """
 
+        locL =np.linspace(dp.rinn, dp.rout, 200)
+        tL = np.array([50, 1e6, 3e6]) *cgs.yr
+        colors = ['r', 'b','g']
+        pld = {tL[i]:colors[i] for i in range(3)}
+        fig, ax1 = plt.subplots()
+        plt.title ('Disk Properties')
+
+        ax1.set_ylabel('Surface Density $[g/cm^2]$')
+        ax1.set_xlabel('Location $[R_J]$')
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('Temperature [K]')
+        #plot the surface density
+        for t,c in pld.items():
+
+            sigmaGL,temp = self.gas.get_key_disk_properties(locL,t)[0:2]
+            ax1.plot(locL/cgs.RJ, sigmaGL, label = 'Surface density', color = c, linestyle = 'dotted')
+
+            ax2.plot(locL/cgs.RJ, temp, label = 'Temperature', color = c, linestyle = 'dashed')
+        
+        lines, labels = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        l1 = [lines[0].set_color('black'), lines[1].set_color('black')]
+        la1 = ['Surface density', 'Temperature']
+        la2 = ['50', '1e6', '3e6']
+        import pdb;pdb.set_trace() 
+
+        ax2.legend(l1+l2, la1+la2, loc='upper right')
+        plt.savefig('disk_properties.jpg')
+        plt.close()
 
     def plot_jumpT(self):
         plt.figure()

@@ -13,7 +13,6 @@ def crossedResonance (ta, jres, qinn, hasratio, per):
     """
 
     ta_crit = HO23i.ta_crit(jres, qinn, innerperturber= True, haspect= hasratio, tPer = per)
-
     if ta<ta_crit:
         trappedinResonance = False
     else:
