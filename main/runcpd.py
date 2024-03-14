@@ -20,10 +20,11 @@ if 'fromfile' in argL:
     system = fileio.load_class('./pickles/', 'system.pickle')
     if pars.tmax <= system.time:
         print('\033[31m WARNING\033[0m : the ending time is smaller than the current system time [runcpd]')
-        data = fileio.load_class('./pickles/', 'data.pickle')
+        #data = fileio.load_class('./pickles/', 'data.pickle')
         doEvo = False
     else:
         print('\033[32m [runcpd]: run from pickle file at {system.time/cgs.yr} \033[0m')
+        doEvo = True
         time.sleep(1)  
 else:
     doEvo = True
@@ -43,7 +44,7 @@ else:
     print('\033[32m[runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
-while True and doEvo:
+while doEvo:
 
     #[24.01.01]:determines the timestep for this step
     #[24.01.02],LZX: don't understand why this should be here
@@ -127,24 +128,14 @@ while True and doEvo:
             print('[runcpd]: something wrong with deltaT')
 
 
-# lets do these things in another user-defined python file
+#TBD: lets do these things in another user-defined python file
 if doEvo:
     data = userfun.data
     data.get_plot_list(doParticles = True)
     #store system components as pickles
     fileio.store_class(system, 'system')
-    fileio.store_class(userfun.data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
-#data.plot_particles_number()
-#data.plot_disk(np.array([50,1e6,3e6])*cgs.yr)
-data.plot_planet_evolution()
-#data.plot_planet_migration()
-#data.plot_jumpT()
-#data.plot_disk_profile()
-import pdb;pdb.set_trace()
-plt.figure()
-plt.plot(data.timeL, data.planetslocL.T[1]/data.planetslocL.T[0])
-plt.plot(data.timeL, 2*np.ones_like(userfun.data.timeL))
-plt.savefig("pratio.jpg")
+    fileio.store_class(data, 'data'+str(system.time))##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
+
 print('[runcpd]:finished')
 
 
