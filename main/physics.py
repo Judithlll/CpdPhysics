@@ -5,6 +5,14 @@ import HO23i
 ##[24.02.02] functions listed here are general and should not depend on disk_properites
 #import disk_properties as dp
 
+def mass_to_radius(mass,rhoint):
+    radius = (mass/(4/3*np.pi*rhoint))**(1/3)
+    return radius
+
+def radius_to_mass(radius, rhoint):
+    mass = 4/3*np.pi*rhoint*radius**3
+    return mass
+
 ## import the Huang & Ormel resonance trapping criterion
 def crossedResonance (ta, jres, qinn, hasratio, per):
     """
@@ -68,6 +76,8 @@ def Omega_K(loc,mcp):
 
 class DISK (object):
     """
+    transient object -- made on the fly
+
     Disk object including every disk properties use the methods definded in the disk_properties.py
     
     [24.01.05] The new way to add user-defined properties to the disk class

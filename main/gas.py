@@ -36,6 +36,11 @@ class GAS ():
             pass
 
 
+    def get_inner_radius (self, time):
+        if self.mode=='prescribed':
+            return dp.get_rinn (time)
+    #TBD: evolve mcp and rcp here?          
+
     def get_key_disk_properties (self, loc, time):
         """
         depending on the two modes:

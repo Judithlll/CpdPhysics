@@ -352,7 +352,8 @@ class System(object):
 
         # remove the planet if the planet location is too small, not sure if it should be here
         self.remove_planet()
-
+        self.mcp = dp.Mcp_t(self.time)
+        self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
 
     def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, **kwargs):
         """
