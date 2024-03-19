@@ -121,12 +121,12 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1*cgs.yr, 1e3*cgs.yr] 
+    timeL = [1*cgs.yr, 1e3*cgs.yr, 2e3*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
-    locationL = [16*cgs.rJup, 25*cgs.rJup] 
-    massL = [3e23, 3e23] 
-    compoL = np.array([[1.0, 0.0], [1.0, 0.0]])
+    locationL = [16*cgs.rJup, 25*cgs.rJup, 30*cgs.rJup] 
+    massL = [3e23, 3e23, 3e23] 
+    compoL = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])
 
     return timeL, locationL, massL, compoL
 
@@ -154,10 +154,10 @@ def do_stuff (system, init=False, final= False):
     else:
         data.data_process(system)
         #data object should be available...
-        #tminarr = system.minTimes.tminarr 
-        #sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
-        #line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr)
-        #print(line) #TBD: print more things 
+        tminarr = system.minTimes.tminarr 
+        sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
+        line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr)
+        print(line) #TBD: print more things 
 
 def plot_massfit(planetMassData):
     def mass_fit(t,a,b):
