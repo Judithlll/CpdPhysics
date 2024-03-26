@@ -452,6 +452,7 @@ class System(object):
                         #plt.plot(self.particles.locL, self.particles.Hg)
                         #plt.scatter(planet.loc, f_Hg(planet.loc), )
                         haspect = Hg/planet.loc
+                        import pdb;pdb.set_trace()
                         tPer = 2*np.pi/physics.Omega_K(planet.loc, self.mcp)
                         getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
                         
@@ -599,7 +600,7 @@ class System(object):
                         del self.milestones[value]
                  
                 self.milestones[self.time+ 1e-3 +min(pratTscale)] = 'resonance'
-                mintimeL.append({'name': 'PlanetsRes', 'tmin': np.min(pratTscale[pratTscale >= 0.0])})
+                mintimeL.append({'name': 'PlanetsRes', 'tmin': np.min(pratTscale[pratTscale >= 0.0])+1.}) #plus 1 to prevent to be zero
         #timescale for the icelines
         if pars.doIcelines and self.oldstate is not None:
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
@@ -730,20 +731,19 @@ class System(object):
         # planets: location and mass and composition(this maybe very complex)
         # icelines :location
         
-        if pars.doPlanets:
+        if self.nplanet>0:
             for planet in self.planetL:
-                if self.time > planet.starttime:
                     
-                    planet.loc += planet.dlocdt *self.jumpT
-                    jumpmass = planet.dmdt* self.jumpT
+                planet.loc += planet.dlocdt *self.jumpT
+                jumpmass = planet.dmdt* self.jumpT
 
-                    #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
-                    #       planet.dmdt = [dmdt comp 1, dmdt comp 2, ...]
-                    paridx = np.argmin(abs(self.particles.locL - planet.loc))
-                    planet.fcomp = (self.particles.fcomp[paridx]*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
-                    planet.mass += jumpmass
-            if self.planetL[0].loc <self.rinn:
-                print('[core.system.jump]: the first planet migrates across the inner edge')
+                #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
+                #       planet.dmdt = [dmdt comp 1, dmdt comp 2, ...]
+                paridx = np.argmin(abs(self.particles.locL - planet.loc))
+                planet.fcomp = (self.particles.fcomp[paridx]*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
+                planet.mass += jumpmass
+            #if self.planetL[0].loc <self.rinn:
+            #    print('[core.system.jump]: the first planet migrates across the inner edge')
 
         if pars.doIcelines:
             for iceline in self.icelineL:

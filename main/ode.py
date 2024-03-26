@@ -19,7 +19,7 @@ def RK5(fun_name,y0,t_span,step,*args):
     y=[]
     if abs(ti-te)<0.1:
         print('your tSpan is too small')
-   
+    
     n=1
     
     while ti<=te:
@@ -33,6 +33,7 @@ def RK5(fun_name,y0,t_span,step,*args):
         # import pdb ; pdb.set_trace()
         if abs(y1.min()/y0.min())/step>100:
             print('warning: in the step ',[ti,ti+step],'too steep!! maybe you need a smaller step.')
+        
         n+=1
 
         y.append(y0)

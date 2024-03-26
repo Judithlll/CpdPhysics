@@ -55,6 +55,7 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
         vt1 = 0.0
     else:
     #Type I migration
+    ## NOTE:for isotermal disk, not suitable!!
         qr=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
 
         CI=0.1
@@ -121,12 +122,12 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1*cgs.yr, 1e3*cgs.yr, 2e3*cgs.yr] 
+    timeL = [1*cgs.yr, 1e3*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
-    locationL = [16*cgs.rJup, 25*cgs.rJup, 30*cgs.rJup] 
-    massL = [3e23, 3e23, 3e23] 
-    compoL = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])
+    locationL = [16*cgs.rJup, 25*cgs.rJup] 
+    massL = [3e23, 3e23] 
+    compoL = np.array([[1.0, 0.0], [1.0, 0.0]])
 
     return timeL, locationL, massL, compoL
 

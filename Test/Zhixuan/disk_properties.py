@@ -91,7 +91,8 @@ def Sigma_g(r,cs,OmegaK,dotMg):
     """
     get the surface density at loc and time 
     """
-    Sg=dotMg/2/np.pi/rout*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
+    #tell what you do!
+    Sg = dotMg/2/np.pi/rout*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
     return Sg
 
 
@@ -196,6 +197,16 @@ def T_d(sigmag,kapa,Mcp,dotMg,loc):
     Td=(3*cgs.gC*Mcp*dotMg/8/np.pi/cgs.sigmaSB/loc**3)**(1/4)*g
     return Td
 
+#the dependence on location of some properties
+beta_T = -3/4
+beta_nu = beta_T+3/2
+beta_cs = beta_T/2
+def beta_sigG(loc):
+    #from Shibaika.2017, just below the eq15
+    beta_sigG = -beta_nu + loc/(loc-3*rout)
+    return beta_sigG
+
+    
 # def m_g():
 #     """
 #     get the mean molecular mass of disk
@@ -265,11 +276,14 @@ def eta (disk):
     This is a derived function, using parameters from the disk class
     """
     r = disk.loc
-    Mcp = disk.mcp
-    dotMg = dot_Mg(disk.time)
-    mg = disk.mu *cgs.mp 
-
-    e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
+    #Mcp = disk.mcp
+    #dotMg = dot_Mg(disk.time)
+    Hg = disk.Hg
+    # from Shibaika. 2019 eq13.
+    # this involves the gradient of the surface density as defined above
+    # which I calculated with mathematica
+    e = -1/2 *(Hg/r)**2 *(beta_sigG(r) + beta_cs -3/2) 
+    #eo=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
     return e
 
 

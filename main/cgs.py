@@ -59,6 +59,8 @@ c=2.9979e10  #light speed in cm/s
 #densities
 rhoRJ = 1.326 
 
+#the charge of electrons
+e = 4.80320427e-10
 
 
 

@@ -126,12 +126,13 @@ while doEvo:
     else:
         if system.deltaT <= 0:
             print('[runcpd]: something wrong with deltaT')
+            import pdb;pdb.set_trace()
 
 
-#TBD: lets do these things in another user-defined python file
+#TBD: move these to the userfun dostuff
 if doEvo:
     data = userfun.data
-    data.get_plot_list(doParticles = True)
+    data.get_plot_list(doParticles = False)
     #store system components as pickles
     fileio.store_class(system, 'system')
     fileio.store_class(data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
