@@ -206,6 +206,10 @@ def beta_sigG(loc):
     beta_sigG = -beta_nu + loc/(loc-3*rout)
     return beta_sigG
 
+def beta_P(loc):
+    betasig = beta_sigG(loc)
+    return betasig + beta_cs -3/2 
+
     
 # def m_g():
 #     """
@@ -282,7 +286,7 @@ def eta (disk):
     # from Shibaika. 2019 eq13.
     # this involves the gradient of the surface density as defined above
     # which I calculated with mathematica
-    e = -1/2 *(Hg/r)**2 *(beta_sigG(r) + beta_cs -3/2) 
+    e = -1/2 *(Hg/r)**2 *beta_P(r)
     #eo=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout)/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout)*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
     return e
 

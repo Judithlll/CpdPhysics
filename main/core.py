@@ -452,7 +452,6 @@ class System(object):
                         #plt.plot(self.particles.locL, self.particles.Hg)
                         #plt.scatter(planet.loc, f_Hg(planet.loc), )
                         haspect = Hg/planet.loc
-                        import pdb;pdb.set_trace()
                         tPer = 2*np.pi/physics.Omega_K(planet.loc, self.mcp)
                         getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
                         
@@ -880,13 +879,11 @@ def advance_planets (system):
                         invmigtime = np.sum(np.array(weightL)*np.array(invtmigL)) /np.sum(np.array(weightL))
                         loc_t = planet.loc *invmigtime
                     else:
-                        loc_t = -userfun.planet_migration(system.gas,planet.loc,planet.mass, system.time, system.rhoPlanet)
+                        loc_t = userfun.planet_migration(system.gas,planet.loc,planet.mass, system.time, system.rhoPlanet)
                         
                     mass_t = 0.0    #gas accretion of planet, TBD:-later
                     fcomp_t = 0.0   #how its composition changes
 
-                if loc_t >0:
-                    import pdb;pdb.set_trace()
 
                 # set a milestone: when planet will reach to the inner edge
                 msg = 'planet-reach-rinn-'+str(planet.number)

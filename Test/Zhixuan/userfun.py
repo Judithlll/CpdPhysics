@@ -55,13 +55,20 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
         vt1 = 0.0
     else:
     #Type I migration
-    ## NOTE:for isotermal disk, not suitable!!
-        qr=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
-
-        CI=0.1
-        bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
-        vt1=bt1*(planetMass/disk.mcp)*(disk.sigmaG*planetLoc**2/disk.mcp)*(disk.vK/disk.cs)**2*disk.vK
-
+        
+        #qro=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
+        
+        #kley-nelson 2011 eq14
+        torq0 = (planetMass/mcp)**2 *(disk.Hg/planetLoc)**(-2)*disk.sigmaG *planetLoc**4*disk.OmegaK**2
+        p_phi = planetMass*np.sqrt(cgs.gC*mcp*planetLoc)
+        
+        torq_tot = -(1.36+0.62*dp.beta_sigG(planetLoc)+ 0.43*dp.beta_T) *torq0
+        vt1 = 2*planetLoc*torq_tot/p_phi
+        #CI=0.1
+        #bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
+        #vt1o=bt1*(planetMass/disk.mcp)*(disk.sigmaG*planetLoc**2/disk.mcp)*(disk.vK/disk.cs)**2*disk.vK
+        if vt1 >0:
+            import pdb;pdb.set_trace()
     # v_mig=vt1+vd
 
     return vt1 # v_mig
