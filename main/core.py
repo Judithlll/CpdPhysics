@@ -770,7 +770,20 @@ class System(object):
         #such that new fit for dm/dt starts w/ N=0 particles
 
 
-
+def get_cross_idx(loc, locL, locLo, daction):
+    """
+    this is needed for the 'advance' things to avoid some error caused by removing particles
+    """
+    lrm = 0
+    lad = 0
+    if 'remove' in daction.keys():
+        lrm = len(daction['remove'])
+    if 'add' in daction.keys():
+        lad = daction['add']
+    
+    idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (loc>np.append([0.]*lrm , locL)))
+    return idx
+    
 
 def advance_iceline (system):
     """
@@ -780,6 +793,7 @@ def advance_iceline (system):
     sploc = system.particles.locL
     sploc_old = system.oldstate.particles.locL
     for k,iceline in enumerate(system.icelineL):
+        #idx = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
         idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
 
         ic = pars.composL.index(iceline.species) #refers to species index
@@ -817,16 +831,17 @@ def advance_planets (system):
     """
     res_chainL = ff.get_res_chain(system.res_setL)
 
+    sploc = system.particles.locL
+    sploc_old = system.oldstate.particles.locL
+
 
     for planet in system.planetL:
 
         #planet exists only after planet.time
         if planet.starttime<system.time:
 
-            sploc = system.particles.locL
-            sploc_old = system.oldstate.particles.locL
-
             #particles that cross are those that
+            #idx, = get_cross_idx(planet.loc,sploc,sploc_old,system.daction)
             idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
 
 
@@ -871,7 +886,7 @@ def advance_planets (system):
                         weightL = []
                         for num in chain:
                             p = system.planetD[num]
-                            dum_t = -userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet)
+                            dum_t = userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet)
                             invtmigL.append(dum_t/p.loc)
                             weightL.append(p.mass*p.loc**0.5)
                         

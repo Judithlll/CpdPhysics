@@ -59,6 +59,7 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
         #qro=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
         
         #kley-nelson 2011 eq14
+        ## TBD: make more check: this migration rate is much larger than old one, and seems will be positive sometimes, and then, the underlying problem in advance_planet is exposed
         torq0 = (planetMass/mcp)**2 *(disk.Hg/planetLoc)**(-2)*disk.sigmaG *planetLoc**4*disk.OmegaK**2
         p_phi = planetMass*np.sqrt(cgs.gC*mcp*planetLoc)
         

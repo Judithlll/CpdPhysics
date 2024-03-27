@@ -13,7 +13,7 @@ print('[plot]: data.pickle has been loaded')
 
 #data.plot_particles_number()
 #data.plot_disk(np.array([50,1e6,3e6])*cgs.yr)
-#data.plot_planet_evolution()
+data.plot_planet_evolution()
 
 #data.plot_planet_migration()
 #data.plot_jumpT()
