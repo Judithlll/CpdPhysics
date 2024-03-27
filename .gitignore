@@ -1,6 +1,7 @@
 *.swp
 *.pyc
 Test/Zhixuan/pickles
+Test/Zhixuan/plot
 __pycache__
 *.csv
 *.xlsx

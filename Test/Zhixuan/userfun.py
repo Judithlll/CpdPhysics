@@ -56,14 +56,14 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     else:
     #Type I migration
         
-        #qro=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
+        #qr=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
         
         #kley-nelson 2011 eq14
-        ## TBD: make more check: this migration rate is much larger than old one, and seems will be positive sometimes, and then, the underlying problem in advance_planet is exposed
+        ## TBD: make more check: this migration rate is much larger than old one, and seems will be positive sometimes
         torq0 = (planetMass/mcp)**2 *(disk.Hg/planetLoc)**(-2)*disk.sigmaG *planetLoc**4*disk.OmegaK**2
         p_phi = planetMass*np.sqrt(cgs.gC*mcp*planetLoc)
         
-        torq_tot = -(1.36+0.62*dp.beta_sigG(planetLoc)+ 0.43*dp.beta_T) *torq0
+        torq_tot = -(1.36-0.62*disk.beta_sigG(planetLoc)- 0.43*disk.beta_T) *torq0
         vt1 = 2*planetLoc*torq_tot/p_phi
         #CI=0.1
         #bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
@@ -182,7 +182,7 @@ def plot_massfit(planetMassData):
         plt.scatter(timedots, massdots)
         t_list=np.linspace(timedots[0], timedots[-1], 30)
         plt.plot(t_list, mass_fit(t_list, *popt))
-    plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+    plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/plot/test.jpg')
     plt.close()
 
    
@@ -439,7 +439,7 @@ class Data(object):
         #plt.contourf(time,loc,sigmag,alpha=0.3)
         #plt.colorbar()
 
-        plt.savefig('test.jpg')
+        plt.savefig('./plot/test.jpg')
 
     def plot_disk(self,time):
         r_Span=np.linspace(pars.dgasgrid['rinn'],pars.dgasgrid['rout'])
@@ -455,7 +455,7 @@ class Data(object):
             plt.xlabel('Location [$R_J$]')
             plt.plot(r_Span/cgs.RJ,Td,label=str(time/cgs.yr))
             plt.legend()
-            plt.savefig('diskproperties.jpg')
+            plt.savefig('./plot/diskproperties.jpg')
         else:
             plt.subplot(211)
             plt.title('Surface dencity $[g/cm^2]$')
@@ -475,7 +475,7 @@ class Data(object):
             plt.subplot(212)
             plt.axhline(160, label='iceline', color = 'skyblue', linestyle = 'dashed')
             plt.legend()
-            plt.savefig('diskproperties.jpg')
+            plt.savefig('./plot/diskproperties.jpg')
     
     def plot_particles_number(self):
         plt.figure()
@@ -483,7 +483,7 @@ class Data(object):
         plt.xlabel('time [yr]')
         plt.ylabel('number')
         plt.plot(self.timeL, self.num, color = 'red')
-        plt.savefig('particleNum.jpg')
+        plt.savefig('./plot/particleNum.jpg')
         plt.close()
 
     def plot_planets_accretion(self,planet,system):
@@ -513,7 +513,7 @@ class Data(object):
                 plt.legend(fontsize=12)
                 print (pn)
                 # import pdb ; pdb.set_trace()
-                plt.savefig('planets&pebbles/'+str(self.timeL[i])+'.jpg') 
+                plt.savefig('./plot/planets&pebbles/'+str(self.timeL[i])+'.jpg') 
                 plt.close()
     
     def plot_deltaT(self):
@@ -522,7 +522,7 @@ class Data(object):
         plt.xlabel('System Time [yr]')
         plt.ylabel('Time Step [yr]')
         plt.plot(self.timeL[:-1],np.diff(self.timeL))
-        plt.savefig('Delta_t.jpg')
+        plt.savefig('./plot/Delta_t.jpg')
         plt.close()
 
     def plot_planet_migration(self):
@@ -542,7 +542,7 @@ class Data(object):
             plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
         plt.legend()
-        plt.savefig('planet_migration.jpg',dpi=600)
+        plt.savefig('./plot/planet_migration.jpg',dpi=600)
         plt.close()   
 
     def plot_planet_evolution(self):
@@ -568,7 +568,7 @@ class Data(object):
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
         plt.plot(self.icelineslocL[:,0]/cgs.RJ, time/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
-        plt.savefig('planet_evolution.jpg',dpi=600)
+        plt.savefig('./plot/planet_evolution.jpg',dpi=600)
         plt.close()
    
     def plot_planet_massloc(self):
@@ -588,7 +588,7 @@ class Data(object):
 
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
         plt.legend()
-        plt.savefig('planet_massloc.jpg',dpi=600)
+        plt.savefig('./plot/planet_massloc.jpg',dpi=600)
         plt.close()
     
     def plot_disk_profile(self):
@@ -623,7 +623,7 @@ class Data(object):
         import pdb;pdb.set_trace() 
 
         ax2.legend(l1+l2, la1+la2, loc='upper right')
-        plt.savefig('disk_properties.jpg')
+        plt.savefig('./plot/disk_properties.jpg')
         plt.close()
 
     def plot_jumpT(self):
@@ -635,7 +635,7 @@ class Data(object):
         timelist = [f['jumptime']/cgs.yr for f in self.jumpstuff]
         plt.plot(timelist, jumpTlist)
         plt.scatter(timelist, jumpTlist)
-        plt.savefig('jumpT variation')
+        plt.savefig('./plot/jumpT variation')
         plt.close()
 
 def make_animation(path='pebbles&planets'):

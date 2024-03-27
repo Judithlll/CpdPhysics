@@ -31,14 +31,14 @@ def user_add_fun ():
     """
     a list of functions to be added
     """
-    return dot_Mg,
+    return dot_Mg, beta_sigG, beta_P
 
 
 def user_add_var ():
     """
     a list of attributes to be added
     """
-    return {'alpha':alpha, 'rinn':rinn, 'rout':rout, 'ratio':ratio}
+    return {'alpha':alpha, 'rinn':rinn, 'rout':rout, 'ratio':ratio, 'beta_T':beta_T, 'beta_nu':beta_nu, 'beta_cs':beta_cs}
 
 
 def user_add_eval ():
