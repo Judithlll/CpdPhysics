@@ -130,12 +130,12 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1*cgs.yr, 1e3*cgs.yr] 
+    timeL = [3.01e6*cgs.yr, 3.02e6*cgs.yr, 3.03e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
-    locationL = [16*cgs.rJup, 25*cgs.rJup] 
-    massL = [3e23, 3e23] 
-    compoL = np.array([[1.0, 0.0], [1.0, 0.0]])
+    locationL = [16*cgs.rJup, 25*cgs.rJup, 27*cgs.rJup] 
+    massL = [3e23, 3e23, 3e23] 
+    compoL = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])
 
     return timeL, locationL, massL, compoL
 
@@ -164,8 +164,20 @@ def do_stuff (system, init=False, final= False):
         data.data_process(system)
         #data object should be available...
         tminarr = system.minTimes.tminarr 
-        sfmt = '{:5d} {:5d} {:10.2e} {:3d} {:7.2f}'
-        line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr)
+
+        nameL = [d['name'] for d in system.mintimeL]
+        tminarr = np.array([d['tmin'] for d in system.mintimeL])
+        if len(tminarr)==1:
+            imin = -1
+            nameM = 'None'
+            tmin = -1
+        else:
+            imin = 1 +tminarr[1:].argmin() #minimum evolution
+            nameM = nameL[imin]
+            tmin = tminarr[imin]
+
+        sfmt = '{:6d} {:5d} {:10.2e} {:3d} {:7.2f} {:22s} {:7.2e}'
+        line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr, nameM, tmin)
         print(line) #TBD: print more things 
 
 def plot_massfit(planetMassData):
@@ -553,20 +565,24 @@ class Data(object):
         loclist = self.planetslocL.T
         masslist = self.planetsmassL.T
         time = np.array(list(self.planetsloc.keys()))
-
+        
+        planetst = 3.01e6*cgs.yr
+        stidx = np.argwhere(time>planetst)[0][0]
+        
         dotssize = masslist/np.nanmin(masslist)*0.02
         #cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
 
         for jump in self.jumpstuff:
-            plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
+            if jump['jumptime'] > planetst:
+                plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
-            plt.scatter(loc/cgs.RJ, time/cgs.yr, s = dotssize[i], c =self.planetsfcompL[:,i][:,1], cmap ='Spectral', alpha =1 )
+            plt.scatter(loc[stidx:]/cgs.RJ, time[stidx:]/cgs.yr, s = dotssize[i][stidx:], c =self.planetsfcompL[stidx:,i][:,1], cmap ='Spectral', alpha =1 )
 
 
             #plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
         plt.colorbar(label = "Water Fraction [%]")
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
-        plt.plot(self.icelineslocL[:,0]/cgs.RJ, time/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
+        plt.plot(self.icelineslocL[stidx:,0]/cgs.RJ, time[stidx:]/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
         plt.savefig('./plot/planet_evolution.jpg',dpi=600)
         plt.close()

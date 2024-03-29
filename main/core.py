@@ -216,7 +216,7 @@ class System(object):
         """
         copies present state to "old" 
         """
-        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg']
+        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg', 'deltaT']
         self.oldstate = COPY (self, copy_list)
 
     def remove_planet(self):
@@ -487,13 +487,25 @@ class System(object):
             if iold>=0 and self.oldstate.planetL[i].mass != planet.mass:
                 # self.masstime=
                 planet.planetMassData.append([self.time , planet.mass])
-
-
-            #then try to fit the mass to a curve
             Npts = len(planet.planetMassData)
+            #the interval time of accretion, if the inteval time is too long, then we can say the planet will no longer accrets
+            
+            if Npts >=1:
+                t_inteval = self.time - planet.planetMassData[-1][0]
+                if t_inteval > 10*cgs.yr:
+                    planet.accretion = False
+            print(planet.accretion)
+            if planet.accretion == False:
+                import pdb;pdb.set_trace()
+            #then try to fit the mass to a curve
             Nfit = 10
             #consider the data is not large enough to make the fit
-            if Npts >= Nfit:
+
+            #TBD:if particles evaporate before reaching the planet
+            #if planet.loc < location_most_inner_iceline:
+            #    planet.dmdt = 0.0
+            #    #...
+            if Npts >= Nfit and planet.accretion:
                 #better way to do
                 timedots, massdots = np.log(np.array(planet.planetMassData).T)
                 #timedots = np.log10([planet.planetMassData[j][0] for j in range(len(planet.planetMassData))])
@@ -530,10 +542,11 @@ class System(object):
                 #t_list=np.linspace(timedots[0], timedots[-1], 30)
                 #plt.plot(t_list, mass_fit(t_list, *popt))
                 #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
-                
+                #print(planet.dmdt/3e23) 
                 planet.dmdt = pidx *planet.mass/(self.time) 
                 planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
-                PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
+                #PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
+                PmassTscale[i] = planet.mass/planet.dmdt
                 #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
                 
                 #jump time is limited by uncertainty in the fit
@@ -544,6 +557,10 @@ class System(object):
                     planet.max_jumpT = thre_jump_max*planet.mass /denom
                     #print(f'{self.ntime} {i} {Nfit} {Npts} {planet.max_jumpT/cgs.yr:10.3e}')
                 #TBD: other conditions (migrate into icelines or no gas region...)
+            elif planet.accretion == False:
+                planet.dmdt = 0
+                planet.relp_mass = np.inf
+                planet.max_jumpT = np.inf
             else:
                 planet.dmdt = 0
                 planet.relp_mass = np.inf 
@@ -556,7 +573,6 @@ class System(object):
                 planet.max_jumpT = np.inf
 
                 #get the planet composition change time scale
-                #TBD: do the composition 'crude' for the moment, assuming the comp of added mass during the jump is the same as the nearest particles
                 if False:
                     if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
                         planet.compData.append([self.time, planet.fcomp[0]])
@@ -617,12 +633,12 @@ class System(object):
         self.mintimeL=mintimeL
         #make a class to use this mintimeL, change the name 
         self.minTimes = Mintimes(mintimeL)
-        deltaT = np.inf
-        for ddum in mintimeL:
-            if ddum['tmin'] < deltaT:
-                deltaT = ddum['tmin']
-            if ddum['tmin'] < 0:
-                import pdb;pdb.set_trace()
+        deltaT = min(self.minTimes.tminarr)
+
+        #limit increase of deltaT to (some number)
+        if self.ntime>0:
+            deltaT = min(deltaT, self.oldstate.deltaT*1.1)
+
             
         if self.time+deltaT>tEnd:
             deltaT = tEnd - self.time
@@ -667,7 +683,7 @@ class System(object):
         #if len(reached_ms) != 0:
         #   jumpT = timepoints[reached_ms[0]] - self.time
         
-        #jumpT cannot exceed max_jumpT
+        #jumpT cannot exceed max_jumpT (see above)
         #NOTE: planet may not exist... hence the for/if construct
         max_tpl = np.inf
         for planet in self.planetL:
@@ -682,8 +698,11 @@ class System(object):
         jumpT = min(tjumparr)
 
         #evol.timescales >> drift timescales && ensure significant jump
-        con0 = self.ntime >self.njumptime +100 
+        con0 = self.ntime >self.njumptime +100 #at least wait 100 steps
         con1 = (min(Tscale_ratio) > 1e2) and (jumpT/self.deltaT>100) #should have more judgements
+
+        if self.ntime%1000==0: 
+            print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
 
         if False:
             # the fit goodness of planets grow >0.95, if the r2 is np.inf, the planets isn't added, if the planet is already added but r2 is still np.nan, then the mass data points are not enough 
@@ -705,6 +724,7 @@ class System(object):
         else:
             self.doJump = con0 & con1
         
+        #print([con0,con1,self.mintimeL[1:], self.time/cgs.yr]) 
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
 
 
@@ -899,7 +919,7 @@ def advance_planets (system):
                     mass_t = 0.0    #gas accretion of planet, TBD:-later
                     fcomp_t = 0.0   #how its composition changes
 
-
+                
                 # set a milestone: when planet will reach to the inner edge
                 msg = 'planet-reach-rinn-'+str(planet.number)
                 #update the time corr. to the message
@@ -910,7 +930,7 @@ def advance_planets (system):
                         break
 
                 #add/update milestone
-                key = (planet.loc-system.rinn)/abs(loc_t)
+                key = np.float64((planet.loc-system.rinn))/abs(loc_t)
                 system.milestones[key + system.time] = msg
 
                 #update planet properties from rates supplied by user
@@ -1338,7 +1358,8 @@ class PLANET ():
         self.relp_comp = np.nan
         self.max_jumpT = 0.0
         self.dlocdt = 0.0
-
+        
+        self.accretion = True
 
     def record_cross_sp (self, time, sp, idxcross):
         for k in idxcross:
