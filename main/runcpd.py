@@ -59,7 +59,11 @@ while doEvo:
                 system.planet_candidate.remove(planet)
     
     Yt = system.update_particles (**pars.dtimesteppars)
-    
+
+    #do this again? LZX: maybe not, post_process mainly for particles
+    #   system.post_process()
+    system.post_process()
+
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
     if system.nplanet>0:
@@ -68,6 +72,7 @@ while doEvo:
     if system.niceline>0:
         core.advance_iceline(system)
 
+    
 
     ## cwo: resonance crossing criteria
     if False:
@@ -102,9 +107,6 @@ while doEvo:
         #2)get the new deltaT 
         system.time +=system.deltaT
         system.new_timestep(pars.tmax, **pars.dtimesteppars)
-    #do this again? LZX: maybe not, post_process mainly for particles
-    #   system.post_process()
-    system.post_process()
     
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1

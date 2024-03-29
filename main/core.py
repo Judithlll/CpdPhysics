@@ -447,7 +447,10 @@ class System(object):
                         ta = PlocaTscale[i]
                         qinn = self.planetD[uname- 1].mass/ self.mcp
                         #we can use the interpolation with particles Hg
-                        f_Hg = interp1d(self.particles.locL, self.particles.Hg, kind = 'linear', fill_value="extrapolate")
+                        try:
+                            f_Hg = interp1d(self.particles.locL, self.particles.Hg, kind = 'linear', fill_value="extrapolate")
+                        except:
+                            import pdb;pdb.set_trace()
                         Hg = f_Hg (planet.loc)
                         #plt.plot(self.particles.locL, self.particles.Hg)
                         #plt.scatter(planet.loc, f_Hg(planet.loc), )
@@ -790,7 +793,7 @@ class System(object):
         #such that new fit for dm/dt starts w/ N=0 particles
 
 
-def get_cross_idx(loc, locL, locLo, daction):
+def get_cross_idx(loc, locL, locLo, daction, locnew = None):
     """
     this is needed for the 'advance' things to avoid some error caused by removing particles
     """
@@ -800,8 +803,11 @@ def get_cross_idx(loc, locL, locLo, daction):
         lrm = len(daction['remove'])
     if 'add' in daction.keys():
         lad = daction['add']
-    
-    idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (loc>np.append([0.]*lrm , locL)))
+    if locnew == None:
+        idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (loc>np.append([0.]*lrm , locL)))
+    else:
+        idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (locnew>np.append([0.]*lrm , locL)))
+
     return idx
     
 
@@ -813,8 +819,8 @@ def advance_iceline (system):
     sploc = system.particles.locL
     sploc_old = system.oldstate.particles.locL
     for k,iceline in enumerate(system.icelineL):
-        #idx = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
-        idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
+        idx = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
+        #idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
 
         ic = pars.composL.index(iceline.species) #refers to species index
         if len(idx)!=0:     
@@ -861,8 +867,8 @@ def advance_planets (system):
         if planet.starttime<system.time:
 
             #particles that cross are those that
-            #idx, = get_cross_idx(planet.loc,sploc,sploc_old,system.daction)
-            idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
+            idx = get_cross_idx(planet.loc,sploc,sploc_old,system.daction)
+            #idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
 
 
             iterate = True
@@ -937,8 +943,8 @@ def advance_planets (system):
                 planet_loc_nw = planet.loc + loc_t *system.deltaT
 
                 #particles that cross are those that
-                idxN, = np.nonzero( (planet.loc<sploc_old) & (sploc<planet_loc_nw) )
-
+                idxN = get_cross_idx(planet.loc, sploc, sploc_old, system.daction, planet_loc_nw)
+                #idxN, = np.nonzero( (planet.loc<sploc_old) & (sploc<planet_loc_nw) )
 
                 if set(idxN)!=set(idx):
                     idx = idxN
@@ -1048,7 +1054,8 @@ class Superparticles(object):
         dcomposL: the composition list
 
         """
-
+        self.Rdi = Rdi
+        
         self.rhocompos=[]
         for compos in dcomposL:
             if compos['name']!= 'gas':
@@ -1310,6 +1317,11 @@ class Superparticles(object):
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)   
         self.fcomp = np.delete(self.fcomp, remove_idx, axis=0) #[24.01.01] added
+        #'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'Hg':disk.Hg
+        self.Rd = np.delete(self.Rd, remove_idx)
+        self.St = np.delete(self.St, remove_idx)
+        self.v_r = np.delete(self.v_r, remove_idx)
+        self.Hg = np.delete(self.Hg, remove_idx)
         self.num -= len(remove_idx)
 
 
@@ -1319,6 +1331,11 @@ class Superparticles(object):
         self.massL = np.append(self.massL, self.mini)
         self.mtotL = np.append(self.mtotL, self.mtot1)  #mtot1 is needed here
         self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
+        # because we need to use these properties somewhere, so these properties also needed to be postprocess, but for now this is very crude
+        self.Rd = np.append(self.Rd, self.Rdi)
+        self.St = np.append(self.St, self.St[-1])
+        self.v_r = np.append(self.v_r, self.v_r[-1])
+        self.Hg = np.append(self.Hg, self.Hg[-1])
         self.num += 1 
 
         if Nadd!=1:
