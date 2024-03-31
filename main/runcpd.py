@@ -128,6 +128,7 @@ while doEvo:
     if final: 
         end = time.time()
         runTime = end-start
+        print ('[runcpd]: Congrats!! You finished a sucessful run which consume {runTime} seconds')
         break
 
     else:
