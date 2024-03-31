@@ -41,6 +41,9 @@ else:
     system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
     #backup the initial data
     system.back_up_last_data()       #back up the data of last step
+
+    # write temp data to log files
+    system.update_log(init = True, logdir = '/home/lzx/CpdPhysics/main/log/')
     print('\033[32m[runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
@@ -66,6 +69,7 @@ while doEvo:
 
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
+    #NOTE:order may matter a lot!!
     if system.nplanet>0:
         core.advance_planets (system)
 
@@ -118,7 +122,8 @@ while doEvo:
     final = system.time>=pars.tmax
 
     userfun.do_stuff(system, final=final)
-
+    
+    system.update_log(djump = djump, logdir = '/home/lzx/CpdPhysics/main/log/')
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
         end = time.time()

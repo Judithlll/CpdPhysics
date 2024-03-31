@@ -163,22 +163,10 @@ def do_stuff (system, init=False, final= False):
     else:
         data.data_process(system)
         #data object should be available...
-        tminarr = system.minTimes.tminarr 
-
-        nameL = [d['name'] for d in system.mintimeL]
-        tminarr = np.array([d['tmin'] for d in system.mintimeL])
-        if len(tminarr)==1:
-            imin = -1
-            nameM = 'None'
-            tmin = -1
-        else:
-            imin = 1 +tminarr[1:].argmin() #minimum evolution
-            nameM = nameL[imin]
-            tmin = tminarr[imin]
-
-        sfmt = '{:6d} {:5d} {:10.2e} {:3d} {:7.2f} {:22s} {:7.2e}'
-        line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr, nameM, tmin)
-        print(line) #TBD: print more things 
+        #tminarr = system.minTimes.tminarr 
+        #sfmt = '{:6d} {:5d} {:10.2e} {:3d} {:7.2f} {:22s} {:7.2e}'
+        #line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr, nameM, tmin)
+        #print(line)  
 
 def plot_massfit(planetMassData):
     def mass_fit(t,a,b):

@@ -100,6 +100,61 @@ class System(object):
         #   like: r_crit={'cavity':...}
         self.rinn = self.get_rinn()
 
+    def update_log(self, djump={}, logdir = '~/CpdPhysics/main/log/', init=False):
+        loglist = ['system_evol.log', 'planets.log', 'jump.log']
+        pathlist = [logdir+log for log in loglist]
+        
+        nameL = [d['name'] for d in self.mintimeL]
+        tminarr = np.array([d['tmin'] for d in self.mintimeL])
+        
+        imin = tminarr.argmin() #minimum evolution
+        nameM = nameL[imin]
+        tmin = tminarr[imin]
+
+        # get the lines will be written into files
+        efmt = '{:10d} {:10.2f} {:20d} {:10.2f} {:20s}'
+        jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
+    
+        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20)) 
+        print (line_evol)
+        line_plan = '{:10.2f}'.format(self.time/cgs.yr)+''.join('{:3d} {:10.2f}'.format(self.planetL[i].number, self.planetL[i].max_jumpT) for i in range(self.nplanet))
+        #if self.nplanet >0:
+        #    import pdb;pdb.set_trace()
+
+        # get the line of jump
+        if self.doJump:
+            nameJ = djump['tjumpkeys'][np.argwhere(djump['tjumparr']== self.jumpT)[0][0]] 
+            if nameJ == 'milestones':
+                nameJ = nameJ + '-'+ self.milestones[self.time]
+            line_jump =jfmt.format(self.njump, self.jumptime/cgs.yr, self.jumpT, nameJ.rjust(30))
+            #import pdb;pdb.set_trace()
+            lines = [line_evol, line_plan, line_jump,]
+        else:
+            lines = [line_evol, line_plan]
+
+
+        # write to files
+        if init:
+            ff.clear_dir(logdir)
+
+            # generate the title foemation
+            etfmt = '{:10s} {:10s} {:20s} {:10s} {:20s}'
+            jtfmt = '{:10s} {:20s} {:20s} {:30s}'
+            ptfmt = '{:10s} {:20s} {:20s}'
+            line_evol_title = etfmt.format('ntime'.rjust(10), 'time'.rjust(10), 'particles_number'.rjust(20), 'deltaT'.rjust(10), 'restrict_factor'.rjust(20))
+            line_jump_title = jtfmt.format('njump'.rjust(10), 'time_begin_jump'.rjust(20), 'time_jumped_over'.rjust(20), 'jump_retrict_factor'.rjust(30))
+            line_plan_title = ptfmt.format('time'.rjust(10), 'planet_number'.rjust(20), 'planet_max_jumpT'.rjust(20))
+            titles = [line_evol_title, line_plan_title, line_jump_title]
+
+            for i,p in enumerate(pathlist):
+                with open (p, 'w') as file:
+                    file.write(titles[i] + '\n')
+        else:
+            for i,line in enumerate(lines):
+                with open (pathlist[i], 'a') as file:
+                    file .write(line + '\n')
+            
+
     def get_rinn(self):
         """
         get the rinn from the disk_properties or the central object's radius
@@ -497,7 +552,7 @@ class System(object):
                 t_inteval = self.time - planet.planetMassData[-1][0]
                 if t_inteval > 10*cgs.yr:
                     planet.accretion = False
-            print(planet.accretion)
+            #print(planet.accretion)
             if planet.accretion == False:
                 import pdb;pdb.set_trace()
             #then try to fit the mass to a curve
@@ -505,9 +560,9 @@ class System(object):
             #consider the data is not large enough to make the fit
 
             #TBD:if particles evaporate before reaching the planet
-            #if planet.loc < location_most_inner_iceline:
+            #if planet.loc < max(location_most_inner_iceline, cavity_radius):
             #    planet.dmdt = 0.0
-            #    #...
+            #    #max_jumpT = np.inf
             if Npts >= Nfit and planet.accretion:
                 #better way to do
                 timedots, massdots = np.log(np.array(planet.planetMassData).T)

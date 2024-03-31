@@ -6,6 +6,15 @@ import scipy.optimize as sciop
 import disk_properties as dp
 import os
 import parameters as pars
+import shutil
+
+def clear_dir(directory):
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
 
 def get_res_chain(res_setL):
     newsetL = []
