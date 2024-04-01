@@ -866,7 +866,9 @@ def get_cross_idx(loc, locL, locLo, daction, locnew = None):
     else:
         idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (locnew>np.append([0.]*lrm , locL)))
 
-    return idx
+    idxD = {'idx_for_new': idx-lrm, 'idx_for_old': idx}
+
+    return idxD
     
 
 def advance_iceline (system):
@@ -877,7 +879,8 @@ def advance_iceline (system):
     sploc = system.particles.locL
     sploc_old = system.oldstate.particles.locL
     for k,iceline in enumerate(system.icelineL):
-        idx = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
+        idxD = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
+        idx = idxD['idx_for_new']
         #idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
 
         ic = pars.composL.index(iceline.species) #refers to species index
@@ -925,7 +928,7 @@ def advance_planets (system):
         if planet.starttime<system.time:
 
             #particles that cross are those that
-            idx = get_cross_idx(planet.loc,sploc,sploc_old,system.daction)
+            idxD = get_cross_idx(planet.loc,sploc,sploc_old,system.daction)
             #idx, = np.nonzero( (planet.loc<sploc_old) & (planet.loc>sploc) )
 
 
@@ -935,7 +938,7 @@ def advance_planets (system):
 
 
                 crossL = []
-                for ip in idx:
+                for ip in idxD['idx_for_old']:
 
                     spi = system.oldstate.particles.select_single(ip)
 
@@ -1001,11 +1004,10 @@ def advance_planets (system):
                 planet_loc_nw = planet.loc + loc_t *system.deltaT
 
                 #particles that cross are those that
-                idxN = get_cross_idx(planet.loc, sploc, sploc_old, system.daction, planet_loc_nw)
+                idxND = get_cross_idx(planet.loc, sploc, sploc_old, system.daction, planet_loc_nw)
                 #idxN, = np.nonzero( (planet.loc<sploc_old) & (sploc<planet_loc_nw) )
-
-                if set(idxN)!=set(idx):
-                    idx = idxN
+                if set(idxND['idx_for_new'])!=set(idxD['idx_for_new']):
+                    idxD['idx_for_new'] = idxND['idx_for_new']
                     niter += 1
                 else:
                     iterate = False
@@ -1019,8 +1021,6 @@ def advance_planets (system):
             # update some planet properties (like pdel) here?
             # seems most natural point (after planets have advanced)
             
-
-
             planet.time = system.time  ## add this time to planet
 
             #planet.mass += mass_t *system.deltaT
@@ -1033,7 +1033,7 @@ def advance_planets (system):
             #mass*composition that is acccreted
             delmcomp = np.zeros((spN.fcomp.shape[1]))
             
-            for k, ip in enumerate(idxN):
+            for k, ip in enumerate(idxND['idx_for_new']):
 
                 #calculate critical mass to verify if the pebble accretion can occur
                  
@@ -1056,12 +1056,18 @@ def advance_planets (system):
                 #
                 #TBD-later: in reality particles may be "stuck" in pressure bump
                 #           incorporate in planet object?
-                if Mc<planet.mass:                    
-
+                if Mc<planet.mass and planet.loc >system.rinn:                    
                     epsilon = userfun.epsilon_PA(planet.loc,planet.mass,spk)
 
                     #accreted mass by composition
                     delmcomp += epsilon*crossL[k].fcomp *crossL[k].mtotL
+
+                    #spN -> system.particles.Y2d...
+                    spN.mtotL[ip] -= delmass.sum() #decrease mass sp
+                    masscomp = planet.fcomp*planet.mass +delmcomp
+                    planet.mass += delmcomp.sum()
+                    planet.fcomp = masscomp /planet.mass
+
 
                     #delm = epsilon*crossL[k].mtotL
                     #for i in range(len(crossL[k].fcomp)):
@@ -1071,19 +1077,13 @@ def advance_planets (system):
                     
                     #planet.fcomp = [ (delmass[i]+planet.mass*planet.fcomp[i]) / (planet.mass+delmass.sum()) for i in range(len(delmass))]
                     #planet.mass += delmass.sum() #increase mass (pebble accretion)
-                else:
-                    print('[core]: pebble accretion can not happen')
-                    import pdb; pdb.set_trace()
+                #else:
+                    #print('[core]: pebble accretion can not happen')
+                    #import pdb; pdb.set_trace()
 
 
                 # planet.fcomp += 0.  #TBD !!
                 
-                #spN -> system.particles.Y2d...
-                spN.mtotL[ip] -= delmass.sum() #decrease mass sp
-            masscomp = planet.fcomp*planet.mass +delmcomp
-            planet.mass += delmcomp.sum()
-            planet.fcomp = masscomp /planet.mass
-
 
 class SingleSP(object):
     """
