@@ -65,7 +65,7 @@ class System(object):
 
         self.time=timeini
         self.ntime = 0  
-
+        self.timeL = []
         # define a disk class
         self.gas = self.init_gas ()
 
@@ -112,7 +112,7 @@ class System(object):
         tmin = tminarr[imin]
 
         # get the lines will be written into files
-        efmt = '{:10d} {:10.2f} {:20d} {:10.2f} {:20s}'
+        efmt = '{:10d} {:10.2f} {:20d} {:10.2e} {:20s}'
         jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
     
         line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20)) 
@@ -126,7 +126,7 @@ class System(object):
             nameJ = djump['tjumpkeys'][np.argwhere(djump['tjumparr']== self.jumpT)[0][0]] 
             if nameJ == 'milestones':
                 nameJ = nameJ + '-'+ self.milestones[self.time]
-            line_jump =jfmt.format(self.njump, self.jumptime/cgs.yr, self.jumpT, nameJ.rjust(30))
+            line_jump =jfmt.format(self.njump, self.jumptime/cgs.yr, self.jumpT/cgs.yr, nameJ.rjust(30))
             #import pdb;pdb.set_trace()
             lines = [line_evol, line_plan, line_jump,]
         else:
@@ -258,6 +258,9 @@ class System(object):
 
         Evolving system to the self.time
         """
+        # prevent the large value 'eats' the small value
+        if self.deltaT/self.time <1e-15:
+            import pdb;pdb.set_trace()
         Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,timestepn)
 
 
@@ -424,7 +427,7 @@ class System(object):
         #timescale for the particles
         #I dont think there's need to use np.nanmin
         tpart = np.abs(Y2d/Y2dp)
-        mintimeL.append({'name':'particles', 'tmin': deltaTfraction*tpart.min(), 
+        mintimeL.append({'name':'particles', 'tmin': tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
         
         #after the jump, we only have particles drift timescale
@@ -494,10 +497,16 @@ class System(object):
                     #resonace offset (positive quantity)
                     pdel = prat -(jres+1)/jres
                     pdelold = pratold -(jres+1)/jres
+                    if pdel == 0.:
+                        import pdb;pdb.set_trace()
                     
+                    #planets are in resonance
+                    if planet.resS=='R':
+                        pratTscale[i] = np.inf
+
                     # change the resonance state here, id the pdel is small enough, then teh resS = 'R'
                     # for now we don't consider the condition that the planet jump over the resonance.
-                    if pdel < 0.0: #a little arbitrary now
+                    elif pdel <= 0.0: #a little arbitrary now
                         
                         ta = PlocaTscale[i]
                         qinn = self.planetD[uname- 1].mass/ self.mcp
@@ -532,10 +541,12 @@ class System(object):
                             pdelold = pratold - (jres+1)/jres
                             pratTscale[i] =np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT 
                     
+
                     #calculate how fast the planets approach resonance 
                     #the timescale on which planets approach resonance
-                    else:
-                        pratTscale[i] = np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT
+                    else:#pdel>0
+                        # +1e-2 to prevent a too small value comes out
+                        pratTscale[i] = np.float64(pdel + 1e-2) /(1e-100 +pdelold-pdel) *self.deltaT
 
 
             #fit the planet growth by pebble accretion
@@ -562,6 +573,7 @@ class System(object):
             Nfit = 10
             #consider the data is not large enough to make the fit
 
+            #TBD:consider putting this long text in a function or method of PLANET class (?)
             #TBD:if particles evaporate before reaching the planet
             #if planet.loc < max(location_most_inner_iceline, cavity_radius):
             #    planet.dmdt = 0.0
@@ -676,7 +688,9 @@ class System(object):
                         del self.milestones[value]
                  
                 self.milestones[self.time+ 1e-3 +min(pratTscale)] = 'resonance'
-                mintimeL.append({'name': 'PlanetsRes', 'tmin': np.min(pratTscale[pratTscale >= 0.0])+1.}) #plus 1 to prevent to be zero
+                #TBD: find out WHY do we see 0 // perhaps put pratTscale->infinity when in resonance (delta=0)?
+                mintimeL.append({'name': 'PlanetsRes', 'tmin': np.min(pratTscale[pratTscale >= 0.0])})
+                
         #timescale for the icelines
         if pars.doIcelines and self.oldstate is not None:
             IlocaTscale=np.inf*np.ones_like(self.icelineL)
@@ -694,8 +708,10 @@ class System(object):
         self.mintimeL=mintimeL
         #make a class to use this mintimeL, change the name 
         self.minTimes = Mintimes(mintimeL)
-        deltaT = min(self.minTimes.tminarr)
 
+        #determine next timestep
+        deltaT = deltaTfraction *min(self.minTimes.tminarr)
+        
         #limit increase of deltaT to (some number)
         if self.ntime>0:
             deltaT = min(deltaT, self.oldstate.deltaT*1.1)
@@ -760,10 +776,18 @@ class System(object):
 
         #evol.timescales >> drift timescales && ensure significant jump
         con0 = self.ntime >self.njumptime +100 #at least wait 100 steps
-        con1 = (min(Tscale_ratio) > 1e2) and (jumpT/self.deltaT>100) #should have more judgements
+        #con1 = (min(Tscale_ratio) > 1e2) and (jumpT/self.deltaT>100) #should have more judgements
+        con1 = (min(Tscale_ratio) > 1e2) #should have more judgements
 
-        if self.ntime%1000==0: 
-            print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
+        #perhaps
+        if len(self.timeL)>100:
+            con2 = (jumpT>self.time-self.timeL[-100])
+        else:
+            con2 = (jumpT>(self.time-self.timeL[0])*100/len(self.timeL))
+        
+
+        #if self.ntime%1000==0: 
+        #    print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
 
         if False:
             # the fit goodness of planets grow >0.95, if the r2 is np.inf, the planets isn't added, if the planet is already added but r2 is still np.nan, then the mass data points are not enough 
@@ -783,7 +807,7 @@ class System(object):
 
             self.doJump = con1 & con2 &con3
         else:
-            self.doJump = con0 & con1
+            self.doJump = con0 & con1 & con2
         
         #print([con0,con1,self.mintimeL[1:], self.time/cgs.yr]) 
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
@@ -1233,7 +1257,10 @@ class Superparticles(object):
 
         for prop in propL:
             if len(getattr(self,prop)) > len(self.rhocompos):
-                kwargs[prop] = getattr(self,prop)[ix]
+                try:
+                    kwargs[prop] = getattr(self,prop)[ix]
+                except:
+                    import pdb;pdb.set_trace()
         
         for prop in propSol:
             kwargs[prop] = getattr(self,prop)
@@ -1380,6 +1407,8 @@ class Superparticles(object):
         self.St = np.delete(self.St, remove_idx)
         self.v_r = np.delete(self.v_r, remove_idx)
         self.Hg = np.delete(self.Hg, remove_idx)
+        self.eta = np.delete(self.eta, remove_idx)
+        self.mg = np.delete(self.mg, remove_idx)
         self.num -= len(remove_idx)
 
 
@@ -1394,6 +1423,8 @@ class Superparticles(object):
         self.St = np.append(self.St, self.St[-1])
         self.v_r = np.append(self.v_r, self.v_r[-1])
         self.Hg = np.append(self.Hg, self.Hg[-1])
+        self.eta = np.append(self.eta, self.eta[-1])
+        self.mg = np.append(self.mg, self.mg[-1])
         self.num += 1 
 
         if Nadd!=1:

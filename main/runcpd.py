@@ -112,6 +112,8 @@ while doEvo:
         system.time +=system.deltaT
         system.new_timestep(pars.tmax, **pars.dtimesteppars)
     
+    system.timeL.append(system.time)
+
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
     
