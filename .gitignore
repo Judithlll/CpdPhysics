@@ -1,5 +1,6 @@
 *.swp
 *.pyc
+main/log
 Test/Zhixuan/pickles
 Test/Zhixuan/plot
 __pycache__
