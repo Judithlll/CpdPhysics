@@ -123,9 +123,10 @@ while doEvo:
     #[24.02.01]cwo: added stopping condition // we could add more
     final = system.time>=pars.tmax
 
+    # wrrite key information into logs and print things
+    system.update_log(djump = djump, logdir = '/home/lzx/CpdPhysics/main/log/')
     userfun.do_stuff(system, final=final)
     
-    system.update_log(djump = djump, logdir = '/home/lzx/CpdPhysics/main/log/')
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
         end = time.time()

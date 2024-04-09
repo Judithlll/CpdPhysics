@@ -126,7 +126,13 @@ class System(object):
             nameJ = djump['tjumpkeys'][np.argwhere(djump['tjumparr']== self.jumpT)[0][0]] 
             if nameJ == 'milestones':
                 nameJ = nameJ + '-'+ self.milestones[self.time]
+            self.jump_limitation = nameJ
+
             line_jump =jfmt.format(self.njump, self.jumptime/cgs.yr, self.jumpT/cgs.yr, nameJ.rjust(30))
+
+            print(f'[core.system.jump]:at {self.timeL[-2]/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
+            print(f'[core.system_jump]:jump time limited by: '+nameJ)
+            print(f'[core.system_jump]:min. evolution time ({nameM}) {tmin/cgs.yr:9.2e} yr')
             #import pdb;pdb.set_trace()
             lines = [line_evol, line_plan, line_jump,]
         else:
@@ -857,17 +863,17 @@ class System(object):
         self.njumptime = self.ntime
         self.jumptime = self.time
 
-        im = djump['tjumparr'].argmin()
+        #im = djump['tjumparr'].argmin()
         #maybe interesting to store and plot which factor limits the jumpT
-        self.jump_limitation = djump["tjumpkeys"][im]
+        #self.jump_limitation = djump["tjumpkeys"][im]
 
-        nameL = [d['name'] for d in self.mintimeL]
-        tminarr = np.array([d['tmin'] for d in self.mintimeL])
-        imin = 1 +tminarr[1:].argmin() #minimum evolution
+        #nameL = [d['name'] for d in self.mintimeL]
+        #tminarr = np.array([d['tmin'] for d in self.mintimeL])
+        #imin = 1 +tminarr[1:].argmin() #minimum evolution
 
-        print(f'[core.system.jump]:at {self.time/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
-        print(f'[core.system_jump]:jump time limited by: {self.jump_limitation}')
-        print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:9.2e} yr')
+        #print(f'[core.system.jump]:at {self.time/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
+        #print(f'[core.system_jump]:jump time limited by: {self.jump_limitation}')
+        #print(f'[core.system_jump]:min. evolution time ({nameL[imin]}) {tminarr[imin]/cgs.yr:9.2e} yr')
         
            #import pdb;pdb.set_trace()
 
