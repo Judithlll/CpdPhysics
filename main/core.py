@@ -277,7 +277,7 @@ class System(object):
             import pdb;pdb.set_trace()
         
             
-        Yt = self.particles.update(self.time,self.time+self.deltaT,self.disk,timestepn, self.icelineL[0].loc)
+        Yt = self.particles.update(self.time,self.time+self.deltaT,self.disk,timestepn)
 
 
         if self.time==np.nan or self.deltaT==np.nan:
@@ -421,7 +421,7 @@ class System(object):
             self.mtot1 *= 1 +eps
         
         #get the Y2d needed to be used next step
-        self.particles.generate_Y2d()
+        self.particles.make_Y2d()
         #Ncrit = 100
         #N<90: mtot *= 0.9 && (wait some time?)
 
@@ -438,12 +438,12 @@ class System(object):
         mintimeL = []
         
         self.get_disk() 
-        Y2d = self.particles.make_Y2d()
-        Y2dp = self.particles.dY2d_dt(Y2d,self.time,self.disk)
+        self.particles.make_Y2d()
+        Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.disk)
 
         #timescale for the particles
         #I dont think there's need to use np.nanmin
-        tpart = np.abs(Y2d/Y2dp)
+        tpart = np.abs(self.particles.Y2d/Y2dp)
         mintimeL.append({'name':'particles', 'tmin': tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
         
@@ -538,6 +538,7 @@ class System(object):
                         haspect = Hg/planet.loc
                         tPer = 2*np.pi/physics.Omega_K(planet.loc, self.mcp)
                         getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
+                        getTrapped = True
                         
                         if getTrapped:
                             planet.resS = 'R'
@@ -1251,15 +1252,11 @@ class Superparticles(object):
         self.massL = self.rhoint * 4/3*Rdi**3*np.pi
         self.mini = self.massL[-1]   #for adding particles
 
-        self.generate_Y2d()   #get a Y2d used to integrate
+        self.make_Y2d()   #get a Y2d used to integrate
         
         for i in range(len(dcomposL)):
             del dcomposL[i]['Z_init']
             del dcomposL[i]['mask_icl']
-
-
-    def generate_Y2d(self):
-        self.Y2d = np.array([self.locL, self.massL])
 
 
     def select_single(self, ix):
@@ -1287,7 +1284,8 @@ class Superparticles(object):
 
 
     def make_Y2d (self):
-        return np.array([self.locL, self.massL])
+        #let's say the second part in composition is always icy fraction 
+        self.Y2d = np.array([self.locL, self.massL])
 
     def get_rhoint(self):
         "get the true fcomp according to fcomp"
@@ -1305,7 +1303,7 @@ class Superparticles(object):
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
 
     
-    def dY2d_dt (self,Y2d,time, disk, frag_idx=[], icelineloc=None, returnMore=False):
+    def dY2d_dt (self,Y2d,time, disk, returnMore=False):
         """
         input:
             Y2d -- state vector
@@ -1319,20 +1317,6 @@ class Superparticles(object):
         #get radii of the particles
         Rd = self.get_radius()
 
-        #now do the fragmentation domain particles
-        #and here need a calculation of St domained by fragmentation
-        #TBD: let's leave it here for now
-        if len(frag_idx)>1 and False:
-            import pdb;pdb.set_trace()
-            self.St[frag_idx] = userfun.St_fragment(disk.alpha, 
-                                                    disk.cs[frag_idx], 
-                                                    disk.eta[frag_idx], 
-                                                    loc,
-                                                    disk.OmegaK[frag_idx],
-                                                    pars.vc,
-                                                    icelineloc)
-            drdt_frag = physics.radial_v(self.St[frag_idx], disk.eta[frag_idx],
-                                         disk.Omega_K[frag_idx]*loc[frag_idx] )
 
         userparL = disk.add_uservar (dp.user_add_var())    #variables
         disk.add_userfun (dp.user_add_fun())    #functions only
@@ -1368,12 +1352,13 @@ class Superparticles(object):
         delv = userfun.del_v (St, disk)
         
         ## CWO: this *should* become a userfun (b/c seems a bit specific)
-        dmdt = userfun.dm_dt (Rd, delv, Hd, sigD)
 
-        Y2ddt = np.zeros_like(self.Y2d)
+        #TBD: provide the composition as an argument (in general way)
+        dmdt = userfun.dm_dt (Rd, delv, Hd, sigD, self.fcomp)
+
+        Y2ddt = np.zeros_like(Y2d)
         Y2ddt[0] = drdt
         Y2ddt[1] = dmdt
-
 
         #[24.01.05]:also return additional particle properties
         if returnMore:
@@ -1389,19 +1374,12 @@ class Superparticles(object):
             return Y2ddt  
     
     
-    def update (self,t0,tFi,disk,nstep=10,icelineloc=None):
+    def update (self,t0,tFi,disk,nstep=10):
         """
         this integrate the particles until tFi
         disk: disk object
         """
 
-        #get the index of particles that domained by fragmentation
-        frag_idx = []
-        if t0 >0. and False:
-            sil_part = np.argwhere(self.locL < icelineloc)        
-            v_r = abs(self.v_r)
-            frag_idx = np.append(np.argwhere(np.ndarray.flatten(v_r[sil_part]>pars.vc['silicates'])),
-                                 len(sil_part)+np.argwhere(np.ndarray.flatten(v_r[sil_part[-1][0]+1:] >pars.vc['icy'])))
         
         tSpan=np.array([t0,tFi])
         tstep=(tFi-t0)/nstep
@@ -1409,18 +1387,8 @@ class Superparticles(object):
         Y2copy = np.copy(self.Y2d)
 
         #integrates system to tFi
-        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5', disk, frag_idx, icelineloc)
+        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5', disk)
 
-        if len(frag_idx)>1 and False:
-            self.St[frag_idx] = userfun.St_fragment(disk.alpha, 
-                                                    disk.cs[frag_idx], 
-                                                    disk.eta[frag_idx], 
-                                                    Yt[-1,0,frag_idx],
-                                                    disk.OmegaK[frag_idx],
-                                                    pars.vc,
-                                                    icelineloc)
-
-            #how to get the mass of particles from Stokes number???
         # self.mtotL=Yt[-1,2,:] #no longer updated
         self.locL = Yt[-1,0,:]
         self.massL =Yt[-1,1,:]

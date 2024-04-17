@@ -8,10 +8,10 @@ import physics
 alpha = 1e-4
 rinn = 5.89*cgs.RJ  #the location of Io
 rout = 27*cgs.RJ
-frac=0.2
-ratio=0.01
+frac=0.2  # the accretion mass with unit: M_J/Myr
+ratio=0.01  #dust-to-gas ratio
 #Mcp=0.4*cgs.MJ
-sigmol=2e-15
+sigmol=2e-15 #
 rgg=1.7e-7
 Mcp0=0.4*cgs.MJ
 meanmol = 2.34

@@ -111,12 +111,19 @@ def del_v (St, disk):
 
 def H_d (St, disk):
     return physics.H_d(disk.Hg, St, disk.alpha) 
+    
 
-def dm_dt(Rd, delv, Hd, sigD):
+def dm_dt(Rd, delv, Hd, sigD, fcomp):
     """
     the time derivetive of particles's mass, determine how particles grow
+    if icy fraction == 0, then come to fragmentation (some assumption here)
     """
-    return 2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD   #eq. 5 of Shibaike et al. 2017
+    #TBD calculate/define fragm. velocity based on composition
+    vc = pars.vc['silicates']*fcomp[:,0]+ pars.vc['icy']*fcomp[:,1]
+    Fcomp = np.ones_like(Rd)
+    Fcomp = np.where(delv/vc>1, -1, 1) 
+
+    return Fcomp *2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD   #eq. 5 of Shibaike et al. 2017
 
 def epsilon_PA (planetLoc,planetMass,cross_p):
     """
@@ -737,7 +744,6 @@ class Data(object):
 
 
                 sigmaP = dotMd/(2*np.pi*loc*(-v_r))
-                import pdb;pdb.set_trace() 
                 plt.plot(loc/cgs.rJup, sigmaP, label = "{:.2f}".format(ti/cgs.yr) )
                 plt.legend()
                 plt.savefig('./plot/sigmaP.jpg')
@@ -748,6 +754,9 @@ class Data(object):
         plt.title('Stokes number')
         plt.xscale('log')
         plt.yscale('log')
+        plt.ylim(1e-3, 1e-1)
+        plt.xlabel('Location [$R_J$]')
+        plt.ylabel('Stokes number')
         for time in timeL:
             tidx = np.argmin(np.abs(self.timeL-time))
             ti = self.timeL[tidx]
@@ -755,7 +764,7 @@ class Data(object):
             St = self.StD[ti]
             loc = self.radD[ti]
             
-            plt.plot(loc/cgs.rJup, St, label = "{:.2f}".format(time/cgs.yr))
+            plt.plot(loc/cgs.rJup, St, label = "{:.2f}".format(ti/cgs.yr))
             plt.legend()
             plt.savefig('./plot/St.jpg')
 
