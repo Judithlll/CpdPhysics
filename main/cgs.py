@@ -16,6 +16,7 @@ Msa=568e27    #mass of Saturn
 Mur=86.8e27   #mass of Uranus
 Mne=102e27    #mass of Neptune
 me=9.109e-28  #mass of electron
+mu=1.661e-24  #Atomic mass constant
 
 
 #radius
@@ -29,7 +30,7 @@ Rma=339000000
 Rsa=5823200000
 Rur=2536200000
 Rne=2462200000
-Rsun=69570000000
+Rsun=6.957e10
 
 #length
 AU=1.496e13   #AU in cm

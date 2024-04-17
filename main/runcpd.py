@@ -93,7 +93,7 @@ while doEvo:
 
 
     djump = system.query_system_jump(jumpfrac=0.2)
-    #system.doJump = False
+    system.doJump =False
     if system.doJump:
         #1)do jump,
         #2)update the system time with jumpT

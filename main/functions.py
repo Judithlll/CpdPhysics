@@ -7,6 +7,8 @@ import disk_properties as dp
 import os
 import parameters as pars
 import shutil
+import userfun
+import physics
 
 def clear_dir(directory):
     for filename in os.listdir(directory):
@@ -120,13 +122,9 @@ def St_iterate (eta,v_K,v_th,lmfp,rho_g,
     niter = 1
     while niter<nmax:
         niter += 1
-        v_r =-2*St/(St**2+1)*eta*v_K
-        v_dg=np.abs(v_r)
-        Rep=4*R_d*v_dg/v_th/lmfp
-        #following Shibaike, eq....
-        CD=24/Rep*(1+0.27*Rep)**0.43+0.47*(1-np.exp(-0.04*Rep**0.38))
-        Stn=8/3/CD*rhoint*R_d/rho_g/v_dg*Omega_K
+        v_r = physics.radial_v(St, eta, v_K)
 
+        Stn= userfun.Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint)
         #better to do relative error 
         error = abs(St/Stn-1)
 

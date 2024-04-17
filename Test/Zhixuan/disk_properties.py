@@ -10,9 +10,9 @@ rinn = 5.89*cgs.RJ  #the location of Io
 rout = 27*cgs.RJ
 frac=0.2
 ratio=0.01
-# Mcp=0.4*cgs.MJ
+#Mcp=0.4*cgs.MJ
 sigmol=2e-15
-rgg=1e-7
+rgg=1.7e-7
 Mcp0=0.4*cgs.MJ
 meanmol = 2.34
 
@@ -91,8 +91,9 @@ def Sigma_g(r,cs,OmegaK,dotMg):
     """
     get the surface density at loc and time 
     """
-    #tell what you do!
+    #Shibaike 2017 eq2
     Sg = dotMg/2/np.pi/rout*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*rout*r**(-3/2))
+    #Sg = dotMg *OmegaK/3/np.pi/alpha/cs**2
     return Sg
 
 

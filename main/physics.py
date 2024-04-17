@@ -25,10 +25,12 @@ def crossedResonance (ta, jres, qinn, hasratio, per):
         trappedinResonance = False
     else:
         trappedinResonance = True
+    #import pdb;pdb.set_trace()
     #pass
     return trappedinResonance
 
-
+def radial_v(St, eta, v_K):
+    return -2*St/(St**2+1)*eta*v_K
 
 def get_auxiliary (mcp, loc, sigmaG, temp, mu, sigmol):
 

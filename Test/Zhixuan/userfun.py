@@ -15,6 +15,32 @@ import physics
 from scipy.optimize import curve_fit
 from matplotlib.colors import LinearSegmentedColormap
 
+def Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint = 1.4):
+    v_dg=np.abs(v_r)
+    Rep=4*R_d*v_dg/v_th/lmfp
+    #following Shibaike, eq....
+    CD=24/Rep*(1+0.27*Rep)**0.43+0.47*(1-np.exp(-0.04*Rep**0.38))
+    St=8/3/CD*rhoint*R_d/rho_g/v_dg*Omega_K
+    return St
+
+def St_fragment(alpha, cs, eta, loc, Omega_K, v_crit, icelineloc):
+    #following Shibaike 2019 eq14
+    sil_part = np.argwhere(np.ndarray.flatten(loc<icelineloc))
+    icy_part = np.argwhere(np.ndarray.flatten(loc>=icelineloc))
+
+    sq_part = np.append(np.sqrt(9*alpha**2*cs[sil_part]**4 +4*eta[sil_part]**2*loc[sil_part]**2*Omega_K[sil_part]**2*v_crit['silicates']**2),
+                        np.sqrt(9*alpha**2*cs[icy_part]**4 +4*eta[icy_part]**2*loc[icy_part]**2*Omega_K[icy_part]**2*v_crit['icy']**2))
+    
+    St = (-3*alpha*cs**2+sq_part)/(2*eta**2*loc**2*Omega_K**2)
+    return St
+
+# seems very complex...
+def St2Rd(St,v_r,v_th, lmfp, Omega_K, rho_g, rhoint=1.4):
+    v_dg = np.abs(v_r)
+    Rep=4*R_d*v_dg/v_th/lmfp
+    CD=24/Rep*(1+0.27*Rep)**0.43+0.47*(1-np.exp(-0.04*Rep**0.38))
+    return St*rho_g*v_dg*Omega_K*CD*3/8/rhoint
+
 def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     #aerodynamic drag migration
     out = gas.get_key_disk_properties (planetLoc, time)
@@ -72,9 +98,11 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
             import pdb;pdb.set_trace()
     # v_mig=vt1+vd
 
+    #if planetMass > 5e26: import pdb; pdb.set_trace()
+
     return vt1 # v_mig
 
-def del_v (St, rhoD, disk):
+def del_v (St, disk):
     vr = 2*disk.eta *disk.vK *St/(1+St**2)
 
     #take half of the velocity...
@@ -90,19 +118,26 @@ def dm_dt(Rd, delv, Hd, sigD):
     """
     return 2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD   #eq. 5 of Shibaike et al. 2017
 
-def epsilon_PA (PlanetsLoc,PlanetsMass,cross_p):
+def epsilon_PA (planetLoc,planetMass,cross_p):
     """
     Get the pebble accretion rate
     """
 
-    mus=PlanetsMass/cross_p.mcp
-    Hp = physics.H_d(cross_p.Hg, cross_p.St, cross_p.alpha)
-    # Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
-    hp=Hp/PlanetsLoc
+    St = cross_p.St
+    eta = cross_p.eta
 
-    delv_o_vK=0.52*(mus*cross_p.St)**(1/3)+cross_p.eta/(1+5.7*(mus/cross_p.eta**3*cross_p.St))
+    #prefer to call this qp
+    mus = planetMass/cross_p.mcp
+    Hp = physics.H_d(cross_p.Hg, St, cross_p.alpha)
+    # Hp=cross_p.Hg*(1+cross_p.St/ cross_p.alpha*(1+2*cross_p.St)/(1+cross_p.St))
+    hp = Hp/planetLoc
+
+    #expression from eq.18 S+19
+    delv_o_vK = 0.52*(mus*St)**(1/3)+eta/(1+5.7*(mus/eta**3*cross_p.St))
     
-    P_eff=1/np.sqrt((0.32*np.sqrt(mus*delv_o_vK/ cross_p.St/ cross_p.eta**2))**(-2)+(0.39*mus/ cross_p.eta/hp)**(-2)) #Liu & Ormel 2018
+    P_eff = 1/np.sqrt( (0.32*np.sqrt(mus*delv_o_vK/ St/ eta**2))**(-2)
+                      +(0.39*mus/ eta/hp)**(-2)) #Liu & Ormel 2018
+
     return P_eff
 
 def M_critical (eta, St, mcp):
@@ -130,12 +165,12 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [3.01e6*cgs.yr, 3.02e6*cgs.yr, 3.03e6*cgs.yr] 
+    timeL = [1.01e6*cgs.yr, 1.02e6*cgs.yr, 1.03e6*cgs.yr, 1.07e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
-    locationL = [16*cgs.rJup, 25*cgs.rJup, 27*cgs.rJup] 
-    massL = [3e23, 3e23, 3e23] 
-    compoL = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])
+    locationL = [16*cgs.rJup, 25*cgs.rJup, 27*cgs.rJup, 27*cgs.rJup] 
+    massL = [3e23, 3e23, 3e23,3e23] 
+    compoL = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])
 
     return timeL, locationL, massL, compoL
 
@@ -199,6 +234,8 @@ class Data(object):
         self.mD={}
         self.mtotD={}
         self.fcompD={}
+        self.v_rD = {}
+        self.StD = {}
         self.cumulative_change={'remove':[],'add':0}
         self.planetsmass = {}
         self.planetsloc = {}
@@ -232,6 +269,12 @@ class Data(object):
         self.mtotD.setdefault(time, system.particles.mtotL)
         self.fcompD.setdefault(time, system.particles.fcomp)
         self.dactionD.setdefault(time, system.daction)
+        try: 
+            self.v_rD[time]=system.particles.v_r
+            self.StD[time] = system.particles.St 
+        except:
+            self.v_rD[time] =np.array([])
+            self.StD[time] =np.array([])
 
         #store palnets' data
         if pars.doPlanets:
@@ -442,17 +485,21 @@ class Data(object):
         plt.savefig('./plot/test.jpg')
 
     def plot_disk(self,time):
-        r_Span=np.linspace(pars.dgasgrid['rinn'],pars.dgasgrid['rout'])
+        r_Span=np.linspace(1*cgs.RJ,pars.dgasgrid['rout'])
         plt.figure(figsize=(8,12))
         if type(time) == float or type(time) == np.float64:
             Sigmag,Td=self.gas.get_key_disk_properties(r_Span,time)[0:2]
-            plt.subplot(121)
+            plt.subplot(211)
             plt.title('Surface dencity $[g/cm^2]$', )
             plt.xlabel('Location [$R_J$]')
+            plt.xscale('log')
+            plt.yscale('log')
             plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time/cgs.yr))
-            plt.subplot(122)
+            plt.subplot(212)
             plt.title('Midplane Temperature $[K]$')
             plt.xlabel('Location [$R_J$]')
+            plt.xscale('log')
+            plt.yscale('log')
             plt.plot(r_Span/cgs.RJ,Td,label=str(time/cgs.yr))
             plt.legend()
             plt.savefig('./plot/diskproperties.jpg')
@@ -460,10 +507,14 @@ class Data(object):
             plt.subplot(211)
             plt.title('Surface dencity $[g/cm^2]$')
             plt.xlabel('Location [$R_J$]')
+            plt.xscale('log')
+            plt.yscale('log')
             
             plt.subplot(212)
             plt.title('Midplane Temperature $[K]$')
             plt.xlabel('Location [$R_J$]')
+            plt.xscale('log')
+            plt.yscale('log')
 
             for i in range(len(time)):
                 Sigmag, Td = self.gas.get_key_disk_properties(r_Span, time[i])[0:2]
@@ -550,11 +601,13 @@ class Data(object):
         plt.title('Planet evolution')
         plt.xlabel('Planets location [$R_{Jup}$]' )
         plt.ylabel('System time [yr]')
+        plt.yscale('log')
+        plt.ylim(1e4,1e5)
         loclist = self.planetslocL.T
         masslist = self.planetsmassL.T
         time = np.array(list(self.planetsloc.keys()))
         
-        planetst = 3.01e6*cgs.yr
+        planetst = 1.01e6*cgs.yr
         stidx = np.argwhere(time>planetst)[0][0]
         
         dotssize = masslist/np.nanmin(masslist)*0.02
@@ -562,15 +615,16 @@ class Data(object):
 
         for jump in self.jumpstuff:
             if jump['jumptime'] > planetst:
-                plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
+                plt.axhspan((jump['jumptime']-planetst)/cgs.yr, 
+                            (jump['jumptime']+jump['jumpT']-planetst)/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
-            plt.scatter(loc[stidx:]/cgs.RJ, time[stidx:]/cgs.yr, s = dotssize[i][stidx:], c =self.planetsfcompL[stidx:,i][:,1], cmap ='Spectral', alpha =1 )
+            plt.scatter(loc[stidx:]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr, s = dotssize[i][stidx:], c =self.planetsfcompL[stidx:,i][:,1], cmap ='Spectral', alpha =1 )
 
 
             #plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
         plt.colorbar(label = "Water Fraction [%]")
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
-        plt.plot(self.icelineslocL[stidx:,0]/cgs.RJ, time[stidx:]/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
+        plt.plot(self.icelineslocL[stidx:,0]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
         plt.savefig('./plot/planet_evolution.jpg',dpi=600)
         plt.close()
@@ -629,6 +683,101 @@ class Data(object):
         ax2.legend(l1+l2, la1+la2, loc='upper right')
         plt.savefig('./plot/disk_properties.jpg')
         plt.close()
+    
+    def plot_pebble_Sigma(self, tL, mode = 'particle'):
+        timeL =tL + dp.tgap
+        
+        plt.figure()
+        plt.title('pebble surface density')
+        
+        if mode == 'grid':
+
+            grids = np.logspace(np.log10(dp.rinn), np.log10(dp.rout), 10000)
+            width = np.diff(grids)
+
+            plt.ylim(0,200)
+            for time in timeL:
+                tidx = np.argmin(np.abs(self.timeL-time))
+                ti = self.timeL[tidx]
+                mtot = self.mtotD[ti]
+                loc = self.radD[ti] #ordered
+
+                boundaries = np.sqrt(loc[1:]*loc[:-1])
+                boundaries = np.append(dp.rinn,boundaries)
+                boundaries = np.append(boundaries,dp.rout)
+                warr = np.diff(boundaries)
+                sigma = mtot /(2*np.pi*loc*warr)
+                    
+                plt.plot(loc/cgs.rJup, sigma, label = str('{:7.2f}'.format(time/cgs.yr)))
+                #sigmaP = np.array([])
+                #for i in range(len(loc)-1):
+                #    invo_idx = np.argwhere((grids>loc[i]) &(grids<loc[i+1])) 
+                #    
+                #    invo_grids = grids[invo_idx]
+                #    invo_width = width[invo_idx]
+                #    
+                #    m_split= mtot[i]/len(invo_grids)
+                #    
+                #    sigmaP =np.append(sigmaP, m_split/(2*np.pi*invo_grids*invo_width))
+                #plt.plot(grids[-len(sigmaP):]/cgs.rJup, sigmaP, label = str(ti/cgs.yr))
+                #for r in loc:
+                #    plt.axvline(r/cgs.rJup)
+            plt.legend()
+            plt.savefig('./plot/sigmaP.jpg')
+
+        elif mode == 'particle':
+            plt.yscale('log')
+            for time in timeL:
+                tidx = np.argmin(np.abs(self.timeL-time))
+                ti = self.timeL[tidx]
+
+                dotMd = dp.dot_Mg(ti)*dp.ratio
+                loc = self.radD[ti]
+                v_r = self.v_rD[ti]
+
+
+                sigmaP = dotMd/(2*np.pi*loc*(-v_r))
+                import pdb;pdb.set_trace() 
+                plt.plot(loc/cgs.rJup, sigmaP, label = "{:.2f}".format(ti/cgs.yr) )
+                plt.legend()
+                plt.savefig('./plot/sigmaP.jpg')
+    
+    def plot_St(self, tL):
+        timeL =tL
+        plt.figure()
+        plt.title('Stokes number')
+        plt.xscale('log')
+        plt.yscale('log')
+        for time in timeL:
+            tidx = np.argmin(np.abs(self.timeL-time))
+            ti = self.timeL[tidx]
+            
+            St = self.StD[ti]
+            loc = self.radD[ti]
+            
+            plt.plot(loc/cgs.rJup, St, label = "{:.2f}".format(time/cgs.yr))
+            plt.legend()
+            plt.savefig('./plot/St.jpg')
+
+    def plot_vr(self, tL):
+        timeL =tL
+        plt.figure()
+        plt.title('Raidal velocity')
+        plt.xscale('log')
+        for time in timeL:
+            tidx = np.argmin(np.abs(self.timeL-time))
+            ti = self.timeL[tidx]
+            
+            vr = np.abs(self.v_rD[ti])
+            loc = self.radD[ti]
+            
+            plt.plot(loc/cgs.rJup, vr, label = "{:.2f}".format(time/cgs.yr))
+            plt.axhline(pars.vc['icy'], label = 'Fragmentation velocity [icy]')
+            plt.axhline(pars.vc['silicates'], label = 'Fragmentation velocity [sil]')
+            
+            plt.legend()
+            plt.savefig('./plot/v_r.jpg')
+
 
     def plot_jumpT(self):
         plt.figure()

@@ -117,7 +117,7 @@ class System(object):
     
         line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20)) 
         print (line_evol)
-        line_plan = '{:10.2f}'.format(self.time/cgs.yr)+''.join('{:10d} {:20.2f} {:20.2f} {:20.2e}'.format(self.planetL[i].number, self.planetL[i].max_jumpT, self.planetL[i].loc/cgs.RJ,self.planetL[i].mass) for i in range(self.nplanet))
+        line_plan = '{:10.2f}'.format(self.time/cgs.yr)+''.join('{:10d} {:20.2f} {:20.2f} {:20.2e} {:10.5f}'.format(self.planetL[i].number, self.planetL[i].max_jumpT, self.planetL[i].loc/cgs.RJ,self.planetL[i].mass, self.planetL[i].acc_rate) for i in range(self.nplanet))
         #if self.nplanet >0:
         #    import pdb;pdb.set_trace()
 
@@ -146,10 +146,10 @@ class System(object):
             # generate the title foemation
             etfmt = '{:10s} {:10s} {:20s} {:10s} {:20s}'
             jtfmt = '{:10s} {:20s} {:20s} {:30s}'
-            ptfmt = '{:10s} {:10s} {:20s} {:20s} {:20s}'
+            ptfmt = '{:10s} {:10s} {:20s} {:20s} {:20s} {:10s}'
             line_evol_title = etfmt.format('ntime'.rjust(10), 'time'.rjust(10), 'particles_number'.rjust(20), 'deltaT'.rjust(10), 'restrict_factor'.rjust(20))
             line_jump_title = jtfmt.format('njump'.rjust(10), 'time_begin_jump'.rjust(20), 'time_jumped_over'.rjust(20), 'jump_retrict_factor'.rjust(30))
-            line_plan_title = ptfmt.format('time'.rjust(10), 'planet_num'.rjust(10), 'planet_max_jumpT'.rjust(20), 'location'.rjust(20), 'mass'.rjust(20))
+            line_plan_title = ptfmt.format('time'.rjust(10), 'planet_num'.rjust(10), 'planet_max_jumpT'.rjust(20), 'location'.rjust(20), 'mass'.rjust(20), 'acc_rate'.rjust(10))
             titles = [line_evol_title, line_plan_title, line_jump_title]
 
             for i,p in enumerate(pathlist):
@@ -257,6 +257,14 @@ class System(object):
 
         return dum
 
+    def get_disk(self):
+
+        #we need these 2 things to initalize the class object
+        out = self.gas.get_key_disk_properties (self.particles.locL, self.time)
+
+        self.disk = physics.DISK (*out, self.particles.locL, self.time, self.mcp) #pro
+        self.disk.add_auxiliary ()
+
 
     def update_particles (self, timestepn=3, **kwargs):
         """
@@ -267,7 +275,9 @@ class System(object):
         # prevent the large value 'eats' the small value
         if self.deltaT/self.time <1e-15:
             import pdb;pdb.set_trace()
-        Yt = self.particles.update(self.time,self.time+self.deltaT,self.gas,timestepn)
+        
+            
+        Yt = self.particles.update(self.time,self.time+self.deltaT,self.disk,timestepn, self.icelineL[0].loc)
 
 
         if self.time==np.nan or self.deltaT==np.nan:
@@ -409,10 +419,11 @@ class System(object):
             part.Nplevel += nch
             eps = abs(part.ninit -part.Nplevel) /part.ninit
             self.mtot1 *= 1 +eps
-
+        
+        #get the Y2d needed to be used next step
+        self.particles.generate_Y2d()
         #Ncrit = 100
         #N<90: mtot *= 0.9 && (wait some time?)
-        self.particles.generate_Y2d()
 
         # remove the planet if the planet location is too small, not sure if it should be here
         self.remove_planet()
@@ -426,9 +437,9 @@ class System(object):
         #organize the procedure a bit (for quasi-steady evolution... later!)
         mintimeL = []
         
-        
+        self.get_disk() 
         Y2d = self.particles.make_Y2d()
-        Y2dp = self.particles.dY2d_dt(Y2d,self.time,self.gas)
+        Y2dp = self.particles.dY2d_dt(Y2d,self.time,self.disk)
 
         #timescale for the particles
         #I dont think there's need to use np.nanmin
@@ -537,7 +548,6 @@ class System(object):
                             res_set = {self.planetL[i-1].number, uname}
                             if res_set not in self.res_setL:
                                 self.res_setL.append(res_set)
-
                         #trapping fails
                         else:
                             planet.inxt += 1
@@ -1089,6 +1099,7 @@ def advance_planets (system):
                 if Mc<planet.mass and planet.loc >system.rinn:                    
                     epsilon = userfun.epsilon_PA(planet.loc,planet.mass,spk)
 
+                    planet.acc_rate = epsilon
                     #accreted mass by composition
                     delmcomp += epsilon*crossL[k].fcomp *crossL[k].mtotL
 
@@ -1097,7 +1108,6 @@ def advance_planets (system):
                     masscomp = planet.fcomp*planet.mass +delmcomp
                     planet.mass += delmcomp.sum()
                     planet.fcomp = masscomp /planet.mass
-
 
                     #delm = epsilon*crossL[k].mtotL
                     #for i in range(len(crossL[k].fcomp)):
@@ -1295,7 +1305,7 @@ class Superparticles(object):
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
 
     
-    def dY2d_dt (self,Y2d,time,gas, returnMore=False):
+    def dY2d_dt (self,Y2d,time, disk, frag_idx=[], icelineloc=None, returnMore=False):
         """
         input:
             Y2d -- state vector
@@ -1309,14 +1319,21 @@ class Superparticles(object):
         #get radii of the particles
         Rd = self.get_radius()
 
+        #now do the fragmentation domain particles
+        #and here need a calculation of St domained by fragmentation
+        #TBD: let's leave it here for now
+        if len(frag_idx)>1 and False:
+            import pdb;pdb.set_trace()
+            self.St[frag_idx] = userfun.St_fragment(disk.alpha, 
+                                                    disk.cs[frag_idx], 
+                                                    disk.eta[frag_idx], 
+                                                    loc,
+                                                    disk.OmegaK[frag_idx],
+                                                    pars.vc,
+                                                    icelineloc)
+            drdt_frag = physics.radial_v(self.St[frag_idx], disk.eta[frag_idx],
+                                         disk.Omega_K[frag_idx]*loc[frag_idx] )
 
-        #we need these 2 things to initalize the class object
-        mcp = dp.Mcp_t(time)  
-        out = gas.get_key_disk_properties (loc, time)
-
-        disk = physics.DISK (*out, loc, time, mcp) #pro
-        disk.add_auxiliary ()
-        
         userparL = disk.add_uservar (dp.user_add_var())    #variables
         disk.add_userfun (dp.user_add_fun())    #functions only
 
@@ -1346,10 +1363,9 @@ class Superparticles(object):
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
         sigD = disk.dotMd /(-2*loc*np.pi*v_r) #v_r<0
-        rhoD = sigD /np.sqrt(np.pi*2) /Hd
 
         #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..
-        delv = userfun.del_v (St, rhoD, disk)
+        delv = userfun.del_v (St, disk)
         
         ## CWO: this *should* become a userfun (b/c seems a bit specific)
         dmdt = userfun.dm_dt (Rd, delv, Hd, sigD)
@@ -1363,7 +1379,7 @@ class Superparticles(object):
         if returnMore:
             #[24.01.07]CWO: alpha cannot be returned here, b/c some disk don't have it!
             #
-            dMore = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'Hg':disk.Hg} 
+            dMore = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg} 
             for key in userparL+userevalL:
                 dMore[key] = getattr(disk,key)
 
@@ -1373,32 +1389,52 @@ class Superparticles(object):
             return Y2ddt  
     
     
-    def update (self,t0,tFi,gas,nstep=10):
+    def update (self,t0,tFi,disk,nstep=10,icelineloc=None):
         """
         this integrate the particles until tFi
-        -- d: disk object
+        disk: disk object
         """
 
+        #get the index of particles that domained by fragmentation
+        frag_idx = []
+        if t0 >0. and False:
+            sil_part = np.argwhere(self.locL < icelineloc)        
+            v_r = abs(self.v_r)
+            frag_idx = np.append(np.argwhere(np.ndarray.flatten(v_r[sil_part]>pars.vc['silicates'])),
+                                 len(sil_part)+np.argwhere(np.ndarray.flatten(v_r[sil_part[-1][0]+1:] >pars.vc['icy'])))
+        
         tSpan=np.array([t0,tFi])
         tstep=(tFi-t0)/nstep
         
         Y2copy = np.copy(self.Y2d)
 
         #integrates system to tFi
-        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5',gas)
+        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5', disk, frag_idx, icelineloc)
 
+        if len(frag_idx)>1 and False:
+            self.St[frag_idx] = userfun.St_fragment(disk.alpha, 
+                                                    disk.cs[frag_idx], 
+                                                    disk.eta[frag_idx], 
+                                                    Yt[-1,0,frag_idx],
+                                                    disk.OmegaK[frag_idx],
+                                                    pars.vc,
+                                                    icelineloc)
+
+            #how to get the mass of particles from Stokes number???
+        # self.mtotL=Yt[-1,2,:] #no longer updated
         self.locL = Yt[-1,0,:]
         self.massL =Yt[-1,1,:]
-
-        # self.mtotL=Yt[-1,2,:] #no longer updated
 
         #[24.01.05]CWO
         #after the integration, extract the particle properties
         #for future use
-        dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], gas, returnMore=True)
+        dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], disk, returnMore=True)
 
         for key, val in daux.items():
             setattr(self, key, val)
+
+        #elif restrictby == 'fragmentation':
+            
 
         return Yt
 
@@ -1470,6 +1506,7 @@ class PLANET ():
         self.relp_comp = np.nan
         self.max_jumpT = 0.0
         self.dlocdt = 0.0
+        self.acc_rate = 0.0
         
         self.accretion = True
 

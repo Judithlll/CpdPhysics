@@ -22,7 +22,11 @@ dintegratorpars = {'name':'RK5', 'timestepn':3}
 dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
 gasmodel = 'prescribed'
 
-tmax = 3.1e6 *cgs.yr
+tmax = 100 *cgs.yr
+
+#critical velocity for fragmentation
+vc = {'icy': 5.e3,
+      'silicates': 5.e2}
 
 doPlanets = True
 doIcelines = True
