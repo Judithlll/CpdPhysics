@@ -15,6 +15,8 @@ import physics
 from scipy.optimize import curve_fit
 from matplotlib.colors import LinearSegmentedColormap
 
+def PIM():
+    return 1.48e26
 def Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint = 1.4):
     v_dg=np.abs(v_r)
     Rep=4*R_d*v_dg/v_th/lmfp
@@ -172,10 +174,10 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1.01e6*cgs.yr, 1.02e6*cgs.yr, 1.03e6*cgs.yr, 1.07e6*cgs.yr] 
+    timeL = [1.0e6*cgs.yr, 1.25e6*cgs.yr, 1.5e6*cgs.yr, 2.0e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
-    locationL = [16*cgs.rJup, 25*cgs.rJup, 27*cgs.rJup, 27*cgs.rJup] 
+    locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
     massL = [3e23, 3e23, 3e23,3e23] 
     compoL = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])
 
@@ -609,12 +611,13 @@ class Data(object):
         plt.xlabel('Planets location [$R_{Jup}$]' )
         plt.ylabel('System time [yr]')
         plt.yscale('log')
-        plt.ylim(1e4,1e5)
+        plt.ylim(1e4,3e6)
+        plt.xscale('log')
         loclist = self.planetslocL.T
         masslist = self.planetsmassL.T
         time = np.array(list(self.planetsloc.keys()))
         
-        planetst = 1.01e6*cgs.yr
+        planetst = 1.e6*cgs.yr
         stidx = np.argwhere(time>planetst)[0][0]
         
         dotssize = masslist/np.nanmin(masslist)*0.02
@@ -702,7 +705,9 @@ class Data(object):
             grids = np.logspace(np.log10(dp.rinn), np.log10(dp.rout), 10000)
             width = np.diff(grids)
 
-            plt.ylim(0,200)
+            plt.yscale('log')
+            plt.xscale('log')
+            plt.ylim(1e-5,10)
             for time in timeL:
                 tidx = np.argmin(np.abs(self.timeL-time))
                 ti = self.timeL[tidx]
@@ -714,8 +719,16 @@ class Data(object):
                 boundaries = np.append(boundaries,dp.rout)
                 warr = np.diff(boundaries)
                 sigma = mtot /(2*np.pi*loc*warr)
+                import pdb;pdb.set_trace()
                     
-                plt.plot(loc/cgs.rJup, sigma, label = str('{:7.2f}'.format(time/cgs.yr)))
+                plt.plot(loc/cgs.rJup, sigma, 'x-', label = str('{:7.2f}'.format(time/cgs.yr)))
+                #dotMd = dp.dot_Mg(ti)*dp.ratio
+                #loc = self.radD[ti]
+                #v_r = self.v_rD[ti]
+
+
+                #sigmaP = dotMd/(2*np.pi*loc*(-v_r))
+                #plt.plot(loc/cgs.rJup, sigmaP, label = 'particles'+"{:.2f}".format(ti/cgs.yr) )
                 #sigmaP = np.array([])
                 #for i in range(len(loc)-1):
                 #    invo_idx = np.argwhere((grids>loc[i]) &(grids<loc[i+1])) 

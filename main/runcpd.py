@@ -38,7 +38,7 @@ else:
     userfun.do_stuff(system, init=True)
     #import pdb; pdb.set_trace()
     #get the initial deltaT
-    system.new_timestep (pars.tmax, **pars.dtimesteppars)  #get deltaT through comparing some time scales
+    system.new_timestep (pars.tmax, jumpfrac=pars.jumpfrac, **pars.dtimesteppars)  #get deltaT through comparing some time scales
     #backup the initial data
     system.back_up_last_data()       #back up the data of last step
 
@@ -92,7 +92,7 @@ while doEvo:
 
 
 
-    djump = system.query_system_jump(jumpfrac=0.2)
+    djump = system.query_system_jump()
 
     if system.doJump:
         #1)do jump,
@@ -104,13 +104,13 @@ while doEvo:
         #system.deltaT = system.jumpT
         
         #import pdb;pdb.set_trace()
-        system.new_timestep(pars.tmax, afterjump = True, **pars.dtimesteppars)
+        system.new_timestep(pars.tmax, afterjump = True, jumpfrac = pars.jumpfrac, **pars.dtimesteppars)
         system.reset_after_jump()
     else:
         #1)update the system time 
         #2)get the new deltaT 
         system.time +=system.deltaT
-        system.new_timestep(pars.tmax, **pars.dtimesteppars)
+        system.new_timestep(pars.tmax, jumpfrac=pars.jumpfrac, **pars.dtimesteppars)
     
     system.timeL.append(system.time)
 
@@ -131,7 +131,7 @@ while doEvo:
     if final: 
         end = time.time()
         runTime = end-start
-        print ('[runcpd]: Congrats!! You finished a sucessful run which consume {runTime} seconds')
+        print ('[runcpd]: Congrats!! You finished a sucessful run which consume {:.2f} seconds'.format(runTime))
         break
 
     else:

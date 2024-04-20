@@ -19,10 +19,16 @@ dtimesteppars = {'deltaTfraction': 0.2,
 #TBD: implement integrator properties
 dintegratorpars = {'name':'RK5', 'timestepn':3}
 
+#give the jumpfraction here, 
+#which means how accrute the jump you want to have, the smaller, the more accrute
+#and you can also define jumpfraction for specific timescale
+jumpfrac={'general': 0.2,
+          'PlanetsRes': 0.5,}
+
 dgasgrid = {'rinn':6*cgs.RJ,'rout':27*cgs.RJ}
 gasmodel = 'prescribed'
 
-tmax = 1.1e6 *cgs.yr
+tmax = 3e6 *cgs.yr
 
 #critical velocity for fragmentation
 vc = {'icy': 5.e3,

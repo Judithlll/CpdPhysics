@@ -7,9 +7,9 @@ import physics
 
 alpha = 1e-4
 rinn = 5.89*cgs.RJ  #the location of Io
-rout = 27*cgs.RJ
+rout = 51*cgs.RJ
 frac=0.2  # the accretion mass with unit: M_J/Myr
-ratio=0.01  #dust-to-gas ratio
+ratio=0.026  #dust-to-gas ratio
 #Mcp=0.4*cgs.MJ
 sigmol=2e-15 #
 rgg=1.7e-7

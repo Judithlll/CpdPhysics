@@ -31,15 +31,33 @@ class Mintimes (object):
     """
     store the minimam times
     """
-    def __init__(self, mintimedict):
+    def __init__(self, mintimedict, jumpfrac={}):
+        tevol = []
+        tminL = []
+        nameL = []
+        
         for i in range (len(mintimedict)):
-            setattr(self, mintimedict[i]['name'], mintimedict[i]['tmin'])
-
-        self.mintimelist(mintimedict)
+            tmin = mintimedict[i]['tmin']
+            name = mintimedict[i]['name']
+            setattr(self,name , tmin)
+            
+            tminL.append(tmin) 
+            nameL.append(name)
+            #TBD:need to be more general 
+            if i>0:#don't consider the particles timescale here
+                if mintimedict[i]['name'] == 'PlanetsRes':
+                    tevol.append( jumpfrac['PlanetsRes']*tmin )
+                else:
+                    tevol.append( jumpfrac['general']*tmin)
+        
+        self.tminarr = np.array(tminL)
+        self.nameL = nameL
+        if len(tevol)>0:
+            self.max_tevol = np.min(tevol)
 
     def mintimelist(self,mintimedict):
         self.tminarr = np.array([ddum['tmin'] for ddum in mintimedict])
-        
+
 
 
 class System(object):
@@ -104,8 +122,8 @@ class System(object):
         loglist = ['system_evol.log', 'planets.log', 'jump.log']
         pathlist = [logdir+log for log in loglist]
         
-        nameL = [d['name'] for d in self.mintimeL]
-        tminarr = np.array([d['tmin'] for d in self.mintimeL])
+        nameL = self.minTimes.nameL
+        tminarr = self.minTimes.tminarr
         
         imin = tminarr.argmin() #minimum evolution
         nameM = nameL[imin]
@@ -358,9 +376,8 @@ class System(object):
         Nadd = 0
 
 
-        delmgasIn, error = sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)
-        self.dotMg = dp.dot_Mg(self.time)
-            
+        delmgasIn = dp.ratio*sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)[0]
+        self.dotMd = dp.ratio*dp.dot_Mg(self.time)
         #self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
         self.Minflux_step = delmgasIn
         self.Minflux += self.Minflux_step
@@ -371,6 +388,10 @@ class System(object):
         
         if Nadd>0:
             self.daction['add'] = Nadd
+        
+        if Nadd>2:
+            print('there are two super particles will be add once, please check')
+            import pdb;pdb.set_trace()
         
         #post_process particles
         if 'remove' in self.daction.keys():
@@ -419,6 +440,11 @@ class System(object):
             part.Nplevel += nch
             eps = abs(part.ninit -part.Nplevel) /part.ninit
             self.mtot1 *= 1 +eps
+
+        #but the self.mtot1 cannot be lower than (self.Minflux+self.Minflux_step)/2 
+        #because this can make the adding two particles once
+        self.mtot1 = max(self.mtot1, self.Minflux)
+
         
         #get the Y2d needed to be used next step
         self.particles.make_Y2d()
@@ -430,7 +456,7 @@ class System(object):
         self.mcp = dp.Mcp_t(self.time)
         self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
 
-    def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, **kwargs):
+    def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, jumpfrac={},**kwargs):
         """
         chooses a timestep
         """
@@ -449,8 +475,8 @@ class System(object):
         
         #after the jump, we only have particles drift timescale
         if afterjump:
-            self.minTimes = Mintimes(mintimeL)
-            self.mintimeL = mintimeL
+            self.minTimes = Mintimes(mintimeL,jumpfrac)
+            #self.mintimeL = mintimeL
             self.deltaT = deltaTfraction*tpart.min() #min([ob['tmin'] for ob in mintimeL])
 
             return
@@ -576,7 +602,8 @@ class System(object):
             Npts = len(planet.planetMassData)
 
             # if the planet cross the inner edge, then the accretion is False
-            if planet.loc< self.rinn:
+            edge_sigma = planet.loc/PlocaTscale[i]*self.deltaT
+            if planet.loc< self.rinn-edge_sigma:
                 planet.accretion =False
             #the interval time of accretion, if the inteval time is too long, then we can say the planet will no longer accrets
             #if Npts >=1:
@@ -722,9 +749,9 @@ class System(object):
 
     
         # put mintimeL into system object for now to check
-        self.mintimeL=mintimeL
+        #self.mintimeL=mintimeL
         #make a class to use this mintimeL, change the name 
-        self.minTimes = Mintimes(mintimeL)
+        self.minTimes = Mintimes(mintimeL, jumpfrac)
 
         #determine next timestep
         deltaT = deltaTfraction *min(self.minTimes.tminarr)
@@ -743,7 +770,7 @@ class System(object):
 
 
 
-    def query_system_jump(self, jumpfrac):
+    def query_system_jump(self):
         """
         investigates w/r we can jump and by how much
         ...
@@ -759,7 +786,8 @@ class System(object):
             return {}
 
         #jump time is given by the min evol. timescales, excluding those of the particles
-        max_tevol = jumpfrac*min(self.minTimes.tminarr[1:])
+        max_tevol = self.minTimes.max_tevol
+        #max_tevol = jumpfrac*min(self.minTimes.tminarr[1:])
         
         #(cannot jump over "important events" -> Milestones) 
         #adjust jumpT according to milestones
@@ -1017,9 +1045,12 @@ def advance_planets (system):
                             dum_t = userfun.planet_migration(system.gas,p.loc,p.mass, system.time, system.rhoPlanet)
                             invtmigL.append(dum_t/p.loc)
                             weightL.append(p.mass*p.loc**0.5)
-                        
+
                         #joint migration timescale
-                        invmigtime = np.sum(np.array(weightL)*np.array(invtmigL)) /np.sum(np.array(weightL))
+                        if 0.0 in invtmigL:
+                            invmigtime =0.
+                        else:
+                            invmigtime = np.sum(np.array(weightL)*np.array(invtmigL)) /np.sum(np.array(weightL))
                         loc_t = planet.loc *invmigtime
                     else:
                         loc_t = userfun.planet_migration(system.gas,planet.loc,planet.mass, system.time, system.rhoPlanet)
@@ -1097,7 +1128,8 @@ def advance_planets (system):
                 #
                 #TBD-later: in reality particles may be "stuck" in pressure bump
                 #           incorporate in planet object?
-                if Mc<planet.mass and planet.loc >system.rinn:                    
+                #NOTE: this PIM is arbitrary now
+                if Mc<planet.mass and planet.loc >system.rinn and planet.mass<userfun.PIM():                    
                     epsilon = userfun.epsilon_PA(planet.loc,planet.mass,spk)
 
                     planet.acc_rate = epsilon
@@ -1109,6 +1141,10 @@ def advance_planets (system):
                     masscomp = planet.fcomp*planet.mass +delmcomp
                     planet.mass += delmcomp.sum()
                     planet.fcomp = masscomp /planet.mass
+
+                elif planet.mass>userfun.PIM() and planet.accretion:
+                    print('planet {:} has reach the PIM at {:10.1f}'.format(planet.number,system.time/cgs.yr ))
+                    planet.accretion = False
 
                     #delm = epsilon*crossL[k].mtotL
                     #for i in range(len(crossL[k].fcomp)):
@@ -1137,7 +1173,7 @@ class SingleSP(object):
 
 class Superparticles(object):
 
-    def __init__(self, rinn, rout, dcomposL, gas, nini=10, Rdi=0.1, 
+    def __init__(self, rinn, rout, dcomposL, gas, nini=40, Rdi=0.1, 
             initrule='equalmass'):
         """
         systems initial properties
@@ -1194,7 +1230,9 @@ class Superparticles(object):
 
             #get the initial surface density
             sigini, *dum = gas.get_key_disk_properties(r,0.0)
-            return 2*np.pi*r*sigini *Zcom.sum()
+            #TBD: think about one way to remove the dp thing here
+            sigini_d = dp.ratio*sigini
+            return 2*np.pi*r*sigini_d *Zcom.sum()
 
 
         print('[core.Superparticles.init]:initialization superparticles under rule:', initrule)
