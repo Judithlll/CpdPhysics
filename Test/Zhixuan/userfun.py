@@ -719,7 +719,6 @@ class Data(object):
                 boundaries = np.append(boundaries,dp.rout)
                 warr = np.diff(boundaries)
                 sigma = mtot /(2*np.pi*loc*warr)
-                import pdb;pdb.set_trace()
                     
                 plt.plot(loc/cgs.rJup, sigma, 'x-', label = str('{:7.2f}'.format(time/cgs.yr)))
                 #dotMd = dp.dot_Mg(ti)*dp.ratio
@@ -767,7 +766,7 @@ class Data(object):
         plt.title('Stokes number')
         plt.xscale('log')
         plt.yscale('log')
-        plt.ylim(1e-3, 1e-1)
+        plt.ylim(1e-6, 1)
         plt.xlabel('Location [$R_J$]')
         plt.ylabel('Stokes number')
         for time in timeL:
@@ -775,9 +774,12 @@ class Data(object):
             ti = self.timeL[tidx]
             
             St = self.StD[ti]
+            import pdb;pdb.set_trace()
             loc = self.radD[ti]
             
-            plt.plot(loc/cgs.rJup, St, label = "{:.2f}".format(ti/cgs.yr))
+            plt.plot(loc/cgs.rJup, St, 'x-',label = "{:.2f}".format(ti/cgs.yr))
+            for i,loc in enumerate(self.planetsloc[ti]): 
+                plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray', label='planet'+str(i))
             plt.legend()
             plt.savefig('./plot/St.jpg')
 
