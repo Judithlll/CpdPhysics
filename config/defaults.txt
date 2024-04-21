@@ -8,6 +8,9 @@ initrule = equalmass
 
 dtimesteppars = {}
 
+## jumpfrac dictionary
+jumpfracD = {general:0.2;PlanetsRes:0.5}
+
 doPlanets = False
 
 #saveDir = Data

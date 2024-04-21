@@ -38,12 +38,13 @@ else:
     userfun.do_stuff(system, init=True)
     #import pdb; pdb.set_trace()
     #get the initial deltaT
-    system.new_timestep (pars.tmax, jumpfrac=pars.jumpfrac, **pars.dtimesteppars)  #get deltaT through comparing some time scales
+    system.new_timestep (pars.tmax, jumpfrac=pars.jumpfracD, **pars.dtimesteppars)  #get deltaT through comparing some time scales
     #backup the initial data
     system.back_up_last_data()       #back up the data of last step
 
     # write temp data to log files
-    system.update_log(init = True, logdir = '/home/lzx/CpdPhysics/main/log/')
+    #ZL-TBD: dont use absolute paths! 
+    system.update_log(init = True)
     print('\033[32m[runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
@@ -104,13 +105,13 @@ while doEvo:
         #system.deltaT = system.jumpT
         
         #import pdb;pdb.set_trace()
-        system.new_timestep(pars.tmax, afterjump = True, jumpfrac = pars.jumpfrac, **pars.dtimesteppars)
+        system.new_timestep(pars.tmax, afterjump = True, jumpfracD = pars.jumpfracD, **pars.dtimesteppars)
         system.reset_after_jump()
     else:
         #1)update the system time 
         #2)get the new deltaT 
         system.time +=system.deltaT
-        system.new_timestep(pars.tmax, jumpfrac=pars.jumpfrac, **pars.dtimesteppars)
+        system.new_timestep(pars.tmax, jumpfracD=pars.jumpfracD, **pars.dtimesteppars)
     
     system.timeL.append(system.time)
 
@@ -124,7 +125,9 @@ while doEvo:
     final = system.time>=pars.tmax
 
     # wrrite key information into logs and print things
-    system.update_log(djump = djump, logdir = '/home/lzx/CpdPhysics/main/log/')
+
+    #[24.04.21]cwo:no absolute paths, please!
+    system.update_log(djump = djump)
     userfun.do_stuff(system, final=final)
     
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)

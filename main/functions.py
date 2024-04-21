@@ -9,14 +9,28 @@ import parameters as pars
 import shutil
 import userfun
 import physics
+import subprocess as sp
 
 def clear_dir(directory):
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
-        if os.path.isfile(file_path) or os.path.islink(file_path):
-            os.unlink(file_path)
-        elif os.path.isdir(file_path):
-            shutil.rmtree(file_path)
+    """
+    ZL-TBD: please write a few lines in docstring what this function
+            is supposed to do
+    """
+    if os.path.exists(directory):
+        #[24.04.21]cwo: I have no idea what is going on here...
+        #               is shutil really necessary?
+        #               also put this in fileio.py
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+
+    #the directory does not exist yet. Create
+    else:
+        sp.run(['mkdir', directory])
+
 
 def get_res_chain(res_setL):
     newsetL = []
@@ -109,6 +123,8 @@ def St_iterate (eta,v_K,v_th,lmfp,rho_g,
                 Omega_K,R_d,rhoint=1.4,Sto=0.001, errorX=1e-4, nmax=100):
     """
     obtain Stokes number and drift velocity by fixed-point iteration
+
+    ZL-TBD: put some documentation here on what this does!
     """
     #put in physics.py
 
@@ -124,7 +140,9 @@ def St_iterate (eta,v_K,v_th,lmfp,rho_g,
         niter += 1
         v_r = physics.radial_v(St, eta, v_K)
 
-        Stn= userfun.Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint)
+        #call userfunction for Stokes number
+        Stn = userfun.Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint)
+
         #better to do relative error 
         error = abs(St/Stn-1)
 
