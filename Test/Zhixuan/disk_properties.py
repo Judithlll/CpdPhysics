@@ -8,8 +8,8 @@ import physics
 alpha = 1e-4
 rinn = 5.89*cgs.RJ  #the location of Io
 rout = 51*cgs.RJ
-frac=0.2  # the accretion mass with unit: M_J/Myr
-ratio=0.026  #dust-to-gas ratio
+frac=0.2/1.4  # the accretion mass with unit: M_J/Myr
+ratio = 0.0026 
 #Mcp=0.4*cgs.MJ
 sigmol=2e-15 #
 rgg=1.7e-7
@@ -60,7 +60,7 @@ def dot_Mg(t):
     """
     accretion rate through the disk as fn of time (Shibaike+2019, eq.2)
     """
-    if np.min(t)>tgap: 
+    if t>tgap: 
         dotMg=dotMg_gap()*np.exp(-(t-tgap)/tdep)
     else:
         dotMg=dotMg_gap()  
@@ -70,7 +70,7 @@ def M_influx(t0,tEnd):
     """
     gas inflow into the CJD
     """
-    Minflux,error=quad(dot_Mg,t0,tEnd)
+    Minflux=quad(dot_Mg,t0,tEnd)[0]
     # Minflux=ratio*dotMg_gap()*tdep*(np.exp(tgap/tdep) -np.exp(-(t-tgap)/tdep))
     return Minflux
 

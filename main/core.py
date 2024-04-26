@@ -1,3 +1,4 @@
+from os import wait
 import numpy as np
 # from scipy.integrate import odeint
 import sys
@@ -59,7 +60,6 @@ class Mintimes (object):
         self.tminarr = np.array([ddum['tmin'] for ddum in mintimedict])
 
 
-
 class System(object):
 
     """
@@ -118,7 +118,7 @@ class System(object):
         #   like: r_crit={'cavity':...}
         self.rinn = self.get_rinn()
 
-    def update_log(self, djump={}, logdir = '~/CpdPhysics/main/log/', init=False):
+    def update_log(self, djump={}, logdir = './log/', init=False):
         loglist = ['system_evol.log', 'planets.log', 'jump.log']
         pathlist = [logdir+log for log in loglist]
         
@@ -142,11 +142,13 @@ class System(object):
         # get the line of jump
         if self.doJump:
             nameJ = djump['tjumpkeys'][np.argwhere(djump['tjumparr']== self.jumpT)[0][0]] 
+            #TBD: also need to know which resonance and which system_evol
             if nameJ == 'milestones':
                 nameJ = nameJ + '-'+ self.milestones[self.time]
+
             self.jump_limitation = nameJ
 
-            line_jump =jfmt.format(self.njump, self.jumptime/cgs.yr, self.jumpT/cgs.yr, nameJ.rjust(30))
+            line_jump = jfmt.format(self.njump, self.jumptime/cgs.yr, self.jumpT/cgs.yr, nameJ.rjust(30))
 
             print(f'[core.system.jump]:at {self.timeL[-2]/cgs.yr:5.2f} yr jumped by {self.jumpT/cgs.yr:5.2f} yr')
             print(f'[core.system_jump]:jump time limited by: '+nameJ)
@@ -253,7 +255,6 @@ class System(object):
         self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
 
         
-        self.mtot1 = self.particles.mtot1
 
 
     def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
@@ -374,22 +375,30 @@ class System(object):
         
         #particles that enter the domain
         Nadd = 0
-
-
+        
         delmgasIn = dp.ratio*sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)[0]
         self.dotMd = dp.ratio*dp.dot_Mg(self.time)
         #self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
         self.Minflux_step = delmgasIn
+
+        #NOTE: make the mtot1 the largest among these three values, so that the Nadd will 
+        #      never be lager than 1
+        self.particles.mtot1 = max(self.particles.mtot1, self.Minflux, self.Minflux_step)
+        #but the self.mtot1 cannot be lower than (self.Minflux+self.Minflux_step)/2 
+        #because this can make the adding two particles once
         self.Minflux += self.Minflux_step
 
-        while self.Minflux>self.mtot1:
+        mtot1 = self.particles.mtot1
+
+
+        while self.Minflux> mtot1:
             Nadd += 1
-            self.Minflux -= self.mtot1
+            self.Minflux -= mtot1
         
         if Nadd>0:
             self.daction['add'] = Nadd
         
-        if Nadd>2:
+        if Nadd>=2:
             print('there are two super particles will be add once, please check')
             import pdb;pdb.set_trace()
         
@@ -416,34 +425,33 @@ class System(object):
 
         nch = 4
         if Np==part.ninit: part.Nplevel = part.ninit #reset
-
+        
         #particle level is decreasing...
         if Np<part.Nplevel -nch and Np<part.ninit:
             part.Nplevel -= nch
             eps = abs(part.ninit -part.Nplevel) /part.ninit
-            self.mtot1 *= 1 -eps
+            mtot1 *= 1 -eps
 
         #particle level is decreasing, but above ninit: modest decrease mtot1
         elif Np<part.Nplevel -nch and Np>part.ninit:
             part.Nplevel -= nch
             eps = nch /part.ninit
-            self.mtot1 *= 1 -eps
+            mtot1 *= 1 -eps
 
         #particle level is increasing, but below ninit: modest increase mtot1
         elif Np>part.Nplevel +nch and Np<part.ninit:
             part.Nplevel += nch
             eps = nch /part.ninit
-            self.mtot1 *= 1 +eps
+            mtot1 *= 1 +eps
 
         #particle level is increasing...
         elif Np>part.Nplevel +nch and Np>part.ninit:
             part.Nplevel += nch
             eps = abs(part.ninit -part.Nplevel) /part.ninit
-            self.mtot1 *= 1 +eps
+            mtot1 *= 1 +eps
 
-        #but the self.mtot1 cannot be lower than (self.Minflux+self.Minflux_step)/2 
-        #because this can make the adding two particles once
-        self.mtot1 = max(self.mtot1, self.Minflux)
+        #update the total mass 
+        self.particles.mtot1 =mtot1
 
         
         #get the Y2d needed to be used next step
@@ -602,8 +610,7 @@ class System(object):
             Npts = len(planet.planetMassData)
 
             # if the planet cross the inner edge, then the accretion is False
-            edge_sigma = planet.loc/PlocaTscale[i]*self.deltaT
-            if planet.loc< self.rinn-edge_sigma:
+            if planet.loc< self.rinn*(1-0.97):
                 planet.accretion =False
             #the interval time of accretion, if the inteval time is too long, then we can say the planet will no longer accrets
             #if Npts >=1:
@@ -727,9 +734,10 @@ class System(object):
             mintimeL.append({'name': 'planetsComp', 'tmin': min(PcompTscale)})
             
             if pars.doResonance:
-                for value in self.milestones.keys():
+                for key,value in self.milestones.items():
                     if value == 'resonance':
-                        del self.milestones[value]
+                        del self.milestones[key]
+                        break
                  
                 self.milestones[self.time+ 1e-3 +min(pratTscale)] = 'resonance'
                 #TBD: find out WHY do we see 0 // perhaps put pratTscale->infinity when in resonance (delta=0)?
@@ -741,7 +749,7 @@ class System(object):
             for i,iceline in enumerate(self.icelineL):
                 if not np.isnan(iceline.loc):
                     #[24.02.20]cwo:added a small number to the denominator
-                    tscale = np.float64(iceline.loc)/(1e-100+abs(self.oldstate.icelineL[i].loc-iceline.loc))*self.deltaT
+                    tscale = np.float64(iceline.loc)/(abs(self.oldstate.icelineL[i].loc-iceline.loc))*self.deltaT
                     iceline.loc_tc = tscale
                     IlocaTscale[i] = tscale
         
@@ -797,6 +805,8 @@ class System(object):
         if sum(ii)==0:
             max_tms = np.inf
         else:
+            #if timepoints[ii][0] == pars.tmax and self.time>11.8e6*cgs.yr:
+            #    import pdb;pdb.set_trace()
             max_tms = min(timepoints[ii]-self.time)
         
          
@@ -853,6 +863,7 @@ class System(object):
             self.doJump = con1 & con2 &con3
         else:
             self.doJump = con0 & con1 & con2
+
         
         #print([con0,con1,self.mintimeL[1:], self.time/cgs.yr]) 
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
@@ -895,8 +906,10 @@ class System(object):
             #    print('[core.system.jump]: the first planet migrates across the inner edge')
 
         if pars.doIcelines:
-            for iceline in self.icelineL:
-                iceline.loc -= iceline.loc/self.minTimes.icelineloca *self.jumpT
+            for i, iceline in enumerate(self.icelineL):
+                #to dicide whether the iceline moves inner or outer
+                sign = (iceline.loc-self.oldstate.icelineL[i].loc)/abs(iceline.loc-self.oldstate.icelineL[i].loc)
+                iceline.loc += sign*iceline.loc/self.minTimes.icelineloca *self.jumpT
         
         self.njump +=1
         self.njumptime = self.ntime
@@ -930,12 +943,18 @@ def get_cross_idx(loc, locL, locLo, daction, locnew = None):
         lrm = len(daction['remove'])
     if 'add' in daction.keys():
         lad = daction['add']
+
     if locnew == None:
         idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (loc>np.append([0.]*lrm , locL)))
     else:
         idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (locnew>np.append([0.]*lrm , locL)))
 
     idxD = {'idx_for_new': idx-lrm, 'idx_for_old': idx}
+    #if loc<5.89*cgs.RJ:
+    #    print(loc/cgs.RJ)
+    #    print(np.append([0.]*lrm , locL)[0:4]/cgs.RJ)
+    #    print(locLo[0:4]/cgs.RJ)
+    #    import pdb;pdb.set_trace()
 
     return idxD
     
@@ -968,10 +987,8 @@ def advance_iceline (system):
                 #renormalize
                 system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
         
-        #a little time comsuming, don't consider this for now
-        if system.time > 1e6 *cgs.yr:
-            loc_pv = system.oldstate.icelineL[k].loc
-            iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
+        loc_pv = system.oldstate.icelineL[k].loc
+        iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
 
 
 
@@ -1104,7 +1121,6 @@ def advance_planets (system):
 
             #mass*composition that is acccreted
             delmcomp = np.zeros((spN.fcomp.shape[1]))
-            
             for k, ip in enumerate(idxND['idx_for_new']):
 
                 #calculate critical mass to verify if the pebble accretion can occur
@@ -1129,7 +1145,7 @@ def advance_planets (system):
                 #TBD-later: in reality particles may be "stuck" in pressure bump
                 #           incorporate in planet object?
                 #NOTE: this PIM is arbitrary now
-                if Mc<planet.mass and planet.loc >system.rinn and planet.mass<userfun.PIM():                    
+                if Mc<planet.mass and planet.mass<userfun.PIM():                    
                     epsilon = userfun.epsilon_PA(planet.loc,planet.mass,spk)
 
                     planet.acc_rate = epsilon

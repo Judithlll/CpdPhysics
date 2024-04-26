@@ -7,7 +7,6 @@ import copy
 import parameters as pars     
 import imageio.v2 as imageio
 import os
-import glob
 import pandas as pd
 import parameters as pars
 import disk_properties as dp
@@ -174,7 +173,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1.0e6*cgs.yr, 1.25e6*cgs.yr, 1.5e6*cgs.yr, 2.0e6*cgs.yr] 
+    timeL = [0.8e6*cgs.yr, 1.3e6*cgs.yr, 1.8e6*cgs.yr, 2.25e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
@@ -332,6 +331,8 @@ class Data(object):
                     added_L = np.array([np.nan]*len(daction['remove']))
                     fcomp_adL = np.array([[np.nan]*complen]*len(daction['remove']))
                     for re_time in self.timeL[idx:]:
+                        self.StD[re_time] = np.append(added_L, self.StD[re_time])
+                        self.v_rD[re_time] = np.append(added_L, self.v_rD[re_time]) 
                         self.radD[re_time] = np.append(added_L, self.radD[re_time])
                         self.mD[re_time] = np.append(added_L, self.mD[re_time])
                         self.mtotD[re_time] = np.append(added_L, self.mtotD[re_time])
@@ -341,6 +342,8 @@ class Data(object):
                     added_L = np.array([np.nan]*daction['add'])
                     fcomp_adL = np.array([[np.nan]*complen]*daction['add'])
                     for ad_time in self.timeL[:idx]:
+                        self.StD[ad_time] = np.append(self.StD[ad_time], added_L)
+                        self.v_rD[ad_time] = np.append(self.v_rD[ad_time], added_L)
                         self.radD[ad_time] = np.append(self.radD[ad_time], added_L)
                         self.mD[ad_time] = np.append(self.mD[ad_time], added_L)
                         self.mtotD[ad_time] = np.append(self.mtotD[ad_time], added_L)
@@ -461,7 +464,7 @@ class Data(object):
         #     writer.writerows(self.mD)       
 
     
-    def plot_stuff(self,gas):
+    def plot_stuff(self):
         
         #[time,loc]=np.meshgrid(self.timeL,np.linspace(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ,len(self.timeL)))
         #sigmag=gas.get_key_disk_properties(loc,time)[0]
@@ -495,16 +498,16 @@ class Data(object):
 
     def plot_disk(self,time):
         r_Span=np.linspace(1*cgs.RJ,pars.dgasgrid['rout'])
-        plt.figure(figsize=(8,12))
+        plt.figure(figsize=(16,6))
         if type(time) == float or type(time) == np.float64:
             Sigmag,Td=self.gas.get_key_disk_properties(r_Span,time)[0:2]
-            plt.subplot(211)
+            plt.subplot(121)
             plt.title('Surface dencity $[g/cm^2]$', )
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
             plt.yscale('log')
             plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time/cgs.yr))
-            plt.subplot(212)
+            plt.subplot(122)
             plt.title('Midplane Temperature $[K]$')
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
@@ -513,13 +516,13 @@ class Data(object):
             plt.legend()
             plt.savefig('./plot/diskproperties.jpg')
         else:
-            plt.subplot(211)
+            plt.subplot(121)
             plt.title('Surface dencity $[g/cm^2]$')
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
             plt.yscale('log')
             
-            plt.subplot(212)
+            plt.subplot(122)
             plt.title('Midplane Temperature $[K]$')
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
@@ -527,15 +530,16 @@ class Data(object):
 
             for i in range(len(time)):
                 Sigmag, Td = self.gas.get_key_disk_properties(r_Span, time[i])[0:2]
-                plt.subplot(211)
+                plt.subplot(121)
                 plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time[i]/cgs.yr))
-                plt.subplot(212)
+                plt.subplot(122)
                 plt.plot(r_Span/cgs.RJ,Td,label=str(time[i]/cgs.yr))
 
-            plt.subplot(212)
+            plt.subplot(122)
             plt.axhline(160, label='iceline', color = 'skyblue', linestyle = 'dashed')
             plt.legend()
             plt.savefig('./plot/diskproperties.jpg')
+            plt.close()
     
     def plot_particles_number(self):
         plt.figure()
@@ -590,13 +594,15 @@ class Data(object):
         plt.title('Planet migration')
         plt.xlabel('Planets location [$R_{Jup}$]' )
         plt.ylabel('System time [yr]')
+        plt.yscale('log')
+        plt.xscale('log')
         loclist = self.planetslocL.T
         time = np.array(list(self.planetsloc.keys()))
 
         for jump in self.jumpstuff:
             plt.axhspan(jump['jumptime']/cgs.yr, (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
-            plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'planet'+str(i+1))
+            plt.plot(loc/cgs.RJ, time/cgs.yr, label = 'Satellite'+str(i+1))
 
 
             plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
@@ -611,16 +617,16 @@ class Data(object):
         plt.xlabel('Planets location [$R_{Jup}$]' )
         plt.ylabel('System time [yr]')
         plt.yscale('log')
-        plt.ylim(1e4,3e6)
+        plt.ylim(1e4,30e6)
         plt.xscale('log')
         loclist = self.planetslocL.T
         masslist = self.planetsmassL.T
         time = np.array(list(self.planetsloc.keys()))
         
-        planetst = 1.e6*cgs.yr
+        planetst = 0.8e6*cgs.yr
         stidx = np.argwhere(time>planetst)[0][0]
         
-        dotssize = masslist/np.nanmin(masslist)*0.02
+        dotssize = masslist/np.nanmin(masslist)*0.1
         #cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
 
         for jump in self.jumpstuff:
@@ -628,6 +634,7 @@ class Data(object):
                 plt.axhspan((jump['jumptime']-planetst)/cgs.yr, 
                             (jump['jumptime']+jump['jumpT']-planetst)/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
+            plt.plot(loc[stidx:]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr)
             plt.scatter(loc[stidx:]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr, s = dotssize[i][stidx:], c =self.planetsfcompL[stidx:,i][:,1], cmap ='Spectral', alpha =1 )
 
 
@@ -636,9 +643,23 @@ class Data(object):
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
         plt.plot(self.icelineslocL[stidx:,0]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
+        plt.xticks([5.89,10,14.8,15,20,50],['5.89','10','14.8','','20','50'])
         plt.savefig('./plot/planet_evolution.jpg',dpi=600)
         plt.close()
    
+
+    def plot_iceline(self):
+        plt.figure()
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.ylabel('iceline location')
+        plt.xlabel('time')
+        plt.yticks([14.8,15],['14.8','15'])
+        plt.axhline(15.)
+        plt.plot(np.array(self.timeL)/cgs.yr, self.icelineslocL.T[0]/cgs.RJ, 'x-')
+        plt.savefig('./plot/iceline.jpg')
+        plt.close()
+        import pdb;pdb.set_trace()
     def plot_planet_massloc(self):
         plt.figure()
         plt.title('PLanet mass-location')
@@ -780,8 +801,11 @@ class Data(object):
             plt.plot(loc/cgs.rJup, St, 'x-',label = "{:.2f}".format(ti/cgs.yr))
             for i,loc in enumerate(self.planetsloc[ti]): 
                 plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray', label='planet'+str(i))
-            plt.legend()
-            plt.savefig('./plot/St.jpg')
+            
+        plt.axvline(self.icelineslocL[-1]/cgs.RJ, linestyle = 'dashed', color = 'gray', label = 'water iceline')
+        plt.legend()
+        plt.savefig('./plot/St.jpg')
+        plt.close()
 
     def plot_vr(self, tL):
         timeL =tL

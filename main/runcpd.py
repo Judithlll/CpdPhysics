@@ -43,7 +43,7 @@ else:
     system.back_up_last_data()       #back up the data of last step
 
     # write temp data to log files
-    system.update_log(init = True, logdir = '/home/lzx/CpdPhysics/main/log/')
+    system.update_log(init = True)
     print('\033[32m[runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
@@ -124,7 +124,7 @@ while doEvo:
     final = system.time>=pars.tmax
 
     # wrrite key information into logs and print things
-    system.update_log(djump = djump, logdir = '/home/lzx/CpdPhysics/main/log/')
+    system.update_log(djump = djump)
     userfun.do_stuff(system, final=final)
     
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
