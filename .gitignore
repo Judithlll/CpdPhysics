@@ -2,7 +2,12 @@
 *.pyc
 *.pickle
 main/log
+Test/Zhixuan/log
+Test/Zhixuan2/log
+Test/Zhixuan3/log
 Test/Zhixuan/pickles
+Test/Zhixuan2/pickles
+Test/Zhixuan3/pickles
 Test/Zhixuan/plot
 __pycache__
 *.csv
