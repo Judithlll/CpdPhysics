@@ -707,10 +707,10 @@ class System(object):
                 planet.max_jumpT = 0.0 #np.nan
             
             # if the planet mmigrates into cavity, ths max_jumpT should be infinity
-            if planet.loc < self.rinn:
-                planet.dmdt = 0
-                planet.relp_mass = np.inf
-                planet.max_jumpT = np.inf
+            #if planet.loc < self.rinn:
+            #    planet.dmdt = 0
+            #    planet.relp_mass = np.inf
+            #    planet.max_jumpT = np.inf
 
                 #get the planet composition change time scale
                 if False:
