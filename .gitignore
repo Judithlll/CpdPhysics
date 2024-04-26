@@ -2,19 +2,19 @@
 *.pyc
 *.pickle
 main/log
-Test/Zhixuan/log
-Test/Zhixuan2/log
-Test/Zhixuan3/log
-Test/Chris/log 
-Test/simple/log 
+Test/Zhixuan/log/
+Test/Zhixuan2/log/
+Test/Zhixuan3/log/
+Test/Chris/log/
+Test/simple/log/ 
 
-Test/Zhixuan/pickles
-Test/Zhixuan2/pickles
-Test/Zhixuan3/pickles
-Test/Chris/pickles 
-Test/simple/pickles
+Test/Zhixuan/pickles/
+Test/Zhixuan2/pickles/
+Test/Zhixuan3/pickles/
+Test/Chris/pickles/
+Test/simple/pickles/
 
-Test/Zhixuan/plot
+Test/Zhixuan/plot/
 __pycache__
 *.csv
 *.xlsx
