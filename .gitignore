@@ -1,6 +1,6 @@
 *.swp
 *.pyc
-*.pickles
+*.pickle
 main/log
 Test/Zhixuan/pickles
 Test/Zhixuan/plot
