@@ -173,7 +173,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [0.8e6*cgs.yr, 1.3e6*cgs.yr, 1.8e6*cgs.yr, 2.25e6*cgs.yr] 
+    timeL = [0.8e6*cgs.yr, 1.3e6*cgs.yr, 1.8e6*cgs.yr, 2.3e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
