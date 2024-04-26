@@ -13,7 +13,7 @@ sigmol=2e-15
 def Mcp_t (t):
     return cgs.Msun
 
-def dot_Mg (t):
+def dot_Mg (t, mode=None):
     return 0
 
 def M_influx (t0, tEnd):

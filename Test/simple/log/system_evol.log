@@ -1,0 +1,2 @@
+     ntime       time     particles_number     deltaT      restrict_factor
+         1       0.73                  100   4.63e+06          Mass_Influx

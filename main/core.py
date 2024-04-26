@@ -32,11 +32,11 @@ class Mintimes (object):
     """
     store the minimam times
     """
-    def __init__(self, mintimedict, jumpfrac={}):
+    def __init__(self, mintimedict, jumpfracD={}):
         tevol = []
         tminL = []
         nameL = []
-        
+
         for i in range (len(mintimedict)):
             tmin = mintimedict[i]['tmin']
             name = mintimedict[i]['name']
@@ -47,9 +47,9 @@ class Mintimes (object):
             #TBD:need to be more general 
             if i>0:#don't consider the particles timescale here
                 if mintimedict[i]['name'] == 'PlanetsRes':
-                    tevol.append( jumpfrac['PlanetsRes']*tmin )
+                    tevol.append( jumpfracD['PlanetsRes']*tmin )
                 else:
-                    tevol.append( jumpfrac['general']*tmin)
+                    tevol.append( jumpfracD['general']*tmin)
         
         self.tminarr = np.array(tminL)
         self.nameL = nameL
@@ -118,6 +118,8 @@ class System(object):
         #   like: r_crit={'cavity':...}
         self.rinn = self.get_rinn()
 
+    #ZL-TBD: put this stuff in fileio.py
+    #[24.04.21]CWO: I've again removed the logdir. It should ALWAYS be local!       
     def update_log(self, djump={}, logdir = './log/', init=False):
         loglist = ['system_evol.log', 'planets.log', 'jump.log']
         pathlist = [logdir+log for log in loglist]
@@ -376,10 +378,22 @@ class System(object):
         #particles that enter the domain
         Nadd = 0
         
-        delmgasIn = dp.ratio*sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)[0]
-        self.dotMd = dp.ratio*dp.dot_Mg(self.time)
-        #self.Minflux_step = dp.M_influx(self.time,self.time+self.deltaT)
-        self.Minflux_step = delmgasIn
+        #delmgasIn = dp.ratio*sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)[0]
+        #self.dotMd = dp.ratio*dp.dot_Mg(self.time)
+
+
+        #[24.04.21]cwo: since I dont like this dp.ratio stuff so much
+        #               but we can provide arguments!
+        #
+        #you generally are very messy! Do we need all of this?
+
+        #[24.04.21]cwo: so this is not the gas, but the dust?!
+        #               suggest to give the argument "dust" then
+        delmdustIn = sciint.quad(dp.dot_Md, self.time, self.time+self.deltaT)[0]
+
+        self.dotMd = dp.dot_Md(self.time)
+
+        self.Minflux_step = delmdustIn
 
         #NOTE: make the mtot1 the largest among these three values, so that the Nadd will 
         #      never be lager than 1
@@ -391,6 +405,8 @@ class System(object):
         mtot1 = self.particles.mtot1
 
 
+        #if the total mass has exceeded some threshold "mtot1"
+        #create a new particle
         while self.Minflux> mtot1:
             Nadd += 1
             self.Minflux -= mtot1
@@ -464,7 +480,7 @@ class System(object):
         self.mcp = dp.Mcp_t(self.time)
         self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
 
-    def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, jumpfrac={},**kwargs):
+    def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, jumpfracD={},**kwargs):
         """
         chooses a timestep
         """
@@ -483,7 +499,7 @@ class System(object):
         
         #after the jump, we only have particles drift timescale
         if afterjump:
-            self.minTimes = Mintimes(mintimeL,jumpfrac)
+            self.minTimes = Mintimes(mintimeL,jumpfracD)
             #self.mintimeL = mintimeL
             self.deltaT = deltaTfraction*tpart.min() #min([ob['tmin'] for ob in mintimeL])
 
@@ -759,7 +775,7 @@ class System(object):
         # put mintimeL into system object for now to check
         #self.mintimeL=mintimeL
         #make a class to use this mintimeL, change the name 
-        self.minTimes = Mintimes(mintimeL, jumpfrac)
+        self.minTimes = Mintimes(mintimeL, jumpfracD)
 
         #determine next timestep
         deltaT = deltaTfraction *min(self.minTimes.tminarr)
@@ -795,7 +811,7 @@ class System(object):
 
         #jump time is given by the min evol. timescales, excluding those of the particles
         max_tevol = self.minTimes.max_tevol
-        #max_tevol = jumpfrac*min(self.minTimes.tminarr[1:])
+        #max_tevol = jumpfracD*min(self.minTimes.tminarr[1:])
         
         #(cannot jump over "important events" -> Milestones) 
         #adjust jumpT according to milestones
@@ -1246,9 +1262,12 @@ class Superparticles(object):
 
             #get the initial surface density
             sigini, *dum = gas.get_key_disk_properties(r,0.0)
+
             #TBD: think about one way to remove the dp thing here
-            sigini_d = dp.ratio*sigini
-            return 2*np.pi*r*sigini_d *Zcom.sum()
+            #[24.04.21] CWO: This should be done arleady dp.ratio = Zcom.sum() !!
+            #     (so I removed)       
+            #sigini_d = dp.ratio*sigini
+            return 2*np.pi*r*sigini *Zcom.sum()
 
 
         print('[core.Superparticles.init]:initialization superparticles under rule:', initrule)
@@ -1400,13 +1419,11 @@ class Superparticles(object):
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
-        sigD = disk.dotMd /(-2*loc*np.pi*v_r) #v_r<0
+        sigD = disk.dot_Md(time) /(-2*loc*np.pi*v_r) #v_r<0
 
         #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..
         delv = userfun.del_v (St, disk)
         
-        ## CWO: this *should* become a userfun (b/c seems a bit specific)
-
         #TBD: provide the composition as an argument (in general way)
         dmdt = userfun.dm_dt (Rd, delv, Hd, sigD, self.fcomp)
 
@@ -1462,6 +1479,7 @@ class Superparticles(object):
 
     
     def remove_particles(self,remove_idx):
+        #[24.04.21]cwo: this doesn't look elegant at all!!
         self.mtotL =  np.delete(self.mtotL, remove_idx) 
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)   
@@ -1471,6 +1489,8 @@ class Superparticles(object):
         self.St = np.delete(self.St, remove_idx)
         self.v_r = np.delete(self.v_r, remove_idx)
         self.Hg = np.delete(self.Hg, remove_idx)
+
+        #[24.04.21]cwo: here I get an error and am too tired now...
         self.eta = np.delete(self.eta, remove_idx)
         self.mg = np.delete(self.mg, remove_idx)
         self.num -= len(remove_idx)

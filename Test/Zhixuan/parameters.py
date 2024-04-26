@@ -22,7 +22,7 @@ dintegratorpars = {'name':'RK5', 'timestepn':3}
 #give the jumpfraction here, 
 #which means how accrute the jump you want to have, the smaller, the more accrute
 #and you can also define jumpfraction for specific timescale
-jumpfrac={'general': 0.2,
+jumpfracD={'general': 0.2,
           'PlanetsRes': 0.5,}
 
 dgasgrid = {'rinn':5.89*cgs.RJ,'rout':51*cgs.RJ}

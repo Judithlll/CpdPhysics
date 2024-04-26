@@ -31,7 +31,7 @@ def user_add_fun ():
     """
     a list of functions to be added
     """
-    return dot_Mg, beta_sigG, beta_P
+    return dot_Mg, beta_sigG, beta_P, dot_Md
 
 
 def user_add_var ():
@@ -42,7 +42,7 @@ def user_add_var ():
 
 
 def user_add_eval ():
-    return eta, dotMd, mg
+    return eta, mg
 
 def dotMg_gap():
     """
@@ -74,13 +74,13 @@ def M_influx(t0,tEnd):
     # Minflux=ratio*dotMg_gap()*tdep*(np.exp(tgap/tdep) -np.exp(-(t-tgap)/tdep))
     return Minflux
 
-def dotMd(disk):
+def dot_Md(time):
     """
     get the solid mass flow
 
     ratio: the dust to gas ratio
     """
-    Mfd=disk.ratio*disk.dot_Mg(disk.time)
+    Mfd=ratio*dot_Mg(time)
     return Mfd
 
 def v_K(r,t):
