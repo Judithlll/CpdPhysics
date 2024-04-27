@@ -233,6 +233,8 @@ class System(object):
             inxt = (self.dres['prat']<prat).argmax()
             planet.inxt = inxt  #next upcoming res.
             planet.resS = -1    #-1: not yet in resonance
+            if inxt >=1:
+                import pdb;pdb.set_trace()
 
         #there's an exterior planet
         if iloc<self.nplanet-1:
@@ -242,6 +244,9 @@ class System(object):
             planetE.inxt = inxt  #next upcoming res.
             planetE.resS = -1    #-1: not yet in resonance
 
+
+            if inxt >=1:
+                import pdb;pdb.set_trace()
 
 
     def init_particles(self, dparticleprops={}):
@@ -391,12 +396,15 @@ class System(object):
         #               suggest to give the argument "dust" then
         delmdustIn = sciint.quad(dp.dot_Md, self.time, self.time+self.deltaT)[0]
 
-        self.dotMd = dp.dot_Md(self.time)
+        self.dotMg = dp.dot_Mg(self.time)
 
         self.Minflux_step = delmdustIn
 
-        #NOTE: make the mtot1 the largest among these three values, so that the Nadd will 
+        #LZX: [24.04.27] make the mtot1 the largest among these three values, so that the Nadd will 
         #      never be lager than 1
+        #however: this results in jumping of mtot1, which destabelizes the scheme
+        #TBD: restrict timestep such that Nadd<=1 is guaranteed
+
         self.particles.mtot1 = max(self.particles.mtot1, self.Minflux, self.Minflux_step)
         #but the self.mtot1 cannot be lower than (self.Minflux+self.Minflux_step)/2 
         #because this can make the adding two particles once
@@ -505,6 +513,7 @@ class System(object):
 
             return
 
+        #TBD: add central mass timescale to mintimeL
             #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
             #central mass growth timescale
             #Mcpnew=dp.Mcp_t(self.time)  
@@ -614,6 +623,9 @@ class System(object):
                     else:#pdel>0
                         # +1e-2 to prevent a too small value comes out
                         pratTscale[i] = np.float64(pdel + 1e-2) /(1e-100 +pdelold-pdel) *self.deltaT
+                        #get the proper resonance inxt
+                        planet.inxt = (self.dres['prat']<prat).argmax()
+
 
 
             #fit the planet growth by pebble accretion
@@ -913,10 +925,19 @@ class System(object):
                 planet.loc += planet.dlocdt *self.jumpT
                 jumpmass = planet.dmdt* self.jumpT
 
-                #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
+               #TBD: generalize this. Perhaps best way is to make planet.dmdt a vector
                 #       planet.dmdt = [dmdt comp 1, dmdt comp 2, ...]
-                paridx = np.argmin(abs(self.particles.locL - planet.loc))
-                planet.fcomp = (self.particles.fcomp[paridx]*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
+                #paridx = np.argmin(abs(self.particles.locL - planet.loc))
+                #if planet.loc < self.icelineL[0].loc*(0.5) and self.particles.fcomp[paridx][0] ==0.5:
+                #    import pdb;pdb.set_trace()
+
+                #NOTE:change the composition jump now more resonable but not general
+                if planet.loc <self.icelineL[0].loc:
+                    fcomp=np.array([1,0])
+                else:
+                    fcomp = np.array([0.5,0.5])
+
+                planet.fcomp = (fcomp*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
                 planet.mass += jumpmass
             #if self.planetL[0].loc <self.rinn:
             #    print('[core.system.jump]: the first planet migrates across the inner edge')

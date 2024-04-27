@@ -29,7 +29,7 @@ dgasgrid = {'rinn':5.89*cgs.RJ,'rout':51*cgs.RJ}
 
 gasmodel = 'prescribed'
 
-tmax = 30e6 *cgs.yr
+tmax = 15e6 *cgs.yr
 
 #critical velocity for fragmentation
 vc = {'icy': 5.e3,

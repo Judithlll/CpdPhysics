@@ -10,10 +10,11 @@ argL = sys.argv
 
 #pl_data = pd.read_csv('../../main/log/planets.log', delim_whitespace=True, header=0, engine = 'python-fwf')
 l=0
+planet_num = 4
 timeL = []
 data = []
-massL = []
-peffL = []
+massL = [[],[],[],[]]
+peffL = [[],[],[],[]]
 with open('./log/planets.log', 'r') as file:
 
     columns = file.readline().strip().split()
@@ -23,24 +24,33 @@ with open('./log/planets.log', 'r') as file:
         if not line:
             break  # End of file
         lm = line.strip().split()
-        if len(lm)>=6:
-            timeL.append(lm[0])
-            massL.append(lm[4])
-            peffL.append(lm[5])
+        
+        timeL.append(float(lm[0]))
+
+        num = (len(lm) -1.)/5.
+
+        for j in range(int(num)):
+            massL[j].append(float(lm[4+5*j]))
+            peffL[j].append(float(lm[5+5*j]))
+        for k in range(int(num),planet_num):
+            massL[k].append(np.nan)
+            peffL[k].append(np.nan)
+
         data.append(line.strip().split())    
 
+import pdb;pdb.set_trace()
 plt.figure()
 plt.yscale('log')
 plt.xscale('log')
-# 设置 y 轴刻度和标签
-yticks_values = [0.0001, 0.01, 0.02, 0.03, 0.04, 0.05]
-yticks_labels = ['0.0001', '0.01', '0.02', '0.03', '0.04', '0.05']
-plt.yticks(yticks_values, yticks_labels)
+#yticks_values = [0.0001, 0.01, 0.02, 0.03, 0.04, 0.05]
+#yticks_labels = ['0.0001', '', '', '', '', '0.05']
+#plt.yticks(yticks_values, yticks_labels)
 
-# 设置 x 轴刻度和标签
 xticks_values = [1e23, 1e24, 1e25, 1e26]
 xticks_labels = ['1e23', '1e24', '1e25', '1e26']
 plt.xticks(xticks_values, xticks_labels)
-plt.scatter(massL, peffL)
-import pdb;pdb.set_trace()
+for i in range(planet_num):
+    plt.plot(massL[i], peffL[i], label=str(i))
+plt.legend()
+plt.savefig('./plot/peff.jpg')
 

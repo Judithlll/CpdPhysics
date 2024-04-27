@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit
 from matplotlib.colors import LinearSegmentedColormap
 
 def PIM():
-    return 1.48e26
+    return 1.48e40
 def Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint = 1.4):
     v_dg=np.abs(v_r)
     Rep=4*R_d*v_dg/v_th/lmfp
@@ -173,7 +173,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [0.8e6*cgs.yr, 1.3e6*cgs.yr, 1.8e6*cgs.yr, 2.3e6*cgs.yr] 
+    timeL = [0.8e6*cgs.yr, 1.1e6*cgs.yr, 1.40e6*cgs.yr, 1.7e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
@@ -617,13 +617,13 @@ class Data(object):
         plt.xlabel('Planets location [$R_{Jup}$]' )
         plt.ylabel('System time [yr]')
         plt.yscale('log')
-        plt.ylim(1e4,30e6)
         plt.xscale('log')
         loclist = self.planetslocL.T
         masslist = self.planetsmassL.T
         time = np.array(list(self.planetsloc.keys()))
         
         planetst = 0.8e6*cgs.yr
+        plt.ylim(planetst/cgs.yr,20e6)
         stidx = np.argwhere(time>planetst)[0][0]
         
         dotssize = masslist/np.nanmin(masslist)*0.1
@@ -634,14 +634,14 @@ class Data(object):
                 plt.axhspan((jump['jumptime']-planetst)/cgs.yr, 
                             (jump['jumptime']+jump['jumpT']-planetst)/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
-            plt.plot(loc[stidx:]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr)
-            plt.scatter(loc[stidx:]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr, s = dotssize[i][stidx:], c =self.planetsfcompL[stidx:,i][:,1], cmap ='Spectral', alpha =1 )
+            plt.plot(loc[stidx:]/cgs.RJ, (time[stidx:])/cgs.yr)
+            plt.scatter(loc[stidx:]/cgs.RJ, (time[stidx:])/cgs.yr, s = dotssize[i][stidx:], c =self.planetsfcompL[stidx:,i][:,1], cmap ='Spectral', alpha =1 )
 
 
             #plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
         plt.colorbar(label = "Water Fraction [%]")
         plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
-        plt.plot(self.icelineslocL[stidx:,0]/cgs.RJ, (time[stidx:]-planetst)/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
+        plt.plot(self.icelineslocL[stidx:,0]/cgs.RJ, (time[stidx:])/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
         plt.xticks([5.89,10,14.8,15,20,50],['5.89','10','14.8','','20','50'])
         plt.savefig('./plot/planet_evolution.jpg',dpi=600)
@@ -790,19 +790,26 @@ class Data(object):
         plt.ylim(1e-6, 1)
         plt.xlabel('Location [$R_J$]')
         plt.ylabel('Stokes number')
-        for time in timeL:
+        for time in timeL[2:]:
             tidx = np.argmin(np.abs(self.timeL-time))
             ti = self.timeL[tidx]
             
             St = self.StD[ti]
-            import pdb;pdb.set_trace()
             loc = self.radD[ti]
             
-            plt.plot(loc/cgs.rJup, St, 'x-',label = "{:.2f}".format(ti/cgs.yr))
-            for i,loc in enumerate(self.planetsloc[ti]): 
-                plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray', label='planet'+str(i))
+            q = -dp.beta_T
+            loc_new = np.linspace(1*cgs.RJ,51*cgs.RJ, 1000)
+            p = -dp.beta_sigG(loc_new)
+            sigG, T = self.gas.get_key_disk_properties(loc_new, time)[0:2]
+            St_new = 0.23*(2/(3+2*p+q))**(4/5)*(10/(18-39*q))**(2/5)*(dp.ratio/0.003)**(2/5)*(dp.alpha/1e-4)**(1/5)*(T/160)**(-2/5)*(dp.Mcp_t(time)/cgs.MJ)**(2/5)*(loc_new/10/cgs.RJ)**(-2/5)
+            import pdb;pdb.set_trace()
             
-        plt.axvline(self.icelineslocL[-1]/cgs.RJ, linestyle = 'dashed', color = 'gray', label = 'water iceline')
+            plt.plot(loc/cgs.rJup, St, 'x-',label = "{:.2f}".format(ti/cgs.yr))
+            plt.plot(loc_new/cgs.rJup, St_new, '--',label = "{:.2f}_powerlaw".format(ti/cgs.yr))
+            for i,loc in enumerate(self.planetsloc[ti]): 
+                plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray')
+            
+        plt.axvline(self.icelineslocL[-1]/cgs.RJ, linestyle = 'dotted', color = 'gray', label = 'water iceline')
         plt.legend()
         plt.savefig('./plot/St.jpg')
         plt.close()
