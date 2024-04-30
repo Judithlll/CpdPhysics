@@ -173,11 +173,11 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [0.8e6*cgs.yr, 1.1e6*cgs.yr, 1.40e6*cgs.yr, 1.7e6*cgs.yr] 
+    timeL = [1.e6*cgs.yr, 1.4e6*cgs.yr, 1.50e6*cgs.yr, 1.6e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
-    massL = [3e23, 3e23, 3e23,3e23] 
+    massL = [3e23, 3e23, 3e23, 3e23] 
     compoL = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])
 
     return timeL, locationL, massL, compoL
@@ -251,6 +251,8 @@ class Data(object):
         self.jumpstuff = []
         self.planetsfcomp = {}
 
+        self.planetsdmdt = {}
+
         self.dactionD ={}
         
     def update_cumulative_change(self,daction):
@@ -294,14 +296,17 @@ class Data(object):
             pmassL = [np.nan] * lengt
             plocL  = [np.nan] * lengt
             pcompL = [[np.nan]*2] *lengt #TBD:not general now 
+            pdmdtL = [np.nan] * lengt
             for k,v in system.planetD.items():
                 pmassL[k] = v.mass
                 plocL [k] = v.loc
                 pcompL[k] = v.fcomp
+                pdmdtL[k] = v.dmdt
 
             self.planetsmass.setdefault(system.time,pmassL)
             self.planetsloc.setdefault(system.time,plocL )
             self.planetsfcomp.setdefault(system.time, pcompL)
+            self.planetsdmdt.setdefault(system.time, pdmdtL)
         #store icelines' data
         if pars.doIcelines:
             self.icelinesloc.setdefault(system.time, [iceline.loc for iceline in system.icelineL])
@@ -388,6 +393,7 @@ class Data(object):
 
         pmL = copy.deepcopy(list(self.planetsmass.values()))
         plL = copy.deepcopy(list(self.planetsloc.values()))
+        pdmdtL = copy.deepcopy(list(self.planetsdmdt.values()))
         pfL = copy.deepcopy(list(self.planetsfcomp.values()))
         max_len = max([len(l) for l in pmL])
         
@@ -398,10 +404,12 @@ class Data(object):
                 length = max_len - len(pmL[i])
                 pmL[i].extend([np.nan]*length)
                 plL[i].extend([np.nan]*length)
+                pdmdtL[i].extend([np.nan]*length)
                 pfL[i].extend([[np.nan]*2]*length)
         self.planetsmassL = np.array(pmL)
         self.planetslocL = np.array(plL)
         self.planetsfcompL = np.array(pfL)
+        self.planetsdmdtL = np.array(pdmdtL)
 
         self.icelineslocL = np.array(list(self.icelinesloc.values()))
 
@@ -546,8 +554,22 @@ class Data(object):
         plt.title('Particles number')
         plt.xlabel('time [yr]')
         plt.ylabel('number')
-        plt.plot(self.timeL, self.num, color = 'red')
+        self.num = [len(v) for v in self.radD.values()]
+        plt.plot(np.array(self.timeL)/cgs.yr, self.num, color = 'red')
         plt.savefig('./plot/particleNum.jpg')
+        plt.close()
+
+    def plot_growth_timescale(self):
+        plt.figure()
+        plt.xlabel('Satellite mass [g]')
+        plt.ylabel('Growth timescale [yr]')
+        plt.yscale('log')
+        plt.xscale('log')
+        for i, dmdtL in enumerate(self.planetsdmdtL.T):
+            plt.plot(self.planetsmassL.T[i], self.planetsmassL.T[i]/dmdtL/cgs.yr, label = 'Satellite'+str(i+1))
+
+        plt.legend()
+        plt.savefig('./plot/tgrowth.jpg')
         plt.close()
 
     def plot_planets_accretion(self,planet,system):
@@ -613,9 +635,9 @@ class Data(object):
 
     def plot_planet_evolution(self):
         plt.figure()
-        plt.title('Planet evolution')
-        plt.xlabel('Planets location [$R_{Jup}$]' )
-        plt.ylabel('System time [yr]')
+        plt.title('Satellites evolution')
+        plt.xlabel('Distance from the planet [$R_{J}$]' )
+        plt.ylabel('Evolution Time [yr]')
         plt.yscale('log')
         plt.xscale('log')
         loclist = self.planetslocL.T
@@ -630,20 +652,20 @@ class Data(object):
         #cmap = LinearSegmentedColormap.from_list("my_colormap", ["y", "royalblue"])
 
         for jump in self.jumpstuff:
-            if jump['jumptime'] > planetst:
-                plt.axhspan((jump['jumptime']-planetst)/cgs.yr, 
-                            (jump['jumptime']+jump['jumpT']-planetst)/cgs.yr, alpha = 0.3)
+            plt.axhspan((jump['jumptime'])/cgs.yr, 
+                        (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3)
         for i,loc in enumerate(loclist):
-            plt.plot(loc[stidx:]/cgs.RJ, (time[stidx:])/cgs.yr)
             plt.scatter(loc[stidx:]/cgs.RJ, (time[stidx:])/cgs.yr, s = dotssize[i][stidx:], c =self.planetsfcompL[stidx:,i][:,1], cmap ='Spectral', alpha =1 )
 
+        for i,loc in enumerate(loclist):
+            plt.plot(loc/cgs.RJ, (time)/cgs.yr, color='black', alpha=0.5,linewidth=0.5)
 
             #plt.axhline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'green', linewidth = 0.2)
-        plt.colorbar(label = "Water Fraction [%]")
-        plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 0.5, label = 'inner edge')
+        plt.colorbar(label = "Water Fraction")
+        plt.axvline(dp.rinn/cgs.RJ, color = 'gray', linewidth = 1, label = 'inner edge')
         plt.plot(self.icelineslocL[stidx:,0]/cgs.RJ, (time[stidx:])/cgs.yr, color = 'blue', linestyle = 'dashed',label = 'Iceline')
         plt.legend()
-        plt.xticks([5.89,10,14.8,15,20,50],['5.89','10','14.8','','20','50'])
+        plt.xticks([5.89,10,20,50],['5.89','10','20','50'])
         plt.savefig('./plot/planet_evolution.jpg',dpi=600)
         plt.close()
    
@@ -659,7 +681,7 @@ class Data(object):
         plt.plot(np.array(self.timeL)/cgs.yr, self.icelineslocL.T[0]/cgs.RJ, 'x-')
         plt.savefig('./plot/iceline.jpg')
         plt.close()
-        import pdb;pdb.set_trace()
+
     def plot_planet_massloc(self):
         plt.figure()
         plt.title('PLanet mass-location')
@@ -788,28 +810,29 @@ class Data(object):
         plt.xscale('log')
         plt.yscale('log')
         plt.ylim(1e-6, 1)
-        plt.xlabel('Location [$R_J$]')
+        plt.xlabel('Distance from the planet [$R_J$]')
         plt.ylabel('Stokes number')
-        for time in timeL[2:]:
+        color = ['blue', 'red', 'green']
+        labels=[r'$4\times 10^6  yrs$',r'$5\times 10^6  yrs$',r'$6\times 10^6  yrs$']
+        for i,time in enumerate(timeL):
             tidx = np.argmin(np.abs(self.timeL-time))
             ti = self.timeL[tidx]
             
             St = self.StD[ti]
             loc = self.radD[ti]
             
-            q = -dp.beta_T
-            loc_new = np.linspace(1*cgs.RJ,51*cgs.RJ, 1000)
-            p = -dp.beta_sigG(loc_new)
-            sigG, T = self.gas.get_key_disk_properties(loc_new, time)[0:2]
-            St_new = 0.23*(2/(3+2*p+q))**(4/5)*(10/(18-39*q))**(2/5)*(dp.ratio/0.003)**(2/5)*(dp.alpha/1e-4)**(1/5)*(T/160)**(-2/5)*(dp.Mcp_t(time)/cgs.MJ)**(2/5)*(loc_new/10/cgs.RJ)**(-2/5)
-            import pdb;pdb.set_trace()
+            #q = -dp.beta_T
+            #loc_new = np.linspace(1*cgs.RJ,51*cgs.RJ, 1000)
+            #p = -dp.beta_sigG(loc_new)
+            #sigG, T = self.gas.get_key_disk_properties(loc_new, time)[0:2]
+            #St_new = 0.23*(2/(3+2*p+q))**(4/5)*(10/(18-39*q))**(2/5)*(dp.ratio/0.003)**(2/5)*(dp.alpha/1e-4)**(1/5)*(T/160)**(-2/5)*(dp.Mcp_t(time)/cgs.MJ)**(2/5)*(loc_new/10/cgs.RJ)**(-2/5)
             
-            plt.plot(loc/cgs.rJup, St, 'x-',label = "{:.2f}".format(ti/cgs.yr))
-            plt.plot(loc_new/cgs.rJup, St_new, '--',label = "{:.2f}_powerlaw".format(ti/cgs.yr))
-            for i,loc in enumerate(self.planetsloc[ti]): 
-                plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray')
+            plt.plot(loc/cgs.rJup, St, '.-',label = "{:.2f}".format(ti/cgs.yr), color =color[i])
+            #plt.plot(loc_new/cgs.rJup, St_new, '--',label = "{:.2f}_powerlaw".format(ti/cgs.yr))
+            #for i,loc in enumerate(self.planetsloc[ti]): 
+            #    plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray')
             
-        plt.axvline(self.icelineslocL[-1]/cgs.RJ, linestyle = 'dotted', color = 'gray', label = 'water iceline')
+            plt.axvline(self.icelinesloc[ti][0]/cgs.RJ, linestyle = 'dotted', color =color[i])
         plt.legend()
         plt.savefig('./plot/St.jpg')
         plt.close()
@@ -827,11 +850,12 @@ class Data(object):
             loc = self.radD[ti]
             
             plt.plot(loc/cgs.rJup, vr, label = "{:.2f}".format(time/cgs.yr))
-            plt.axhline(pars.vc['icy'], label = 'Fragmentation velocity [icy]')
-            plt.axhline(pars.vc['silicates'], label = 'Fragmentation velocity [sil]')
+        #plt.axhline(pars.vc['icy'], label = 'Fragmentation velocity [icy]')
+        plt.axhline(pars.vc['silicates'], label = 'Fragmentation velocity [sil]')
             
-            plt.legend()
-            plt.savefig('./plot/v_r.jpg')
+        plt.legend()
+        plt.savefig('./plot/v_r.jpg')
+        plt.close()
 
 
     def plot_jumpT(self):
@@ -839,11 +863,21 @@ class Data(object):
         plt.title('Jump time')
         plt.xlabel('System time [yr]')
         plt.ylabel('Jump time [yr]')
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.xlim(7e5,1e7)
+        for jump in self.jumpstuff:
+            #plt.axvspan((jump['jumptime'])/cgs.yr, 
+            #           (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3,color = 'gray')
+            plt.axvline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'black', alpha =0.5, linewidth = 0.3, linestyle='dotted')
+        for i, st in enumerate([0.8e6, 1.1e6, 1.4e6, 1.7e6]):
+            plt.axvline(st, color='black', linestyle='dashed', label = 'Seed'+str(i+1), linewidth=2)
         jumpTlist = [f['jumpT']/cgs.yr for f in self.jumpstuff]
         timelist = [f['jumptime']/cgs.yr for f in self.jumpstuff]
-        plt.plot(timelist, jumpTlist)
-        plt.scatter(timelist, jumpTlist)
-        plt.savefig('./plot/jumpT variation')
+        plt.plot(timelist, jumpTlist, '.-',label='jump time', color = 'blue')
+        #plt.scatter(timelist, jumpTlist)
+        plt.legend()
+        plt.savefig('./plot/jumpT.jpg')
         plt.close()
 
 def make_animation(path='pebbles&planets'):

@@ -9,7 +9,7 @@ dsystempars = {'timeini': 0.0,
                'rhoPlanet': 1.9}
 
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
-                'nini':600,
+                'nini':700,
                 'initrule':'equallogspace'}  #initial number of particles
 
 #[24.01.08]LZX: don't know whether this is a good idea
@@ -25,11 +25,24 @@ dintegratorpars = {'name':'RK5', 'timestepn':3}
 jumpfracD={'general': 0.2,
           'PlanetsRes': 0.5,}
 
-dgasgrid = {'rinn':5.89*cgs.RJ,'rout':51*cgs.RJ}
-
+dgasgrid = {'rinn':5.89*cgs.RJ,'rout':100*cgs.RJ}
 gasmodel = 'prescribed'
 
-tmax = 15e6 *cgs.yr
+dgasprop = {'alpha': 1e-4, 
+            'frac': 0.2/1.5, # the accretion mass with unit: M_J/Myr
+            'dgratio': 0.002,
+            'rgg': 1.7e-7,
+            'Mcp0':0.4*cgs.MJ,
+            'meanmol': 2.34,
+            'sigmol':2e-15,
+            'tdep': 2.8e6*cgs.yr,
+            'tgap': 1.e6*cgs.yr
+            }
+
+
+alpha = 1e-4
+
+tmax = 20e6 *cgs.yr
 
 #critical velocity for fragmentation
 vc = {'icy': 5.e3,

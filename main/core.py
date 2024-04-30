@@ -233,8 +233,6 @@ class System(object):
             inxt = (self.dres['prat']<prat).argmax()
             planet.inxt = inxt  #next upcoming res.
             planet.resS = -1    #-1: not yet in resonance
-            if inxt >=1:
-                import pdb;pdb.set_trace()
 
         #there's an exterior planet
         if iloc<self.nplanet-1:
@@ -244,9 +242,6 @@ class System(object):
             planetE.inxt = inxt  #next upcoming res.
             planetE.resS = -1    #-1: not yet in resonance
 
-
-            if inxt >=1:
-                import pdb;pdb.set_trace()
 
 
     def init_particles(self, dparticleprops={}):
@@ -488,6 +483,11 @@ class System(object):
         self.mcp = dp.Mcp_t(self.time)
         self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
 
+        # get the property list to remove/add particles and select_single
+        self.particles.propL = [attr for attr in dir(self.particles) if not attr.startswith('__') and isinstance(getattr(self.particles, attr), list) or isinstance(getattr(self.particles, attr), np.ndarray)]   
+        self.particles.propSol = [attr for attr in dir(self.particles) if not attr.startswith('__') and isinstance(getattr(self.particles, attr), float)]
+
+
     def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, jumpfracD={},**kwargs):
         """
         chooses a timestep
@@ -515,14 +515,11 @@ class System(object):
 
         #TBD: add central mass timescale to mintimeL
             #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
-            #central mass growth timescale
-            #Mcpnew=dp.Mcp_t(self.time)  
-        #Mcpold=dp.Mcp0
-        #McTscale = np.inf
-        #if self.time > 0:
-        #    McTscale = Mcpnew/ abs(Mcpold - Mcpnew) *self.deltaT
-        #    Mcpold = Mcpnew
-        #    mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
+        #central mass growth timescale
+        McTscale = np.inf
+        if self.time > 0:
+            McTscale = self.mcp/ abs(self.mcp - dp.Mcp0) *self.time
+            mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
 
 
@@ -687,6 +684,8 @@ class System(object):
                     else:
                         break
                     Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
+
+
                 planet.relp_mass = relp
                 #if Npts>=10 and self.ntime>1000:
                 #    import pdb; pdb.set_trace()
@@ -890,7 +889,8 @@ class System(object):
 
             self.doJump = con1 & con2 &con3
         else:
-            self.doJump = con0 & con1 & con2
+            con3 = self.time>3000*cgs.yr
+            self.doJump = con0 & con1 & con2 & con3
 
         
         #print([con0,con1,self.mintimeL[1:], self.time/cgs.yr]) 
@@ -1357,21 +1357,19 @@ class Superparticles(object):
 
         kwargs = {}
         # select the properties that are list or numpy.ndarray
-        propL = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), list) or isinstance(getattr(self, attr), np.ndarray)]   
+        #propL = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), list) or isinstance(getattr(self, attr), np.ndarray)]   
         # propL = ['locL','massL','mtotL','fcomp','St','eta'] maybe just select properties artificially is better
         # select the properties that are float
-        propSol = [attr for attr in dir(self) if not attr.startswith('__') and isinstance(getattr(self, attr), float)]
 
-        for prop in propL:
-            if len(getattr(self,prop)) > len(self.rhocompos):
+        for prop in self.propL:
+            if len(getattr(self,prop)) == self.num:
                 try:
                     kwargs[prop] = getattr(self,prop)[ix]
                 except:
                     import pdb;pdb.set_trace()
         
-        for prop in propSol:
+        for prop in self.propSol:
             kwargs[prop] = getattr(self,prop)
-        
 
         spi = SingleSP (**kwargs)
         return spi
@@ -1500,20 +1498,27 @@ class Superparticles(object):
 
     
     def remove_particles(self,remove_idx):
-        #[24.04.21]cwo: this doesn't look elegant at all!!
-        self.mtotL =  np.delete(self.mtotL, remove_idx) 
-        self.locL = np.delete(self.locL, remove_idx)
-        self.massL = np.delete(self.massL, remove_idx)   
-        self.fcomp = np.delete(self.fcomp, remove_idx, axis=0) #[24.01.01] added
-        #'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'Hg':disk.Hg
-        self.Rd = np.delete(self.Rd, remove_idx)
-        self.St = np.delete(self.St, remove_idx)
-        self.v_r = np.delete(self.v_r, remove_idx)
-        self.Hg = np.delete(self.Hg, remove_idx)
 
-        #[24.04.21]cwo: here I get an error and am too tired now...
-        self.eta = np.delete(self.eta, remove_idx)
-        self.mg = np.delete(self.mg, remove_idx)
+        for prop in self.propL:
+            pL = getattr(self, prop)
+            if len(pL)==self.num:
+                pL = np.delete (pL , remove_idx, axis=0)
+                setattr(self, prop, pL)
+        if False:
+            #[24.04.21]cwo: this doesn't look elegant at all!!
+            self.mtotL =  np.delete(self.mtotL, remove_idx) 
+            self.locL = np.delete(self.locL, remove_idx)
+            self.massL = np.delete(self.massL, remove_idx)   
+            self.fcomp = np.delete(self.fcomp, remove_idx, axis=0) #[24.01.01] added
+            #'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'Hg':disk.Hg
+            self.Rd = np.delete(self.Rd, remove_idx)
+            self.St = np.delete(self.St, remove_idx)
+            self.v_r = np.delete(self.v_r, remove_idx)
+            self.Hg = np.delete(self.Hg, remove_idx)
+
+            #[24.04.21]cwo: here I get an error and am too tired now...
+            self.eta = np.delete(self.eta, remove_idx)
+            self.mg = np.delete(self.mg, remove_idx)
         self.num -= len(remove_idx)
 
 

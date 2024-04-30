@@ -42,15 +42,17 @@ import pdb;pdb.set_trace()
 plt.figure()
 plt.yscale('log')
 plt.xscale('log')
+plt.xlabel('Satellite mass [g]')
+plt.ylabel('Accretion effieiency [%]')
 #yticks_values = [0.0001, 0.01, 0.02, 0.03, 0.04, 0.05]
 #yticks_labels = ['0.0001', '', '', '', '', '0.05']
 #plt.yticks(yticks_values, yticks_labels)
 
 xticks_values = [1e23, 1e24, 1e25, 1e26]
-xticks_labels = ['1e23', '1e24', '1e25', '1e26']
-plt.xticks(xticks_values, xticks_labels)
+xticks_labels = ['$1$', '1e24', '1e25', '1e26']
+#plt.xticks(xticks_values, xticks_labels)
 for i in range(planet_num):
-    plt.plot(massL[i], peffL[i], label=str(i))
+    plt.plot(massL[i], np.array(peffL[i])*100, label=str(i))
 plt.legend()
 plt.savefig('./plot/peff.jpg')
 

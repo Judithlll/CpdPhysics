@@ -5,19 +5,19 @@ import ode
 from scipy.integrate import quad
 import physics
 
-alpha = 1e-4
-rinn = 5.89*cgs.RJ  #the location of Io
-rout = 51*cgs.RJ
-frac=0.2/1.4  # the accretion mass with unit: M_J/Myr
-ratio = 0.0026 
+alpha = pars.dgasprop['alpha']
+rinn = pars.dgasgrid['rinn']#the location of Io
+rout = pars.dgasgrid['rout']
+frac = pars.dgasprop['frac']
+ratio = pars.dgasprop['dgratio']
 #Mcp=0.4*cgs.MJ
-sigmol=2e-15 #
-rgg=1.7e-7
-Mcp0=0.4*cgs.MJ
-meanmol = 2.34
+sigmol= pars.dgasprop['sigmol']#
+rgg= pars.dgasprop['rgg']
+Mcp0= pars.dgasprop['Mcp0']
+meanmol = pars.dgasprop['meanmol']
 
-tdep= 3e6*cgs.yr2s  #depletion tiescale of gas (constant: 3e6 yr)
-tgap= 1e6*cgs.yr2s  #time when the gap was built
+tdep= pars.dgasprop['tdep']  #depletion tiescale of gas (constant: 3e6 yr)
+tgap= pars.dgasprop['tgap']  #time when the gap was built
 
 def Mcp_t(t):
     """

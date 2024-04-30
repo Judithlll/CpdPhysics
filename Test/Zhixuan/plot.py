@@ -18,10 +18,14 @@ else:
 print('[plot]: data.pickle has been loaded')
 system = fileio.load_class('./pickles/','system.pickle')
 
+data[0].plot_growth_timescale()
+data[0].plot_jumpT()
 data[0].plot_iceline()
+data[0].plot_pebble_Sigma(tL =np.array(np.array([1e6,5e6,6e6,10e6,15e6])*cgs.yr))
 data[0].plot_planet_evolution()
-data[0].plot_St(tL =np.array(np.array([1e6,5e6,6e6,10e6,15e6])*cgs.yr))
-data[0].plot_disk(np.array([0.,3.e6, 10.e6,30.e6])*cgs.yr)
+data[0].plot_St(tL =np.array(np.array([1e6,5e6,6e6])*cgs.yr))
+data[0].plot_vr(tL =np.array(np.array([5e6,6e6,10e6])*cgs.yr))
+#data[0].plot_disk(np.array([0.,3.e6, 10.e6,30.e6])*cgs.yr)
 import pdb;pdb.set_trace()
 #plot St in different dust-to-gas ratio 
 #plt.figure(figsize=(10,7))
