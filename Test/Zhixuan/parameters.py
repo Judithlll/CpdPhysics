@@ -35,14 +35,11 @@ dgasprop = {'alpha': 1e-4,
             'Mcp0':0.4*cgs.MJ,
             'meanmol': 2.34,
             'sigmol':2e-15,
-            'tdep': 2.8e6*cgs.yr,
+            'tdep': 2.9e6*cgs.yr,
             'tgap': 1.e6*cgs.yr
             }
 
-
-alpha = 1e-4
-
-tmax = 20e6 *cgs.yr
+tmax = 12018782.555918233*cgs.yr
 
 #critical velocity for fragmentation
 vc = {'icy': 5.e3,

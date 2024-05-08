@@ -173,7 +173,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1.e6*cgs.yr, 1.4e6*cgs.yr, 1.50e6*cgs.yr, 1.6e6*cgs.yr] 
+    timeL = [1.e6*cgs.yr, 1.5e6*cgs.yr, 1.7e6*cgs.yr, 1.85e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
@@ -510,13 +510,13 @@ class Data(object):
         if type(time) == float or type(time) == np.float64:
             Sigmag,Td=self.gas.get_key_disk_properties(r_Span,time)[0:2]
             plt.subplot(121)
-            plt.title('Surface dencity $[g/cm^2]$', )
+            plt.ylabel('Surface density $[g/cm^2]$', )
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
             plt.yscale('log')
             plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time/cgs.yr))
             plt.subplot(122)
-            plt.title('Midplane Temperature $[K]$')
+            plt.ylabel('Midplane Temperature $[K]$')
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
             plt.yscale('log')
@@ -525,23 +525,24 @@ class Data(object):
             plt.savefig('./plot/diskproperties.jpg')
         else:
             plt.subplot(121)
-            plt.title('Surface dencity $[g/cm^2]$')
+            plt.ylabel('Surface density $[g/cm^2]$')
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
             plt.yscale('log')
             
             plt.subplot(122)
-            plt.title('Midplane Temperature $[K]$')
+            plt.ylabel('Midplane Temperature $[K]$')
             plt.xlabel('Location [$R_J$]')
             plt.xscale('log')
             plt.yscale('log')
-
+            
+            labels=[r'$0yr$', r'$3\times 10^6yr$', r'$1\times 10^7yr$', r'$3\times 10^7yr$']
             for i in range(len(time)):
                 Sigmag, Td = self.gas.get_key_disk_properties(r_Span, time[i])[0:2]
                 plt.subplot(121)
-                plt.plot(r_Span/cgs.RJ,Sigmag,label=str(time[i]/cgs.yr))
+                plt.plot(r_Span/cgs.RJ,Sigmag,label=labels[i])
                 plt.subplot(122)
-                plt.plot(r_Span/cgs.RJ,Td,label=str(time[i]/cgs.yr))
+                plt.plot(r_Span/cgs.RJ,Td,label=labels[i])
 
             plt.subplot(122)
             plt.axhline(160, label='iceline', color = 'skyblue', linestyle = 'dashed')
@@ -565,8 +566,12 @@ class Data(object):
         plt.ylabel('Growth timescale [yr]')
         plt.yscale('log')
         plt.xscale('log')
+        idx=[]
+        for j in self.jumpstuff:
+            idx.append(j['njumptime'])
+
         for i, dmdtL in enumerate(self.planetsdmdtL.T):
-            plt.plot(self.planetsmassL.T[i], self.planetsmassL.T[i]/dmdtL/cgs.yr, label = 'Satellite'+str(i+1))
+            plt.plot(self.planetsmassL.T[i][idx], self.planetsmassL.T[i][idx]/dmdtL[idx]/cgs.yr, label = 'Satellite'+str(i+1))
 
         plt.legend()
         plt.savefig('./plot/tgrowth.jpg')
@@ -676,6 +681,7 @@ class Data(object):
         plt.yscale('log')
         plt.ylabel('iceline location')
         plt.xlabel('time')
+        plt.xlim(1e3,20e6)
         plt.yticks([14.8,15],['14.8','15'])
         plt.axhline(15.)
         plt.plot(np.array(self.timeL)/cgs.yr, self.icelineslocL.T[0]/cgs.RJ, 'x-')
@@ -860,7 +866,6 @@ class Data(object):
 
     def plot_jumpT(self):
         plt.figure()
-        plt.title('Jump time')
         plt.xlabel('System time [yr]')
         plt.ylabel('Jump time [yr]')
         plt.yscale('log')

@@ -4,6 +4,7 @@ import cgs
 import ode 
 from scipy.integrate import quad
 import physics
+import parameters as pars
 
 alpha = pars.dgasprop['alpha']
 rinn = pars.dgasgrid['rinn']#the location of Io

@@ -52,7 +52,6 @@ xticks_values = [1e23, 1e24, 1e25, 1e26]
 xticks_labels = ['$1$', '1e24', '1e25', '1e26']
 #plt.xticks(xticks_values, xticks_labels)
 for i in range(planet_num):
-    plt.plot(massL[i], np.array(peffL[i])*100, label=str(i))
-plt.legend()
+    plt.plot(massL[i], np.array(peffL[i])*100)
 plt.savefig('./plot/peff.jpg')
 
