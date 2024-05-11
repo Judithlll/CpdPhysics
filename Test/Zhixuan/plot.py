@@ -18,6 +18,8 @@ else:
 print('[plot]: data.pickle has been loaded')
 system = fileio.load_class('./pickles/','system.pickle')
 
+data[0].plot_peff_log()
+import pdb;pdb.set_trace()
 data[0].plot_growth_timescale()
 data[0].plot_jumpT()
 data[0].plot_iceline()
@@ -27,7 +29,6 @@ data[0].plot_St(tL =np.array(np.array([1e6,5e6,6e6])*cgs.yr))
 data[0].plot_vr(tL =np.array(np.array([5e6,6e6,10e6])*cgs.yr))
 data[0].plot_disk(np.array([0,3e6,10e6,30e6])*cgs.yr)
 
-import pdb;pdb.set_trace()
 plt.figure()
 plt.xscale('log')
 plt.yscale('log')

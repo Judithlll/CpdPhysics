@@ -1553,6 +1553,9 @@ class Superparticles(object):
         #self.Y2d[-1]=mtot
 
         return
+    #TBD: split the inner particles to increase the resolution
+    def split_particles(self):
+        pass
 
 
 class PLANET ():
