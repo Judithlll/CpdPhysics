@@ -117,8 +117,6 @@ while doEvo:
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
     
-    #[24.01.30]cwo: dont append other arguments to "do_stuff"
-    #so, find a way to append "djump" to system
 
     #[24.02.01]cwo: added stopping condition // we could add more
     final = system.time>=pars.tmax
@@ -141,8 +139,10 @@ while doEvo:
             import pdb;pdb.set_trace()
 
 
+#[24.05.12]cwo: this seems rather specific. Please, move to userfun. 
+#               I put a false statement here
 #TBD: move these to the userfun dostuff
-if doEvo:
+if doEvo and False:
     data = userfun.data
     data.get_plot_list(doParticles = False)
     #store system components as pickles

@@ -136,7 +136,9 @@ class System(object):
         jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
     
         line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20)) 
-        print (line_evol)
+
+        #[24.05.12]cwo:please, don't print to screen here..
+        #print (line_evol)
         line_plan = '{:10.2f}'.format(self.time/cgs.yr)+''.join('{:10d} {:20.2f} {:20.2f} {:20.2e} {:10.5f}'.format(self.planetL[i].number, self.planetL[i].max_jumpT, self.planetL[i].loc/cgs.RJ,self.planetL[i].mass, self.planetL[i].acc_rate) for i in range(self.nplanet))
         #if self.nplanet >0:
         #    import pdb;pdb.set_trace()
@@ -244,7 +246,7 @@ class System(object):
 
 
 
-    def init_particles(self, dparticleprops={}):
+    def init_particles (self, dparticleprops={}):
         """
         because we need to consider iceline, so separatly 
         initiallize the particles, for now just water iceline is considered  
@@ -516,8 +518,12 @@ class System(object):
         #TBD: add central mass timescale to mintimeL
             #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
         #central mass growth timescale
+
+        #[24.05.12]cwo: what is the meaning of "dp.Mcp0". I don't understand it.
+        #               I think you need to instead to get "mcp" at previous timestep 
+        #for the moment I've commented it out b/c it breaks my code
         McTscale = np.inf
-        if self.time > 0:
+        if self.time > 0 and False:
             McTscale = self.mcp/ abs(self.mcp - dp.Mcp0) *self.time
             mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
@@ -526,7 +532,8 @@ class System(object):
         #calculate mass flow change Timescale
         if self.oldstate is not None:   
             #Mass influx timescale
-            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / (1e-100 +abs(self.oldstate.dotMg - self.dotMg)) *self.deltaT
+            #[24.05.12]cwo: I removed the "1e-100" from the denominator b/c when dotMg==0 this timescale should become infinite
+            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / (abs(self.oldstate.dotMg - self.dotMg)) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': mdotgTscale})
             #timescale for the planets 
             # (including migration and mass growth)
@@ -805,13 +812,18 @@ class System(object):
 
 
 
-    def query_system_jump(self):
+    def query_system_jump (self):
         """
         investigates w/r we can jump and by how much
         ...
 
         returns True/False, {jump properties}
         """
+
+        #[24.05.12]cwo:jump should be an option (I thought it was so already...)
+        if pars.doJump==False:
+            return {'jumpT':False}
+
         Tscale_ratio = []
         for t in self.minTimes.tminarr[1:]:
             Tscale_ratio.append( t/self.minTimes.particles)
@@ -895,7 +907,6 @@ class System(object):
         
         #print([con0,con1,self.mintimeL[1:], self.time/cgs.yr]) 
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
-
 
         return djump
 
@@ -1504,6 +1515,8 @@ class Superparticles(object):
             if len(pL)==self.num:
                 pL = np.delete (pL , remove_idx, axis=0)
                 setattr(self, prop, pL)
+
+        #[24.05.12]cwo: is this no longer necessary? Then remove, please
         if False:
             #[24.04.21]cwo: this doesn't look elegant at all!!
             self.mtotL =  np.delete(self.mtotL, remove_idx) 
