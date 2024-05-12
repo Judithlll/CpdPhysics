@@ -60,6 +60,19 @@ class Mintimes (object):
         self.tminarr = np.array([ddum['tmin'] for ddum in mintimedict])
 
 
+class Messages (object):
+    """
+    this class collects messages (experimental)
+    """
+    def __init__ (self):
+        self.msgL = [] #the message list
+
+    def add_message (self, ntime, msg):
+        dmsg = {'ntime':ntime, 'msg': msg}
+        self.msgL.append(dmsg)
+
+
+
 class System(object):
 
     """
@@ -117,6 +130,17 @@ class System(object):
         #TBD:-later: make this more general
         #   like: r_crit={'cavity':...}
         self.rinn = self.get_rinn()
+
+        #[24.05.12]cwo: create a messaging class
+        self.messages = Messages ()
+
+
+    def add_message (self, message):
+        """
+        just passes the message on...
+        """
+        self.messages.add_message (self.ntime, message)
+
 
     #ZL-TBD: put this stuff in fileio.py
     #[24.04.21]CWO: I've again removed the logdir. It should ALWAYS be local!       
@@ -427,7 +451,8 @@ class System(object):
         if 'remove' in self.daction.keys():
             #remove the particles from Y2d!
             
-            self.particles.remove_particles(self.daction['remove'])
+            nrem = self.particles.remove_particles(self.daction['remove'])
+            self.add_message(str(nrem)+' particles lost to inner edge crossing')
 
 
         if 'add' in self.daction.keys():
@@ -1508,7 +1533,7 @@ class Superparticles(object):
         return Yt
 
     
-    def remove_particles(self,remove_idx):
+    def remove_particles (self,remove_idx):
 
         for prop in self.propL:
             pL = getattr(self, prop)
@@ -1532,7 +1557,11 @@ class Superparticles(object):
             #[24.04.21]cwo: here I get an error and am too tired now...
             self.eta = np.delete(self.eta, remove_idx)
             self.mg = np.delete(self.mg, remove_idx)
-        self.num -= len(remove_idx)
+
+        nrem = len(remove_idx)
+        self.num -= nrem
+
+        return nrem
 
 
     def add_particles (self,Nadd):
