@@ -142,12 +142,12 @@ while doEvo:
 #[24.05.12]cwo: this seems rather specific. Please, move to userfun. 
 #               I put a false statement here
 #TBD: move these to the userfun dostuff
-if doEvo and False:
-    data = userfun.data
-    data.get_plot_list(doParticles = False)
-    #store system components as pickles
-    fileio.store_class(system, 'system')
-    fileio.store_class(data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
+#if doEvo and False:
+#    data = userfun.data
+#    data.get_plot_list(doParticles = False)
+#    #store system components as pickles
+#    fileio.store_class(system, 'system')
+#    fileio.store_class(data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
 
 print('[runcpd]:finished')
 

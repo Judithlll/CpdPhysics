@@ -162,7 +162,7 @@ class System(object):
         line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20)) 
 
         #[24.05.12]cwo:please, don't print to screen here..
-        #print (line_evol)
+        print (line_evol)
         line_plan = '{:10.2f}'.format(self.time/cgs.yr)+''.join('{:10d} {:20.2f} {:20.2f} {:20.2e} {:10.5f}'.format(self.planetL[i].number, self.planetL[i].max_jumpT, self.planetL[i].loc/cgs.RJ,self.planetL[i].mass, self.planetL[i].acc_rate) for i in range(self.nplanet))
         #if self.nplanet >0:
         #    import pdb;pdb.set_trace()
@@ -337,7 +337,7 @@ class System(object):
         """
         copies present state to "old" 
         """
-        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg', 'deltaT']
+        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg', 'deltaT','mcp']
         self.oldstate = COPY (self, copy_list)
 
     def remove_planet(self):
@@ -513,6 +513,10 @@ class System(object):
         # get the property list to remove/add particles and select_single
         self.particles.propL = [attr for attr in dir(self.particles) if not attr.startswith('__') and isinstance(getattr(self.particles, attr), list) or isinstance(getattr(self.particles, attr), np.ndarray)]   
         self.particles.propSol = [attr for attr in dir(self.particles) if not attr.startswith('__') and isinstance(getattr(self.particles, attr), float)]
+        
+        # split and merge particles here
+        # don't do this now! super complex
+        #self.particles.split_particles(self.rinn,dp.rout)
 
 
     def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, jumpfracD={},**kwargs):
@@ -544,12 +548,9 @@ class System(object):
             #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
         #central mass growth timescale
 
-        #[24.05.12]cwo: what is the meaning of "dp.Mcp0". I don't understand it.
-        #               I think you need to instead to get "mcp" at previous timestep 
-        #for the moment I've commented it out b/c it breaks my code
         McTscale = np.inf
-        if self.time > 0 and False:
-            McTscale = self.mcp/ abs(self.mcp - dp.Mcp0) *self.time
+        if self.time > 0:
+            McTscale = self.mcp/ np.abs(self.mcp - self.oldstate.mcp) *self.deltaT
             mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
 
@@ -1541,23 +1542,6 @@ class Superparticles(object):
                 pL = np.delete (pL , remove_idx, axis=0)
                 setattr(self, prop, pL)
 
-        #[24.05.12]cwo: is this no longer necessary? Then remove, please
-        if False:
-            #[24.04.21]cwo: this doesn't look elegant at all!!
-            self.mtotL =  np.delete(self.mtotL, remove_idx) 
-            self.locL = np.delete(self.locL, remove_idx)
-            self.massL = np.delete(self.massL, remove_idx)   
-            self.fcomp = np.delete(self.fcomp, remove_idx, axis=0) #[24.01.01] added
-            #'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':mcp, 'Hg':disk.Hg
-            self.Rd = np.delete(self.Rd, remove_idx)
-            self.St = np.delete(self.St, remove_idx)
-            self.v_r = np.delete(self.v_r, remove_idx)
-            self.Hg = np.delete(self.Hg, remove_idx)
-
-            #[24.04.21]cwo: here I get an error and am too tired now...
-            self.eta = np.delete(self.eta, remove_idx)
-            self.mg = np.delete(self.mg, remove_idx)
-
         nrem = len(remove_idx)
         self.num -= nrem
 
@@ -1596,8 +1580,74 @@ class Superparticles(object):
 
         return
     #TBD: split the inner particles to increase the resolution
-    def split_particles(self):
-        pass
+    def split_particles(self,rinn,rout):
+        """
+        split particles when the resolution is too small 
+
+        Super complex!!!
+        mainly the problem exist in the advance_..., split will make the 
+        decision of particles index really hard.
+        """
+        split_locL = [rinn]+[np.sqrt(self.locL[i]*self.locL[i+1]) for i in range(self.num-1)]+[rout]
+        occ_spaceL = np.abs(np.diff(split_locL))
+        
+        #The critical space fraction one particle can occupy
+        crit_frac = 1/100 
+        crit_space = crit_frac*(rout-rinn)
+        
+        for i,occ_space in enumerate(occ_spaceL):
+            #only do the split once, if the occpied space is still too large , then next step 
+            #can continue the split
+            if occ_space > crit_space:
+                #if occpied space larger than critical space, then do the split.
+
+                #plt.plot(self.locL,'x-')
+                #for l in split_loc:
+                #    plt.axhline(l, linestyle='dashed',color='gray',linewidth=1)
+                #print('some particles needed to be splitted')
+                
+                #the princeple: keep the surface density the same 
+                #for simplicity, we say the mass of newparticles comes from the outer particle
+                if i==0:
+                    #the location of original particle 
+                    loc_old_outer = self.locL[i]
+                    #the location of new particle 
+                    loc_new = split_locL[i]
+                    
+
+                    split_loc_new = np.sqrt(loc_old_outer*loc_new)
+
+                    occ_space_old = split_locL[i+1]-split_loc_new
+                    #occ_space_new = split_loc_new - rinn 
+
+                    mtot_old = occ_space_old/occ_space *self.mtotL[i]
+                    mtot_new = self.mtotL[i]-mtot_old 
+
+                    #now add the new particle to the lists
+                    for prop in self.propL:
+                        lis = getattr(self,prop)
+                        if prop == 'mtotL':
+                            lis[i] = mtot_old 
+                            lis = np.append(mtot_new, lis)
+                            setattr(self, prop, lis)
+
+                        elif prop == 'locL':
+                            lis = np.append(loc_new, lis)
+                            setattr(self, prop, lis)
+
+                        elif len(lis) ==self.num:
+                            setattr(self, prop, np.append(lis[0],lis))
+                    self.num +=1 
+
+                else:
+                    pass 
+                    #loc_old_outer = self.locL[i]
+                    #loc_old_inner = self.locL[i-1]
+                    #loc_new = split_locL[i]
+
+                    #split_loc_new = np.sqrt(loc_old*loc_new)
+
+                             
 
 
 class PLANET ():
