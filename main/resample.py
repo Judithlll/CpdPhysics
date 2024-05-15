@@ -2,7 +2,7 @@ import numpy as np
 import parameters as pars
 
 
-def re_sample_splitmerge (sim, spN, fdelS, fdelM, fdelX, nsampleX, fdelDM):
+def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.):
     """
     [22.04.10]: mmid picked through midpoints
     [22.07.28]: also added the "simple merge" (splitsimplemerge) algorithm
@@ -21,8 +21,8 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM, fdelX, nsampleX, fdelDM):
     sp pos:         0   1   2   3   ...
     midpoints:        0   1   2
     """
-    loc = spN.loc
-    marr = spN.msup
+    loc = spN.locL 
+    marr = spN.mtotL
 
     #determine no. particles involved in merging on each side
     if pars.resampleMode=='splitsimplemerge':

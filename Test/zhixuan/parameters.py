@@ -45,6 +45,7 @@ tmax = 12018782.555918233*cgs.yr
 vc = {'icy': 5.e3,
       'silicates': 5.e2}
 
+resampleMode = 'splitmerge'
 doJump = True
 doPlanets = True
 doIcelines = True
