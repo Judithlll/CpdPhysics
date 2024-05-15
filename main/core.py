@@ -1636,7 +1636,7 @@ class Superparticles(object):
                             setattr(self, prop, lis)
 
                         elif len(lis) ==self.num:
-                            setattr(self, prop, np.append(lis[0],lis))
+                            setattr(self, prop, np.append(lis[0],lis,1))
                     self.num +=1 
 
                 else:
