@@ -32,7 +32,7 @@ def user_add_fun ():
     """
     a list of functions to be added
     """
-    return dot_Mg, beta_sigG, beta_P, dot_Md
+    return [dot_Mg, beta_sigG, beta_P, dot_Md]
 
 
 def user_add_var ():

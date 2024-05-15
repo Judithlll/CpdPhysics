@@ -1,5 +1,6 @@
 import numpy as np
 import parameters as pars
+import sys
 
 
 def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.):
@@ -42,7 +43,9 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     imS = ixS -1
 
     #logarithmic difference
-    xdel = np.diff(np.log(loc))
+    #Problem! 
+    #The lcoation of particles may not be in order
+    xdel = np.abs(np.diff(np.log(loc)))
 
     #take a finer sampling interval arround special locations
     fdelXarr = np.ones_like(xdel)
@@ -86,7 +89,8 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 
     #[22.10.25] move this one up...
     #only set up a new structure when splitting or merging has actually  happend
-    if len(imL)>0 or len(isL)>0:
+    #if len(imL)>0 or len(isL)>0:
+    if len(isL)>0:
 
         #the locations where new particles are made (geometric mean)
         loc_split  = np.sqrt(loc[isL]*loc[isL+1])
@@ -111,15 +115,15 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         frem[isL]   -= fnewl 
         frem[isL+1] -= fnewu
 
-        msup_split = fnewl*spN.msup[isL]   +fnewu*spN.msup[isL+1]
-        mphy_split = (fnewl*spN.mphy[isL]  +fnewu*spN.mphy[isL+1]) /(fnewl+fnewu)   #weighed
+        msup_split = fnewl*spN.mtotL[isL]   +fnewu*spN.mtotL[isL+1]
+        mphy_split = (fnewl*spN.massL[isL]  +fnewu*spN.massL[isL+1]) /(fnewl+fnewu)   #weighed
 
         #[22.03.29]changed since order has changed
         fcom_split = fnewl[:,np.newaxis]*spN.fcomp[isL] +fnewu[:,np.newaxis]*spN.fcomp[isL+1] 
         fcom_split /= (fnewl[:,np.newaxis] +fnewu[:,np.newaxis])
 
         #... continue w/ mering
-        loc_merge = np.sqrt(spN.loc[imL]*spN.loc[imL+1])
+        loc_merge = np.sqrt(spN.locL[imL]*spN.locL[imL+1])
 
         #there cannot be overlap b/w merged and splitting particles
         if np.any(frem[imL]!=1.) or np.any(frem[imL+1]!=1.):
@@ -141,11 +145,11 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
             delm2 = 0
 
         #mass conservation: add i+i+1, subtract donors
-        mass_merge = spN.msup[imL] +spN.msup[imL+1] -delm1 -delm2
+        mass_merge = spN.mtotL[imL] +spN.mtotL[imL+1] -delm1 -delm2
 
         if pars.resampleMode=='splitmerge':
-            mass_merge1 = spN.msup[imL-1] +delm1 #particle i-1
-            mass_merge2 = spN.msup[imL+2] +delm2 #particle i+2
+            mass_merge1 = spN.mtotL[imL-1] +delm1 #particle i-1
+            mass_merge2 = spN.mtotL[imL+2] +delm2 #particle i+2
 
         try:
             assert(np.all(mass_merge>0))
@@ -165,24 +169,24 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         #simple merging. Doesn't work well as sfd no longer smooth
         #frem[imL] = 0.0
         #frem[imL+1] = 0.0
-        #mass_merge = spN.msup[imL] +spN.msup[imL+1]
+        #mass_merge = spN.mtotL[imL] +spN.mtotL[imL+1]
 
 
         #properties of the merged particles and its new neighbors
         #this is very important!
 
-        mphy_merge = ( spN.mphy[imL] *  (marr[imL]-delm1) +spN.mphy[imL+1]   *(marr[imL+1]-delm2)) /mass_merge
+        mphy_merge = ( spN.massL[imL] *  (marr[imL]-delm1) +spN.massL[imL+1]   *(marr[imL+1]-delm2)) /mass_merge
         fcom_merge = ((spN.fcomp[imL].T*(marr[imL]-delm1) +spN.fcomp[imL+1].T*(marr[imL+1]-delm2)) /mass_merge).T
 
         if pars.resampleMode=='splitmerge':
-            mphy_merge1 = ( spN.mphy[imL-1]*marr[imL-1] +spN.mphy[imL]  *delm1) /mass_merge1
-            mphy_merge2 = ( spN.mphy[imL+2]*marr[imL+2] +spN.mphy[imL+1]*delm2) /mass_merge2
+            mphy_merge1 = ( spN.massL[imL-1]*marr[imL-1] +spN.massL[imL]  *delm1) /mass_merge1
+            mphy_merge2 = ( spN.massL[imL+2]*marr[imL+2] +spN.massL[imL+1]*delm2) /mass_merge2
 
             fcom_merge1 = ((spN.fcomp[imL-1].T*marr[imL-1] +spN.fcomp[imL].T*delm1) /mass_merge1).T
             fcom_merge2 = ((spN.fcomp[imL+2].T*marr[imL+2] +spN.fcomp[imL+1].T*delm2) /mass_merge2).T
 
-            loc_merge1 = spN.loc[imL-1]
-            loc_merge2 = spN.loc[imL+2]
+            loc_merge1 = spN.locL[imL-1]
+            loc_merge2 = spN.locL[imL+2]
 
    ##TBR -- old branching location
    ##only set up a new structure when splitting or merging has actually  happend
@@ -204,7 +208,7 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         #new sp arrays
         locI =  np.insert(loc,      np.concatenate(dumiiL), np.concatenate(dumloc))
         msupI = np.insert(marr*frem,np.concatenate(dumiiL), np.concatenate(dumsup))
-        mphyI = np.insert(spN.mphy, np.concatenate(dumiiL), np.concatenate(dumphy))
+        mphyI = np.insert(spN.massL, np.concatenate(dumiiL), np.concatenate(dumphy))
         fcomI = np.insert(spN.fcomp,np.concatenate(dumiiL), np.concatenate(dumcom), axis=0)
 
 
@@ -217,11 +221,11 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
             fcomI = np.delete(fcomI, iremL, axis=0)
             #print('removed', len(iremL)//4, ' particles')
 
-        try:
-            assert(np.all(np.diff(locI)>0)) #locations must be increasing
-        except:
-            print('[resample.splitmerge]:locations not increasing')
-            import pdb; pdb.set_trace()
+        #try:
+        #    assert(np.all(np.diff(locI)>0)) #locations must be increasing
+        #except:
+        #    print('[resample.splitmerge]:locations not increasing')
+        #    import pdb; pdb.set_trace()
 
         try:
             assert(np.abs(msupI.sum()/marr.sum()-1) <1e-10) #mass conservations
@@ -253,20 +257,24 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 
             print('[resample.splitmerge]:direct merge particle no.', im)
 
-            loc_merge = np.sqrt(spN.loc[im]*spN.loc[im+1])
-            mass_merge = spN.msup[im] +spN.msup[im+1]
-            mphy_merge =  (spN.mphy[im]   *marr[im] +spN.mphy[im+1]   *marr[im+1]) /mass_merge
+            loc_merge = np.sqrt(spN.locL[im]*spN.locL[im+1])
+            mass_merge = spN.mtotL[im] +spN.mtotL[im+1]
+            mphy_merge =  (spN.massL[im]   *marr[im] +spN.massL[im+1]   *marr[im+1]) /mass_merge
             fcom_merge = ((spN.fcomp[im].T*marr[im] +spN.fcomp[im+1].T*marr[im+1]) /mass_merge).T
 
-            locI = np.concatenate ((spN.loc[:im],   [loc_merge],    spN.loc[im+2:]))
+            locI = np.concatenate ((spN.locL[:im],   [loc_merge],    spN.locL[im+2:]))
             msupI = np.concatenate((marr[:im],      [mass_merge],   marr[im+2:]))
-            mphyI = np.concatenate((spN.mphy[:im],  [mphy_merge],   spN.mphy[im+2:]))
+            mphyI = np.concatenate((spN.massL[:im],  [mphy_merge],   spN.massL[im+2:]))
             fcomI = np.concatenate((spN.fcomp[:im], [fcom_merge],   spN.fcomp[im+2:]))
             newarr = (locI, msupI, mphyI, fcomI)
 
         else:
             newarr = None
+    else:
+        newarr = None
 
+    #if newarr is not None:
+        #import pdb;pdb.set_trace()
     return newarr
 
 

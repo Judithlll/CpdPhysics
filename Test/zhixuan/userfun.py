@@ -105,10 +105,10 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     return vt1 # v_mig
 
 def del_v (St, disk):
-    vr = 2*disk.eta *disk.vK *St/(1+St**2)
+    #vr = 2*disk.eta *disk.vK *St/(1+St**2)
 
     #take half of the velocity...
-    return np.abs(vr)/2
+    return np.abs(disk.v_r)/2
 
 
 def H_d (St, disk):

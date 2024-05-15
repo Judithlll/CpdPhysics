@@ -13,7 +13,6 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import cgs
-import resample
 
 start=time.time()
 argL = sys.argv #maybe use later
@@ -112,7 +111,7 @@ while doEvo:
         #2)get the new deltaT 
         system.time +=system.deltaT
         system.new_timestep(pars.tmax, jumpfracD=pars.jumpfracD, **pars.dtimesteppars)
-        resample.re_sample_splitmerge(system, system.particles, 0.1)
+        #system.resample()
         #system.query_splitmerge ()
         #system.split_merge (..) 
     

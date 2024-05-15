@@ -17,6 +17,7 @@ import scipy.optimize as sciop
 import physics
 import userfun
 from scipy.interpolate import interp1d
+import resample
 
 class COPY (object):
     """
@@ -141,6 +142,15 @@ class System(object):
         """
         self.messages.add_message (self.ntime, message)
 
+    def resample(self):
+        newarr=resample.re_sample_splitmerge(self, self.particles, 0.1)
+        if newarr is not None:
+            #assign the key properties 
+            self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
+            import pdb;pdb.set_trace()
+            #also we need to get other properties of particles 
+            #idea is make an function to get all these auxiliary
+            self.particles.get_auxilary(self.disk)
 
     #ZL-TBD: put this stuff in fileio.py
     #[24.04.21]CWO: I've again removed the logdir. It should ALWAYS be local!       
@@ -281,7 +291,8 @@ class System(object):
         """
 
         self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
-
+        self.get_disk()
+        self.particles.get_auxilary(self.disk)
         
 
 
@@ -527,8 +538,9 @@ class System(object):
         mintimeL = []
         
         self.get_disk() 
+        self.particles.get_auxilary(self.disk)
         self.particles.make_Y2d()
-        Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time,self.disk)
+        Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time)
 
         #timescale for the particles
         #I dont think there's need to use np.nanmin
@@ -1431,8 +1443,30 @@ class Superparticles(object):
 
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
 
-    
-    def dY2d_dt (self,Y2d,time, disk, returnMore=False):
+    def get_auxilary(self,disk):
+        userparL = disk.add_uservar (dp.user_add_var())    #variables
+        userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
+
+        userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
+        Rd = self.get_radius()
+        #obtain Stokes number by iterating on drag law
+        St, v_r = ff.St_iterate (disk.eta,
+                                 disk.vK,
+                                 disk.vth,
+                                 disk.lmfp,
+                                 disk.rhog,
+                                 disk.OmegaK,
+                                 Rd,
+                                 Sto=self.stokesOld)
+
+        dauxi = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg} 
+        for key in userparL+userevalL+userfuncL:
+            dauxi[key] = getattr(disk, key)
+
+        for key,val in dauxi.items():
+            setattr(self, key, val)
+
+    def dY2d_dt (self,Y2d,time, returnMore=False):
         """
         input:
             Y2d -- state vector
@@ -1444,24 +1478,24 @@ class Superparticles(object):
         loc, mphy = Y2d
 
         #get radii of the particles
-        Rd = self.get_radius()
+        #Rd = self.get_radius() 
 
 
-        userparL = disk.add_uservar (dp.user_add_var())    #variables
-        disk.add_userfun (dp.user_add_fun())    #functions only
+        #userparL = disk.add_uservar (dp.user_add_var())    #variables
+        #disk.add_userfun (dp.user_add_fun())    #functions only
 
-        userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
+        #userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
 
         #obtain Stokes number by iterating on drag law
-        St, v_r = ff.St_iterate (disk.eta,
-                                 disk.vK,
-                                 disk.vth,
-                                 disk.lmfp,
-                                 disk.rhog,
-                                 disk.OmegaK,
-                                 Rd,
-                                 Sto=self.stokesOld)
-        self.stokesOld = St
+        #St, v_r = ff.St_iterate (disk.eta,
+        #                         disk.vK,
+        #                         disk.vth,
+        #                         disk.lmfp,
+        #                         disk.rhog,
+        #                         disk.OmegaK,
+        #                         Rd,
+        #                         Sto=self.stokesOld)
+        self.stokesOld = self.St 
 
 
         #assume the relative velocity to be the half of radial velocity
@@ -1469,37 +1503,37 @@ class Superparticles(object):
 
 
         #[24.02.02]cwo moved this physics->userfun, where the user can of course invoke physics
-        Hd = userfun.H_d(St, disk)     
+        Hd = userfun.H_d(self.St, self)     
 
-        drdt = v_r
+        drdt = self.v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
-        sigD = disk.dot_Md(time) /(-2*loc*np.pi*v_r) #v_r<0
+        sigD = self.dot_Md(time) /(-2*loc*np.pi*self.v_r) #v_r<0
 
         #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..
-        delv = userfun.del_v (St, disk)
+        delv = userfun.del_v (self.St, self)
         
         #TBD: provide the composition as an argument (in general way)
-        dmdt = userfun.dm_dt (Rd, delv, Hd, sigD, self.fcomp)
+        dmdt = userfun.dm_dt (self.Rd, delv, Hd, sigD, self.fcomp)
 
         Y2ddt = np.zeros_like(Y2d)
         Y2ddt[0] = drdt
         Y2ddt[1] = dmdt
 
         #[24.01.05]:also return additional particle properties
-        if returnMore:
+        #if returnMore:
             #[24.01.07]CWO: alpha cannot be returned here, b/c some disk don't have it!
             #
-            dMore = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg} 
-            for key in userparL+userevalL:
-                dMore[key] = getattr(disk,key)
+        #    dMore = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg} 
+        #    for key in userparL+userevalL:
+        #        dMore[key] = getattr(disk,key)
 
-            return Y2ddt, dMore
+        #    return Y2ddt, dMore
 
-        else:
-            return Y2ddt  
-    
+        #else:
+        #    return Y2ddt  
+        return Y2ddt
     
     def update (self,t0,tFi,disk,nstep=10):
         """
@@ -1510,11 +1544,11 @@ class Superparticles(object):
         
         tSpan=np.array([t0,tFi])
         tstep=(tFi-t0)/nstep
-        
+        #self.get_auxilary(disk) 
         Y2copy = np.copy(self.Y2d)
 
         #integrates system to tFi
-        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5', disk)
+        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5')
 
         # self.mtotL=Yt[-1,2,:] #no longer updated
         self.locL = Yt[-1,0,:]
@@ -1523,10 +1557,10 @@ class Superparticles(object):
         #[24.01.05]CWO
         #after the integration, extract the particle properties
         #for future use
-        dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], disk, returnMore=True)
+        #dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], disk, returnMore=True)
 
-        for key, val in daux.items():
-            setattr(self, key, val)
+        #for key, val in daux.items():
+        #    setattr(self, key, val)
 
         #elif restrictby == 'fragmentation':
             
@@ -1535,12 +1569,16 @@ class Superparticles(object):
 
     
     def remove_particles (self,remove_idx):
-
-        for prop in self.propL:
-            pL = getattr(self, prop)
-            if len(pL)==self.num:
-                pL = np.delete (pL , remove_idx, axis=0)
-                setattr(self, prop, pL)
+        
+        self.locL = np.delete(self.locL, remove_idx)
+        self.massL = np.delete(self.massL, remove_idx)
+        self.mtotL = np.delete(self.mtotL, remove_idx)
+        self.fcomp = np.delete(self.fcomp, remove_idx, axis = 0)
+        #for prop in self.propL:
+        #    pL = getattr(self, prop)
+        #    if len(pL)==self.num:
+        #        pL = np.delete (pL , remove_idx, axis=0)
+        #        setattr(self, prop, pL)
 
         nrem = len(remove_idx)
         self.num -= nrem
@@ -1555,12 +1593,12 @@ class Superparticles(object):
         self.mtotL = np.append(self.mtotL, self.mtot1)  #mtot1 is needed here
         self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
         # because we need to use these properties somewhere, so these properties also needed to be postprocess, but for now this is very crude
-        self.Rd = np.append(self.Rd, self.Rdi)
-        self.St = np.append(self.St, self.St[-1])
-        self.v_r = np.append(self.v_r, self.v_r[-1])
-        self.Hg = np.append(self.Hg, self.Hg[-1])
-        self.eta = np.append(self.eta, self.eta[-1])
-        self.mg = np.append(self.mg, self.mg[-1])
+        #self.Rd = np.append(self.Rd, self.Rdi)
+        #self.St = np.append(self.St, self.St[-1])
+        #self.v_r = np.append(self.v_r, self.v_r[-1])
+        #self.Hg = np.append(self.Hg, self.Hg[-1])
+        #self.eta = np.append(self.eta, self.eta[-1])
+        #self.mg = np.append(self.mg, self.mg[-1])
         self.num += 1 
 
         if Nadd!=1:

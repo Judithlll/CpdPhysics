@@ -140,8 +140,12 @@ class DISK (object):
         """
         this add functions to the disk object
         """
+        nameL = []
         for fun in dfunL:
-            setattr(self, fun.__name__, fun)
+            name = fun.__name__ 
+            setattr(self, name, fun)
+            nameL.append(name)
+        return nameL
 
 
     def add_user_eval (self, dfunL):
