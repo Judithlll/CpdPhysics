@@ -3,7 +3,7 @@ import parameters as pars
 import sys
 
 
-def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.):
+def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.001):
     """
     [22.04.10]: mmid picked through midpoints
     [22.07.28]: also added the "simple merge" (splitsimplemerge) algorithm
@@ -45,7 +45,7 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     #logarithmic difference
     #Problem! 
     #The lcoation of particles may not be in order
-    xdel = np.abs(np.diff(np.log(loc)))
+    xdel = np.diff(np.log(loc))
 
     #take a finer sampling interval arround special locations
     fdelXarr = np.ones_like(xdel)
@@ -89,8 +89,9 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 
     #[22.10.25] move this one up...
     #only set up a new structure when splitting or merging has actually  happend
-    #if len(imL)>0 or len(isL)>0:
-    if len(isL)>0:
+    if len(imL)>0 or len(isL)>0:
+        
+    #if len(isL)>0:
 
         #the locations where new particles are made (geometric mean)
         loc_split  = np.sqrt(loc[isL]*loc[isL+1])
@@ -221,6 +222,8 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
             fcomI = np.delete(fcomI, iremL, axis=0)
             #print('removed', len(iremL)//4, ' particles')
 
+        #[24.05.15]LZX: because the location of particles is not in order at early stage, 
+        #so comment this out for now.
         #try:
         #    assert(np.all(np.diff(locI)>0)) #locations must be increasing
         #except:
@@ -237,7 +240,7 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 
     #neither merging or splitting has occurred
     #[24.05.15]cwo: omit DM for the moment
-    elif False:
+    else:
         #search of "Direct Merging" (2 particles very close)
         #left index loc that potentially merge with right neigbor
         #(first 2, 2 right of special, 2 left of special, final 2)
@@ -270,11 +273,11 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 
         else:
             newarr = None
-    else:
-        newarr = None
 
     #if newarr is not None:
         #import pdb;pdb.set_trace()
+    #if len(imL>0):
+    #    import pdb;pdb.set_trace()
     return newarr
 
 

@@ -111,7 +111,7 @@ while doEvo:
         #2)get the new deltaT 
         system.time +=system.deltaT
         system.new_timestep(pars.tmax, jumpfracD=pars.jumpfracD, **pars.dtimesteppars)
-        #system.resample()
+        system.re_sample()
         #system.query_splitmerge ()
         #system.split_merge (..) 
     

@@ -142,15 +142,24 @@ class System(object):
         """
         self.messages.add_message (self.ntime, message)
 
-    def resample(self):
-        newarr=resample.re_sample_splitmerge(self, self.particles, 0.1)
-        if newarr is not None:
-            #assign the key properties 
-            self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
-            import pdb;pdb.set_trace()
-            #also we need to get other properties of particles 
-            #idea is make an function to get all these auxiliary
-            self.particles.get_auxilary(self.disk)
+    def re_sample(self):
+        # add a judgement: only if the particles is in order, then do the resample 
+        if np.all(np.diff(self.particles.locL)>0.):
+            #TBD: introduce pars.fdelS, pars.fdelM
+            newarr=resample.re_sample_splitmerge(self, self.particles, 0.04, fdelM=0.01, nsampleX = 2  )
+            if newarr is not None:
+                #assign the key properties 
+                self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
+                self.particles.num = len(self.particles.locL)
+                #also we need to get other properties of particles 
+                #idea is make an function to get all these auxiliary
+                self.get_disk()
+                self.particles.get_auxilary(self.disk)
+                self.particles.make_Y2d()
+            
+        else:
+            pass
+            #import pdb;pdb.set_trace()
 
     #ZL-TBD: put this stuff in fileio.py
     #[24.04.21]CWO: I've again removed the logdir. It should ALWAYS be local!       
@@ -539,7 +548,7 @@ class System(object):
         
         self.get_disk() 
         self.particles.get_auxilary(self.disk)
-        self.particles.make_Y2d()
+        #self.particles.make_Y2d()
         Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time)
 
         #timescale for the particles
@@ -713,25 +722,58 @@ class System(object):
                 #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
 
                 relp = np.inf #relative error/uncertainty in pwl index
-                popt = np.array([1,1]) #initial guess (p0)
+                #popt = planet.oldp0#np.array([1,1]) #initial guess (p0)
+                #mdots = massdots[-Nfit:]
+                #tdots = timedots[-Nfit:]
+                #k = (mdots[-1]-mdots[0])/(tdots[-1]-tdots[0])
+                #b = mdots[-1]-k*tdots[-1]
+                popt = np.array([0.,0.]) #initial guess (p0)
                 
                 while Nfit<=Npts:
                     ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
-                    #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:])
-                    popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
+                    #TBD: do this analitically to avoid the error caused by the initial guess
+
+                    mdots = massdots[-Nfit:]
+                    tdots = timedots[-Nfit:]
+                    mmean = np.mean(mdots)
+                    tmean = np.mean(tdots)
+
+                    #popt[0] = (np.sum((mdots*tdots))-Nfit*mmean*tmean)/(np.sum(tdots**2)-Nfit*tmean**2)
+                    den = np.sum((tdots-tmean)**2) #ensures it's positive
+                    nom = np.sum((mdots-mmean)*(tdots-tmean))
+                    popt[0] = nom/den
+                    popt[1] = mmean - popt[0]*tmean
+                    
+
+                    #Then we get the error of the 1st fit parameter
+                    sse = np.sum((mdots-(popt[0]*tdots+popt[1]))**2)
+                    kcov = np.sqrt(sse/((Nfit-2)*np.sum((tdots-tmean)**2)))
+                    #import pdb;pdb.set_trace()
+
+                    #try:
+                    #    popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt)
+                    #except:
+                    #    import pdb;pdb.set_trace()
+                    #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
 
                     #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
                     #print(line)
-                    if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
+                    #[15.05.2024]cwo: sometimes pcov is seen to evaluate to infinity due to bad initial popt.
+                    #                 so retry
+                    if kcov==np.inf or popt[0] ==np.inf:
+                        import pdb;pdb.set_trace()
+                        #the assumption/hope is that popt is OK
+                    elif np.sqrt(kcov)/np.abs(popt[0])<relp:
                         pidx = popt[0]
-                        psig = np.sqrt(pcov[0,0])
+                        psig = np.sqrt(kcov)
                         relp = psig/np.abs(pidx)
+                        Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
                     else:
                         break
-                    Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
 
 
                 planet.relp_mass = relp
+                planet.oldp0 = popt
                 #if Npts>=10 and self.ntime>1000:
                 #    import pdb; pdb.set_trace()
                 #plt.scatter(timedots, massdots)
@@ -740,6 +782,7 @@ class System(object):
                 #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
                 #print(planet.dmdt/3e23) 
                 planet.dmdt = pidx *planet.mass/(self.time) 
+
                 planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
                 #PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
                 PmassTscale[i] = planet.mass/planet.dmdt
@@ -1050,31 +1093,48 @@ def advance_iceline (system):
     for now particles directly lose the mass of water without any other effect
     """
 
-    sploc = system.particles.locL
-    sploc_old = system.oldstate.particles.locL
+    #sploc = system.particles.locL[system.particles.locL<]
+    #sploc_old = system.oldstate.particles.locL
     for k,iceline in enumerate(system.icelineL):
-        idxD = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
-        idx = idxD['idx_for_new']
-        #idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
-
         ic = pars.composL.index(iceline.species) #refers to species index
-        if len(idx)!=0:     
-            
-            for ix in idx:
-                fice = system.particles.fcomp[ix,ic]  #mass fraction in ice
-                fremain = (1-fice)          #remain fraction
+        for i in range(system.particles.num):
+            fice = system.particles.fcomp[i,ic]  #mass fraction in ice
+            fremain = (1-fice)          #remain fraction
 
-                if fremain < 1e-15:
-                    fremain=0 #loss of numbers (!!)
-                system.particles.mtotL[ix] *= fremain    #reduce masses accordingly
-                system.particles.massL[ix] *= fremain
-                system.particles.fcomp[ix,ic] = 0.      #gone is the ice!
-
+            if fremain < 1e-15:
+                fremain=0 #loss of numbers (!!)
+            if fice!=0 and system.particles.locL[i]<iceline.loc:
+                system.particles.mtotL[i] *= fremain    #reduce masses accordingly
+                system.particles.massL[i] *= fremain
+                system.particles.fcomp[i,ic] = 0.      #gone is the ice!
                 #renormalize
-                system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
-        
+                system.particles.fcomp[i,:] = (system.particles.fcomp[i,:].T /(system.particles.fcomp[i,:].sum()+1e-100)).T
+
+        #renew the iceline location
         loc_pv = system.oldstate.icelineL[k].loc
         iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
+
+
+        #idxD = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
+        #idx = idxD['idx_for_new']
+        #idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
+        #if len(idx)!=0:     
+            
+        #    for ix in idx:
+        #        fice = system.particles.fcomp[ix,ic]  #mass fraction in ice
+        #        fremain = (1-fice)          #remain fraction
+
+        #        if fremain < 1e-15:
+        #            fremain=0 #loss of numbers (!!)
+        #        system.particles.mtotL[ix] *= fremain    #reduce masses accordingly
+        #        system.particles.massL[ix] *= fremain
+        #        system.particles.fcomp[ix,ic] = 0.      #gone is the ice!
+
+                #renormalize
+        #        system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
+        
+        #loc_pv = system.oldstate.icelineL[k].loc
+        #iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
 
 
 
@@ -1708,6 +1768,8 @@ class PLANET ():
         self.max_jumpT = 0.0
         self.dlocdt = 0.0
         self.acc_rate = 0.0
+        #the fit paremeter in the mass growth 
+        self.oldp0 = np.array([1,1])
         
         self.accretion = True
 
