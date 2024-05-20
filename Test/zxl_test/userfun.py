@@ -670,6 +670,19 @@ class Data(object):
         plt.savefig('./plot/Delta_t.jpg')
         plt.close()
 
+    def plot_satepart(self):
+        for time in self.timeL[0:3]:
+            plt.figure()
+            plt.title('Satellites Evolution')
+            plt.xlabel(r'Location $[R_J]$')
+            plt.ylabel(r'Particle St')
+
+            plt.plot(self.radD[time]/cgs.RJ,self.StD[time], label = '{:.2f}'.format(time/cgs.yr))
+            plt.scatter(np.array(self.planetsloc[time])/cgs.RJ, self.planetsmass[time])
+            plt.legend()
+            plt.savefig('./plot/satepart/{}.jpg'.format(time/cgs.yr))
+            plt.close()
+        
     def plot_planet_migration(self):
         plt.figure()
         plt.title('Planet migration')

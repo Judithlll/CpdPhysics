@@ -19,6 +19,7 @@ print('[plot]: data.pickle has been loaded')
 system = fileio.load_class('./pickles/','system.pickle')
 
 data[0].plot_peff_log()
+data[0].plot_satepart()
 import pdb;pdb.set_trace()
 data[0].plot_growth_timescale()
 data[0].plot_jumpT()
