@@ -1,6 +1,10 @@
 *.swp
 *.pyc
 *.pickle
+*.jpg
+*.png
+*.mp4
+*.gif
 main/log
 Test/Zhixuan/log/
 Test/Zhixuan2/log/

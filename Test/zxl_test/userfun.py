@@ -1,4 +1,7 @@
 import numpy as np
+import shutil
+import cv2
+import random
 import fileio
 import matplotlib.pyplot as plt
 import cgs
@@ -174,7 +177,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [1.e6*cgs.yr, 1.5e6*cgs.yr, 1.7e6*cgs.yr, 1.85e6*cgs.yr] 
+    timeL = [0.8e6*cgs.yr, 1.5e6*cgs.yr, 1.7e6*cgs.yr, 1.8e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
@@ -323,6 +326,11 @@ class Data(object):
         if system.doJump:
             stuff = {'njump': system.njump, 'njumptime': system.njumptime, 'jumptime':system.time-system.jumpT, 'jumpT': system.jumpT, 'jump_limitation':system.jump_limitation}
             self.jumpstuff.append(stuff)
+
+        if 'remove' in system.daction.keys():
+            self.cumulative_change['remove'].append(system.daction['remove'])
+        if 'add' in system.daction.keys():
+            self.cumulative_change['add']+=system.daction['add']
 
 
     def get_plot_list(self, doParticles = False):
@@ -613,6 +621,7 @@ class Data(object):
         for i in range(planet_num):
             plt.plot(massL[i], np.array(peffL[i])*100)
         plt.savefig('./plot/peff.jpg')
+        plt.close()
 
     def plot_growth_timescale(self):
         plt.figure()
@@ -671,17 +680,124 @@ class Data(object):
         plt.close()
 
     def plot_satepart(self):
-        for time in self.timeL[0:3]:
-            plt.figure()
-            plt.title('Satellites Evolution')
-            plt.xlabel(r'Location $[R_J]$')
-            plt.ylabel(r'Particle St')
+        folder_path ='./plot/satepart/'
 
-            plt.plot(self.radD[time]/cgs.RJ,self.StD[time], label = '{:.2f}'.format(time/cgs.yr))
-            plt.scatter(np.array(self.planetsloc[time])/cgs.RJ, self.planetsmass[time])
-            plt.legend()
+        #check if the folder exists 
+        if os.path.exists(folder_path):
+            # if exists, clear this folder
+            for filename in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print('failed to delete %s. reason: %s' % (file_path, e))
+        else:
+            #if not exists, create
+            os.makedirs(folder_path)
+
+        mass_0 = 1e-1
+        Pmass_0 = 1e23
+
+        ik = np.argmin(np.abs(np.array(self.timeL)-1e6*cgs.yr))
+        time = self.timeL[ik]
+        while ik<=len(self.timeL):
+            time = self.timeL[ik]
+        #for time in self.timeL[tidx:tidx+100]:
+            plt.figure(figsize=(8,6))
+            plt.title('Time: {:.2f}'.format(time/cgs.yr),loc='left')
+            plt.xlabel(r'Location $[R_J]$')
+            plt.ylabel(r'Satellites Mass')
+            plt.yscale('log')
+            plt.xscale('log')
+            plt.ylim(1.e23,1.e27)
+            plt.xlim(4.,50.0)
+            plt.xticks([dp.rinn/cgs.RJ,self.icelinesloc[time][0]/cgs.RJ],['{:.2f}'.format(dp.rinn/cgs.RJ),
+                                                                   '{:.2f}'.format(self.icelinesloc[time][0]/cgs.RJ)])
+            
+            #adjust the position of plot to make some space to legend 
+            #box = ax.get_position()
+            #ax.set_position([box.x0,box.y0, box.width, box.height*0.5])
+            radL = self.radD[time]
+            redgeL = np.array([dp.rinn]+ [np.sqrt(radL[i]*radL[i+1]) for i in range(len(radL)-1)]+[dp.rout])
+            #get the number of dots, and normalized by the minimum number
+            numL =np.array((self.mtotD[time]/self.mD[time]))
+            numL_nom = ((numL/numL.min())**(1/2)).astype(int) *100
+            for i,rad in enumerate(radL):
+                #the particles number is too large...
+                random_loc_parti = np.random.uniform(redgeL[i], redgeL[i+1],numL_nom[i])
+                vert_parti = 10**(np.linspace(23,27,numL_nom[i]))
+                plt.scatter(random_loc_parti/cgs.RJ,vert_parti, s=(self.mD[time][i]/mass_0)**(1/3),color='gray',alpha=0.3, edgecolors='none')
+                #ax.axvline(rad/cgs.RJ, linewidth= (self.mD[time][i]/mass_0)**(1/3), color = 'gray', linestyle='dotted', alpha =0.3)
+            #import pdb;pdb.set_trace()
+
+
+            #plot the special locations in the disk:[inner egde, iceline]
+            plt.axvline(dp.rinn/cgs.RJ, color = 'black', linewidth = 1, label = 'inner edge')
+            plt.axvline(self.icelinesloc[time][0]/cgs.RJ, color = 'blue', linestyle = 'dashed',label = 'Iceline')
+            
+            #to make a legend and colorbar with a totoally transparent dot 
+            plt.scatter(0,0, c=0.1, cmap='Spectral',vmin=0.0,vmax=0.5)
+            for i,loc in enumerate(self.planetsloc[time]):
+                dotsize = 4*(self.planetsmass[time][i]/Pmass_0)**(1/3) # need to be modified
+                plt.scatter(loc/cgs.RJ, self.planetsmass[time][i], s = dotsize, c =self.planetsfcomp[time][i][1], cmap ='Spectral',vmin=0.0,vmax=0.5, alpha =1)
+            #plt.scatter(self.radD[time]/cgs.RJ,self.StD[time],s=1 ,label = '{:.2f}'.format(time/cgs.yr))
+            #plt.scatter(np.array(self.planetsloc[time])/cgs.RJ, self.planetsmass[time])
+
+            
+            #plt.pcolor(vmin=0,vmax=0.5)
+            #plt.clim(0,0.5)
+            plt.colorbar(label=r'Water Fraction [%]')
+            plt.legend(loc='lower left')
             plt.savefig('./plot/satepart/{}.jpg'.format(time/cgs.yr))
             plt.close()
+
+            ik+=100 
+            print([ik,time/cgs.yr])
+
+    def plot_St_t(self):
+        folder_path ='./plot/St_t/'
+
+        #check if the folder exists 
+        if os.path.exists(folder_path):
+            # if exists, clear this folder
+            for filename in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print('failed to delete %s. reason: %s' % (file_path, e))
+        else:
+            #if not exists, create
+            os.makedirs(folder_path)
+
+        ik = np.argmin(np.abs(np.array(self.timeL)-1e6*cgs.yr))
+        time = self.timeL[ik]
+        while ik <= len(self.timeL):
+            time = self.timeL[ik]
+        #for time in self.timeL:
+            plt.figure(figsize=(8,6))
+            plt.title('Time: {:.2f}'.format(time/cgs.yr),loc='left')
+            plt.xlabel('Location $[R_J]$')
+            plt.ylabel('Stokes number')
+            plt.ylim(1e-6,1)
+            plt.yscale('log')
+            plt.xscale('log')
+
+            plt.plot(self.radD[time]/cgs.rJup, self.StD[time], '.-',label = "{:.2f}".format(time/cgs.yr))
+            
+            plt.axvline(self.icelinesloc[time][0]/cgs.RJ, linestyle = 'dashed',color='gray')
+
+            plt.savefig('./plot/St_t/{:2f}.png'.format(time/cgs.yr))
+            plt.close()
+
+            ik+=100
+            print('Plotting St:',[ik,time/cgs.yr])
         
     def plot_planet_migration(self):
         plt.figure()
@@ -717,7 +833,7 @@ class Data(object):
         time = np.array(list(self.planetsloc.keys()))
         
         planetst = 0.8e6*cgs.yr
-        plt.ylim(planetst/cgs.yr,20e6)
+        plt.ylim(planetst/cgs.yr,30e6)
         stidx = np.argwhere(time>planetst)[0][0]
         
         dotssize = masslist/np.nanmin(masslist)*0.1
@@ -876,7 +992,7 @@ class Data(object):
                 plt.legend()
                 plt.savefig('./plot/sigmaP.jpg')
     
-    def plot_St(self, tL):
+    def plot_St(self, tL, savepath='./plot/'):
         timeL =tL
         plt.figure()
         plt.title('Stokes number')
@@ -900,14 +1016,14 @@ class Data(object):
             #sigG, T = self.gas.get_key_disk_properties(loc_new, time)[0:2]
             #St_new = 0.23*(2/(3+2*p+q))**(4/5)*(10/(18-39*q))**(2/5)*(dp.ratio/0.003)**(2/5)*(dp.alpha/1e-4)**(1/5)*(T/160)**(-2/5)*(dp.Mcp_t(time)/cgs.MJ)**(2/5)*(loc_new/10/cgs.RJ)**(-2/5)
             
-            plt.plot(loc/cgs.rJup, St, '.-',label = "{:.2f}".format(ti/cgs.yr), color =color[i])
+            plt.plot(loc/cgs.rJup, St, '.-',label = "{:.2f}".format(time/cgs.yr), color =color[i])
             #plt.plot(loc_new/cgs.rJup, St_new, '--',label = "{:.2f}_powerlaw".format(ti/cgs.yr))
             #for i,loc in enumerate(self.planetsloc[ti]): 
             #    plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray')
             
             plt.axvline(self.icelinesloc[ti][0]/cgs.RJ, linestyle = 'dotted', color =color[i])
         plt.legend()
-        plt.savefig('./plot/St.jpg')
+        plt.savefig(savepath+'St{:.2f}.jpg'.format(time/cgs.yr))
         plt.close()
 
     def plot_vr(self, tL):
@@ -951,17 +1067,30 @@ class Data(object):
         plt.legend()
         plt.savefig('./plot/jumpT.jpg')
         plt.close()
+        
 
-def make_animation(path='pebbles&planets'):
-    save_name_gif =  "Cpd.gif"
-    pic_list = []
-    pics=os.listdir(path)
-    pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
-    # import pdb;pdb.set_trace()
-    for pic in pics_sorted:
-        im = imageio.imread(path+"/"+pic)
-        pic_list.append(im)
-    imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
+    def make_animation(self, path='./plot/satepart_splitmerge'):
+        pic_list = []
+        pics=os.listdir(path)
+        pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
+        frame = cv2.imread(os.path.join(path,pics_sorted[0]))
+        height, width, layers = frame.shape
+        video_name =  "St.mp4"
+        fps=30
+        video_codec = cv2.VideoWriter_fourcc(*'mp4v')
+        video = cv2.VideoWriter(video_name, video_codec, fps, (width, height))
+        for pic in pics_sorted:
+            video.write(cv2.imread(os.path.join(path,pic)))
+
+        cv2.destroyAllWindows()
+        video.release()
+
+        #cv2.VideoWriter(video_name, video_codec, fps, (width,height))
+        # import pdb;pdb.set_trace()
+        #for pic in pics_sorted:
+        #    im = imageio.imread(path+"/"+pic)
+        #    pic_list.append(im)
+        #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
 def load_data(path=os.getcwd()):
     #TBD: load data from excel

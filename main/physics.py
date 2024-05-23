@@ -32,6 +32,14 @@ def crossedResonance (ta, jres, qinn, hasratio, per):
 def radial_v(St, eta, v_K):
     return -2*St/(St**2+1)*eta*v_K
 
+def sigma_D(mtotL, locL, rinn, rout):
+    loc_edge = np.array([rinn]+
+                        list(np.sqrt(locL[:-1]*locL[1:]))+
+                        [rout])
+    occ_space = np.diff(loc_edge)
+    sigD = mtotL/(2*np.pi*locL*occ_space) 
+    return sigD
+
 def get_auxiliary (mcp, loc, sigmaG, temp, mu, sigmol):
 
     omega = np.sqrt(cgs.gC *mcp/loc**3)      

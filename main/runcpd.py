@@ -63,10 +63,6 @@ while doEvo:
     
     Yt = system.update_particles (**pars.dtimesteppars)
 
-    #do this again? LZX: maybe not, post_process mainly for particles
-    #   system.post_process()
-    system.post_process()
-
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
     #NOTE:order may matter a lot!!
@@ -76,6 +72,10 @@ while doEvo:
     if system.nplanet>0:
         core.advance_planets (system)
 
+    #do this again? LZX: maybe not, post_process mainly for particles
+    #   system.post_process()
+    system.post_process()
+    print([system.daction, system.particles.mtot1, system.Minflux])
     
 
     ## cwo: resonance crossing criteria
@@ -111,7 +111,7 @@ while doEvo:
         #2)get the new deltaT 
         system.time +=system.deltaT
         system.new_timestep(pars.tmax, jumpfracD=pars.jumpfracD, **pars.dtimesteppars)
-        system.re_sample()
+        #system.re_sample()
         #system.query_splitmerge ()
         #system.split_merge (..) 
     
@@ -122,7 +122,7 @@ while doEvo:
     
 
     #[24.02.01]cwo: added stopping condition // we could add more
-    final = system.time>=pars.tmax
+    final = system.time>=pars.tmax and system.mcp >=cgs.MJ
 
     # wrrite key information into logs and print things
     #[24.04.21]cwo:no absolute paths, please!

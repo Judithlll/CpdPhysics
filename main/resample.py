@@ -256,7 +256,10 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         if con_direct.any():
             #only 1 direct merge per timestep!
             ic, = con_direct.nonzero()
-            im = ixL[int(ic)] #the merge index
+            try:
+                im = ixL[int(ic)] #the merge index
+            except:
+                import pdb;pdb.set_trace()
 
             print('[resample.splitmerge]:direct merge particle no.', im)
 

@@ -146,19 +146,22 @@ class System(object):
         # add a judgement: only if the particles is in order, then do the resample 
         if np.all(np.diff(self.particles.locL)>0.):
             #TBD: introduce pars.fdelS, pars.fdelM
-            newarr=resample.re_sample_splitmerge(self, self.particles, 0.04, fdelM=0.01, nsampleX = 2  )
+            newarr=resample.re_sample_splitmerge(self, self.particles, fdelS=0.04, fdelM=0.01, nsampleX = 2  )
             if newarr is not None:
-                #assign the key properties 
-                self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
-                self.particles.num = len(self.particles.locL)
-                #also we need to get other properties of particles 
-                #idea is make an function to get all these auxiliary
-                self.get_disk()
-                self.particles.get_auxilary(self.disk)
-                self.particles.make_Y2d()
+                if np.all(np.diff(newarr[0])>0.):
+                    #assign the key properties 
+                    self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
+                    self.particles.num = len(self.particles.locL)
+                    #also we need to get other properties of particles 
+                    #idea is make an function to get all these auxiliary
+                    self.get_disk()
+                    self.particles.get_auxilary(self.disk)
+                    self.particles.make_Y2d()
+                else:
+                    print('some crossing caused by resampling')
             
         else:
-            pass
+            pass 
             #import pdb;pdb.set_trace()
 
     #ZL-TBD: put this stuff in fileio.py
@@ -427,17 +430,12 @@ class System(object):
         #delmgasIn = dp.ratio*sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)[0]
         #self.dotMd = dp.ratio*dp.dot_Mg(self.time)
 
-
-        #[24.04.21]cwo: since I dont like this dp.ratio stuff so much
-        #               but we can provide arguments!
-        #
-        #you generally are very messy! Do we need all of this?
-
-        #[24.04.21]cwo: so this is not the gas, but the dust?!
-        #               suggest to give the argument "dust" then
-        delmdustIn = sciint.quad(dp.dot_Md, self.time, self.time+self.deltaT)[0]
-
+        #update the gas mass flow
         self.dotMg = dp.dot_Mg(self.time)
+
+
+        #get the dust mass flow
+        delmdustIn = sciint.quad(dp.dot_Md, self.time, self.time+self.deltaT)[0]
 
         self.Minflux_step = delmdustIn
 
@@ -1064,19 +1062,25 @@ class System(object):
 
 def get_cross_idx(loc, locL, locLo, daction, locnew = None):
     """
-    this is needed for the 'advance' things to avoid some error caused by removing particles
+    this is needed for the 'advance' things to avoid some error caused by 
+    removing and adding particles
     """
     lrm = 0
     lad = 0
-    if 'remove' in daction.keys():
-        lrm = len(daction['remove'])
-    if 'add' in daction.keys():
-        lad = daction['add']
+    #daction={}
+    #make up the locL:
+    #if 'remove' in daction.keys():
+    #    for pos in sorted(daction['remove']):
+    #        locL=np.insert(locL, pos, 0.)
+    #if 'add' in daction.keys():
+    #    lad = daction['add']
+    #    locLo=np.append(locLo, [np.inf*lad])
+
 
     if locnew == None:
-        idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (loc>np.append([0.]*lrm , locL)))
+        idx,=np.nonzero((loc< locLo) & (loc>locL))
     else:
-        idx,=np.nonzero((loc< np.append(locLo,[np.inf]*lad)) & (locnew>np.append([0.]*lrm , locL)))
+        idx,=np.nonzero((loc< locLo) & (locnew>locL))
 
     idxD = {'idx_for_new': idx-lrm, 'idx_for_old': idx}
     #if loc<5.89*cgs.RJ:
@@ -1265,8 +1269,6 @@ def advance_planets (system):
             #assumes all particles are accreted (TBC!!)
             spN = system.particles
 
-            #mass*composition that is acccreted
-            delmcomp = np.zeros((spN.fcomp.shape[1]))
             for k, ip in enumerate(idxND['idx_for_new']):
 
                 #calculate critical mass to verify if the pebble accretion can occur
@@ -1279,8 +1281,8 @@ def advance_planets (system):
                 spk = crossL[k]
                 Mc = userfun.M_critical(spk.eta, spk.St, spk.mcp)
 
-                delmass = np.zeros_like(crossL[0].fcomp)
-
+                #mass*composition that is acccreted
+                delmcomp = np.zeros((spN.fcomp.shape[1]))
                 #TBD-later: I dont like the need for an M_critical userfun..
                 #   instead, we can incorporate this into userfun.epsilon_PA
                 #
@@ -1299,10 +1301,12 @@ def advance_planets (system):
                     delmcomp += epsilon*crossL[k].fcomp *crossL[k].mtotL
 
                     #spN -> system.particles.Y2d...
-                    spN.mtotL[ip] -= delmass.sum() #decrease mass sp
+                    spN.mtotL[ip] -= delmcomp.sum() #decrease mass sp
                     masscomp = planet.fcomp*planet.mass +delmcomp
                     planet.mass += delmcomp.sum()
                     planet.fcomp = masscomp /planet.mass
+                    if spN.mtotL[ip]<=0. or epsilon>1:
+                        import pdb;pdb.set_trace()
 
                 elif planet.mass>userfun.PIM() and planet.accretion:
                     print('planet {:} has reach the PIM at {:10.1f}'.format(planet.number,system.time/cgs.yr ))
@@ -1526,7 +1530,7 @@ class Superparticles(object):
         for key,val in dauxi.items():
             setattr(self, key, val)
 
-    def dY2d_dt (self,Y2d,time, returnMore=False):
+    def dY2d_dt (self,Y2d,time):
         """
         input:
             Y2d -- state vector
@@ -1569,6 +1573,9 @@ class Superparticles(object):
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
+        #get sigD from simulation itself
+        #sigD = physics.sigma_D(self.mtotL, loc, dp.rinn, dp.rout)
+        
         sigD = self.dot_Md(time) /(-2*loc*np.pi*self.v_r) #v_r<0
 
         #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..

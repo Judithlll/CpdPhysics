@@ -9,7 +9,7 @@ dsystempars = {'timeini': 0.0,
                'rhoPlanet': 1.9}
 
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
-                'nini':100,
+                'nini':700,
                 'initrule':'equallogspace'}  #initial number of particles
 
 #[24.01.08]LZX: don't know whether this is a good idea
@@ -29,17 +29,18 @@ dgasgrid = {'rinn':5.89*cgs.RJ,'rout':100*cgs.RJ}
 gasmodel = 'prescribed'
 
 dgasprop = {'alpha': 1e-4, 
-            'frac': 0.2/1.5, # the accretion mass with unit: M_J/Myr
+            'frac': 0.2/1.4, # the accretion mass with unit: M_J/Myr
             'dgratio': 0.002,
-            'rgg': 1.7e-7,
+            'rgg': 1.77e-7,
             'Mcp0':0.4*cgs.MJ,
             'meanmol': 2.34,
             'sigmol':2e-15,
-            'tdep': 2.9e6*cgs.yr,
+            'tdep': 3.2e6*cgs.yr,
             'tgap': 1.e6*cgs.yr
             }
 
-tmax = 12018782.555918233*cgs.yr
+#tmax = 12018782.555918233*cgs.yr
+tmax = 14.3e6*cgs.yr
 
 #critical velocity for fragmentation
 vc = {'icy': 5.e3,
