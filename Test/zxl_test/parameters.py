@@ -29,13 +29,13 @@ dgasgrid = {'rinn':5.89*cgs.RJ,'rout':100*cgs.RJ}
 gasmodel = 'prescribed'
 
 dgasprop = {'alpha': 1e-4, 
-            'frac': 0.2/1.4, # the accretion mass with unit: M_J/Myr
-            'dgratio': 0.002,
-            'rgg': 1.77e-7,
+            'frac': 0.2/1.5, # the accretion mass with unit: M_J/Myr
+            'dgratio': 0.0016,
+            'rgg': 1.705e-7,
             'Mcp0':0.4*cgs.MJ,
             'meanmol': 2.34,
             'sigmol':2e-15,
-            'tdep': 3.2e6*cgs.yr,
+            'tdep': 3.e6*cgs.yr,
             'tgap': 1.e6*cgs.yr
             }
 

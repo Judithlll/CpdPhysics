@@ -177,7 +177,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [0.8e6*cgs.yr, 1.5e6*cgs.yr, 1.7e6*cgs.yr, 1.8e6*cgs.yr] 
+    timeL = [0.4e6*cgs.yr, 1.5e6*cgs.yr, 1.7e6*cgs.yr, 1.8e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
@@ -706,14 +706,15 @@ class Data(object):
         while ik<=len(self.timeL):
             time = self.timeL[ik]
         #for time in self.timeL[tidx:tidx+100]:
-            plt.figure(figsize=(8,6))
+            plt.figure(figsize=(16,6))
             plt.title('Time: {:.2f}'.format(time/cgs.yr),loc='left')
             plt.xlabel(r'Location $[R_J]$')
             plt.ylabel(r'Satellites Mass')
             plt.yscale('log')
             plt.xscale('log')
             plt.ylim(1.e23,1.e27)
-            plt.xlim(4.,50.0)
+            plt.xlim(4.,100.0)
+            plt.subplots_adjust(right=0.95)
             plt.xticks([dp.rinn/cgs.RJ,self.icelinesloc[time][0]/cgs.RJ],['{:.2f}'.format(dp.rinn/cgs.RJ),
                                                                    '{:.2f}'.format(self.icelinesloc[time][0]/cgs.RJ)])
             

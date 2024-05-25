@@ -75,7 +75,7 @@ while doEvo:
     #do this again? LZX: maybe not, post_process mainly for particles
     #   system.post_process()
     system.post_process()
-    print([system.daction, system.particles.mtot1, system.Minflux])
+    #print([system.daction, system.particles.mtot1, system.Minflux])
     
 
     ## cwo: resonance crossing criteria
@@ -111,7 +111,7 @@ while doEvo:
         #2)get the new deltaT 
         system.time +=system.deltaT
         system.new_timestep(pars.tmax, jumpfracD=pars.jumpfracD, **pars.dtimesteppars)
-        #system.re_sample()
+        system.re_sample()
         #system.query_splitmerge ()
         #system.split_merge (..) 
     
@@ -122,7 +122,7 @@ while doEvo:
     
 
     #[24.02.01]cwo: added stopping condition // we could add more
-    final = system.time>=pars.tmax and system.mcp >=cgs.MJ
+    final = system.time>=pars.tmax or system.mcp >=cgs.MJ
 
     # wrrite key information into logs and print things
     #[24.04.21]cwo:no absolute paths, please!
@@ -140,17 +140,6 @@ while doEvo:
         if system.deltaT <= 0:
             print('[runcpd]: something wrong with deltaT')
             import pdb;pdb.set_trace()
-
-
-#[24.05.12]cwo: this seems rather specific. Please, move to userfun. 
-#               I put a false statement here
-#TBD: move these to the userfun dostuff
-#if doEvo and False:
-#    data = userfun.data
-#    data.get_plot_list(doParticles = False)
-#    #store system components as pickles
-#    fileio.store_class(system, 'system')
-#    fileio.store_class(data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
 
 print('[runcpd]:finished')
 
