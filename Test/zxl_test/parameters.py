@@ -9,7 +9,7 @@ dsystempars = {'timeini': 0.0,
                'rhoPlanet': 1.9}
 
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
-                'nini':700,
+                'nini':200,
                 'initrule':'equallogspace'}  #initial number of particles
 
 #[24.01.08]LZX: don't know whether this is a good idea
@@ -46,7 +46,8 @@ tmax = 14.3e6*cgs.yr
 vc = {'icy': 5.e3,
       'silicates': 5.e2}
 
-resampleMode = 'splitmerge'
+resampleMode = 'splitmerge' #'Nplevel'
+dresample = {'fdelS':0.02,'fdelM':0.005}
 doJump = True
 doPlanets = True
 doIcelines = True

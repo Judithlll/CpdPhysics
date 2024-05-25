@@ -741,9 +741,14 @@ class Data(object):
             
             #to make a legend and colorbar with a totoally transparent dot 
             plt.scatter(0,0, c=0.1, cmap='Spectral',vmin=0.0,vmax=0.5)
-            for i,loc in enumerate(self.planetsloc[time]):
-                dotsize = 4*(self.planetsmass[time][i]/Pmass_0)**(1/3) # need to be modified
-                plt.scatter(loc/cgs.RJ, self.planetsmass[time][i], s = dotsize, c =self.planetsfcomp[time][i][1], cmap ='Spectral',vmin=0.0,vmax=0.5, alpha =1)
+            if np.all(self.planetsloc[time]==np.nan) == False:
+                dotsize = 4*(self.planetsmass[time]/Pmass_0)**(1/3) # need to be modified
+                plt.scatter(self.planetsloc[time]/cgs.RJ, self.planetsmass[time], s = dotsize, c =self.planetsfcomp[time][:,1], cmap ='Spectral',vmin=0.0,vmax=0.5, alpha =1)
+
+
+            #for i,loc in enumerate(self.planetsloc[time]):
+                #dotsize = 4*(self.planetsmass[time][i]/Pmass_0)**(1/3) # need to be modified
+                #plt.scatter(loc/cgs.RJ, self.planetsmass[time][i], s = dotsize, c =self.planetsfcomp[time][i][1], cmap ='Spectral',vmin=0.0,vmax=0.5, alpha =1)
             #plt.scatter(self.radD[time]/cgs.RJ,self.StD[time],s=1 ,label = '{:.2f}'.format(time/cgs.yr))
             #plt.scatter(np.array(self.planetsloc[time])/cgs.RJ, self.planetsmass[time])
 
@@ -787,6 +792,7 @@ class Data(object):
             plt.xlabel('Location $[R_J]$')
             plt.ylabel('Stokes number')
             plt.ylim(1e-6,1)
+            plt.xlim(4.,100.0)
             plt.yscale('log')
             plt.xscale('log')
 

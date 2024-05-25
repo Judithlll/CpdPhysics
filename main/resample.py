@@ -60,7 +60,6 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     #midpoint locations elligible for splitting (isL)
     isL, = np.nonzero(xdel>fdelS *fdelXarr)
 
-
     #[22.10.25] determine the merging locations (imL)
     #freeze possible mergers of particles approaching special
     for k in ixS:

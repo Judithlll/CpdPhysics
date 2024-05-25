@@ -105,6 +105,8 @@ class System(object):
         self.dotMg = dp.dot_Mg(self.time)
         self.Minflux = 0
         self.Minflux_step = 0
+
+        self.Moutflux = 0.
         #self.Mcp=self.disk.Mcp_t(self.time)
 
         #initiallize the old state
@@ -131,6 +133,7 @@ class System(object):
         #TBD:-later: make this more general
         #   like: r_crit={'cavity':...}
         self.rinn = self.get_rinn()
+        self.rout = self.get_rout()
 
         #[24.05.12]cwo: create a messaging class
         self.messages = Messages ()
@@ -146,8 +149,10 @@ class System(object):
         # add a judgement: only if the particles is in order, then do the resample 
         if np.all(np.diff(self.particles.locL)>0.):
             #TBD: introduce pars.fdelS, pars.fdelM
-            newarr=resample.re_sample_splitmerge(self, self.particles, fdelS=0.04, fdelM=0.01, nsampleX = 2  )
+            newarr=resample.re_sample_splitmerge(self, self.particles, nsampleX = 2, **pars.dresample)
             if newarr is not None:
+                if len(newarr[0])>self.particles.num+40:
+                    import pdb; pdb.set_trace()
                 if np.all(np.diff(newarr[0])>0.):
                     #assign the key properties 
                     self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
@@ -161,8 +166,8 @@ class System(object):
                     print('some crossing caused by resampling')
             
         else:
-            pass 
-            #import pdb;pdb.set_trace()
+            print('[core.py]: particles crossing')
+            import pdb;pdb.set_trace()
 
     #ZL-TBD: put this stuff in fileio.py
     #[24.04.21]CWO: I've again removed the logdir. It should ALWAYS be local!       
@@ -182,6 +187,7 @@ class System(object):
         jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
     
         line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20)) 
+        #line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20)) 
 
         #[24.05.12]cwo:please, don't print to screen here..
         print (line_evol)
@@ -243,6 +249,16 @@ class System(object):
 
         return rinn
 
+    def get_rout(self):
+        """
+        get the rout from the disk_properties.py if it exists 
+        """
+        try:
+            rout = dp.rout 
+        except:
+            rout = None 
+
+        return rout
 
     def make_resL (self,jmax=4):
         dres = {}
@@ -305,6 +321,8 @@ class System(object):
         self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
         self.get_disk()
         self.particles.get_auxilary(self.disk)
+
+        self.minitDisk = sum(self.particles.mtotL)
         
 
 
@@ -449,14 +467,25 @@ class System(object):
         #because this can make the adding two particles once
         self.Minflux += self.Minflux_step
 
-        mtot1 = self.particles.mtot1
 
 
         #if the total mass has exceeded some threshold "mtot1"
         #create a new particle
-        while self.Minflux> mtot1:
-            Nadd += 1
-            self.Minflux -= mtot1
+        if pars.resampleMode=='Nplevel':
+            mtot1 = self.particles.mtot1
+            while self.Minflux> mtot1:
+                Nadd += 1
+                self.Minflux -= mtot1
+        elif pars.resampleMode=='splitmerge' and self.rout is not None:
+            dis = np.log(self.rout/self.particles.locL[-1])
+            if dis >= np.sqrt(pars.dresample['fdelS']*pars.dresample['fdelM']):
+                Nadd += 1 
+                #if add particles here, the total mass are always changed
+                self.particles.mtot1 = self.Minflux 
+                self.Minflux =0.
+        else:
+            print('[core.py]:No valid resampleMode')
+            sys.exit()
         
         if Nadd>0:
             self.daction['add'] = Nadd
@@ -469,7 +498,9 @@ class System(object):
         if 'remove' in self.daction.keys():
             #remove the particles from Y2d!
             
-            nrem = self.particles.remove_particles(self.daction['remove'])
+            nrem,mrem = self.particles.remove_particles(self.daction['remove'])
+            self.Moutflux += mrem
+
             self.add_message(str(nrem)+' particles lost to inner edge crossing')
 
 
@@ -482,40 +513,45 @@ class System(object):
         #of the huge lag... I think the below algorith accomplishes smth
         #but is a bit ugly
 
-        #to be brief..
-        part = self.particles
+        #[24.05.25]:splitmerge should already stabilize particle number. Do one or the other
+        if pars.resampleMode=='Nplevel':
+            mtot1 = self.particles.mtot1
+            #to be brief..
+            part = self.particles
 
-        Np = len(part.massL)
+            Np = len(part.massL)
 
-        nch = 4
-        if Np==part.ninit: part.Nplevel = part.ninit #reset
-        
-        #particle level is decreasing...
-        if Np<part.Nplevel -nch and Np<part.ninit:
-            part.Nplevel -= nch
-            eps = abs(part.ninit -part.Nplevel) /part.ninit
-            mtot1 *= 1 -eps
+            nch = 4
+            if Np==part.ninit: part.Nplevel = part.ninit #reset
+            
+            #particle level is decreasing...
+            if Np<part.Nplevel -nch and Np<part.ninit:
+                part.Nplevel -= nch
+                eps = abs(part.ninit -part.Nplevel) /part.ninit
+                mtot1 *= 1 -eps
 
-        #particle level is decreasing, but above ninit: modest decrease mtot1
-        elif Np<part.Nplevel -nch and Np>part.ninit:
-            part.Nplevel -= nch
-            eps = nch /part.ninit
-            mtot1 *= 1 -eps
+            #particle level is decreasing, but above ninit: modest decrease mtot1
+            elif Np<part.Nplevel -nch and Np>part.ninit:
+                part.Nplevel -= nch
+                eps = nch /part.ninit
+                mtot1 *= 1 -eps
 
-        #particle level is increasing, but below ninit: modest increase mtot1
-        elif Np>part.Nplevel +nch and Np<part.ninit:
-            part.Nplevel += nch
-            eps = nch /part.ninit
-            mtot1 *= 1 +eps
+            #particle level is increasing, but below ninit: modest increase mtot1
+            elif Np>part.Nplevel +nch and Np<part.ninit:
+                part.Nplevel += nch
+                eps = nch /part.ninit
+                mtot1 *= 1 +eps
 
-        #particle level is increasing...
-        elif Np>part.Nplevel +nch and Np>part.ninit:
-            part.Nplevel += nch
-            eps = abs(part.ninit -part.Nplevel) /part.ninit
-            mtot1 *= 1 +eps
+            #particle level is increasing...
+            elif Np>part.Nplevel +nch and Np>part.ninit:
+                part.Nplevel += nch
+                eps = abs(part.ninit -part.Nplevel) /part.ninit
+                mtot1 *= 1 +eps
 
-        #update the total mass 
-        self.particles.mtot1 =mtot1
+            #update the total mass 
+            self.particles.mtot1 =mtot1
+
+        #TBD: add particles when outmost particles is far from the rout
 
         
         #get the Y2d needed to be used next step
@@ -552,14 +588,23 @@ class System(object):
         #timescale for the particles
         #I dont think there's need to use np.nanmin
         tpart = np.abs(self.particles.Y2d/Y2dp)
+
+        #get the collision timescale of particles 
+        tcol = abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *0.5/deltaTfraction
+
+        tpart= np.append(tpart,tcol)
+
         mintimeL.append({'name':'particles', 'tmin': tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
-        
+
         #after the jump, we only have particles drift timescale
         if afterjump:
             self.minTimes = Mintimes(mintimeL,jumpfracD)
             #self.mintimeL = mintimeL
-            self.deltaT = deltaTfraction*tpart.min() #min([ob['tmin'] for ob in mintimeL])
+            deltaT = deltaTfraction*tpart.min() #min([ob['tmin'] for ob in mintimeL])
+
+            #make sure timestep doesn't jump as well...
+            self.deltaT = min(deltaT, self.oldstate.deltaT*1.01)
 
             return
 
@@ -879,7 +924,7 @@ class System(object):
         
         #limit increase of deltaT to (some number)
         if self.ntime>0:
-            deltaT = min(deltaT, self.oldstate.deltaT*1.1)
+            deltaT = min(deltaT, self.oldstate.deltaT*1.01)
 
             
         if self.time+deltaT>tEnd:
@@ -980,7 +1025,8 @@ class System(object):
 
             self.doJump = con1 & con2 &con3
         else:
-            con3 = self.time>3000*cgs.yr
+            #initial relaxation time
+            con3 = self.Moutflux>0.4*self.minitDisk
             self.doJump = con0 & con1 & con2 & con3
 
         
@@ -1637,6 +1683,7 @@ class Superparticles(object):
     
     def remove_particles (self,remove_idx):
         
+        mrem = np.sum(self.mtotL[remove_idx])
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)
         self.mtotL = np.delete(self.mtotL, remove_idx)
@@ -1650,7 +1697,9 @@ class Superparticles(object):
         nrem = len(remove_idx)
         self.num -= nrem
 
-        return nrem
+        
+
+        return nrem,mrem
 
 
     def add_particles (self,Nadd):
