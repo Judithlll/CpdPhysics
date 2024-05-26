@@ -71,10 +71,19 @@ class Messages (object):
     def __init__ (self):
         self.msgL = [] #the message list
 
-    def add_message (self, ntime, msg):
-        dmsg = {'ntime':ntime, 'msg': msg}
+    def add_message (self, ntime, mtype, msg):
+        dmsg = {'ntime':ntime, 'type':mtype, 'msg': msg}
         self.msgL.append(dmsg)
 
+    def flush (self):
+        if len(self.msgL)>0:
+            sfmt = '{:8d} {:12s} {:s}'
+            with open ('log/messages.log', 'a') as file:
+                for dmsg in self.msgL:
+                    line = sfmt.format(dmsg['ntime'],dmsg['type'],dmsg['msg'])
+                    file.write(line+'\n')
+
+            self.msgL = []#reset
 
 
 class System(object):
@@ -142,11 +151,11 @@ class System(object):
         self.messages = Messages ()
 
 
-    def add_message (self, message):
+    def add_message (self, mtype, message):
         """
         just passes the message on...
         """
-        self.messages.add_message (self.ntime, message)
+        self.messages.add_message (self.ntime, mtype, message)
 
     def re_sample(self):
 
@@ -156,7 +165,7 @@ class System(object):
             assert( np.all(np.diff(self.particles.locL)>0.) )
 
             #TBD: introduce pars.fdelS, pars.fdelM
-            newarr=resample.re_sample_splitmerge(self, self.particles, nsampleX = 2, **pars.dresample)
+            newarr = resample.re_sample_splitmerge(self,self.particles,nsampleX=2,**pars.dresample)
             if newarr is not None:
                 if np.all(np.diff(newarr[0])>0.):
                     #assign the key properties 
@@ -177,6 +186,8 @@ class System(object):
     #ZL-TBD: put this stuff in fileio.py
     #[24.04.21]CWO: I've again removed the logdir. It should ALWAYS be local!       
     def update_log(self, djump={}, logdir = './log/', init=False):
+        import subprocess as sp
+
         loglist = ['system_evol.log', 'planets.log', 'jump.log']
         pathlist = [logdir+log for log in loglist]
         
@@ -222,7 +233,11 @@ class System(object):
 
         # write to files
         if init:
+            #[24.05.26]cwo: it is cleaner to put stuff like "clear_dir" in separate fileio module
             ff.clear_dir(logdir)
+
+            #[24.05.26]I also initialize message file
+            sp.run(['touch', logdir+'messages.log'])
 
             # generate the title foemation
             etfmt = '{:10s} {:10s} {:20s} {:10s} {:20s}'
@@ -240,6 +255,9 @@ class System(object):
             for i,line in enumerate(lines):
                 with open (pathlist[i], 'a') as file:
                     file .write(line + '\n')
+
+        #[24.05.26]cwo: added writing to messages
+        self.messages.flush()
             
 
     def get_rinn(self):
@@ -509,7 +527,7 @@ class System(object):
             nrem,mrem = self.particles.remove_particles(self.daction['remove'])
             self.Moutflux += mrem
 
-            self.add_message(str(nrem)+' particles lost to inner edge crossing')
+            self.add_message('remove', str(nrem)+' particles lost to inner edge crossing')
 
 
         if 'add' in self.daction.keys():

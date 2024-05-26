@@ -21,6 +21,8 @@ def do_stuff (system, init=False, final=False):
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
         print(line)
 
+        #if len(system.messages.msgL)>0: import pdb; pdb.set_trace()
+
 
 def del_v (St, disk):
     return 0.0
@@ -40,5 +42,5 @@ def dm_dt (*args):
 def Stokes_number (**kwargs):
     return physics.Stokes_Epstein(**kwargs)
 
-def Stokes_number (**kwargs):
-    return physics.Stokes_general(**kwargs)
+#def Stokes_number (**kwargs):
+#    return physics.Stokes_general(**kwargs)

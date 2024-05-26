@@ -89,8 +89,14 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     #[22.10.25] move this one up...
     #only set up a new structure when splitting or merging has actually  happend
     if len(imL)>0 or len(isL)>0:
+
+        #[24.05.26]:add to message list
+        #           in future ix should point to hash
+        for ix in imL:
+            sim.add_message('merge', f'particle {ix} has been selected for merging')
+        for ix in isL:
+            sim.add_message('split', f'particle {ix} has been selected for splitting')
         
-    #if len(isL)>0:
 
         #the locations where new particles are made (geometric mean)
         loc_split  = np.sqrt(loc[isL]*loc[isL+1])
@@ -175,7 +181,7 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         #properties of the merged particles and its new neighbors
         #this is very important!
 
-        mphy_merge = ( spN.massL[imL] *  (marr[imL]-delm1) +spN.massL[imL+1]   *(marr[imL+1]-delm2)) /mass_merge
+        mphy_merge = ( spN.massL[imL] * (marr[imL]-delm1) +spN.massL[imL+1]  *(marr[imL+1]-delm2)) /mass_merge
         fcom_merge = ((spN.fcomp[imL].T*(marr[imL]-delm1) +spN.fcomp[imL+1].T*(marr[imL+1]-delm2)) /mass_merge).T
 
         if pars.resampleMode=='splitmerge':
