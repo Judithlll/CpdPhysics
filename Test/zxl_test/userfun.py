@@ -701,63 +701,76 @@ class Data(object):
         mass_0 = 1e-1
         Pmass_0 = 1e23
 
-        ik = np.argmin(np.abs(np.array(self.timeL)-1e6*cgs.yr))
+        tst1 = init_planets()[0][0]
+        ik = np.argmin(np.abs(np.array(self.timeL)- tst1))
         time = self.timeL[ik]
         while ik<=len(self.timeL):
             time = self.timeL[ik]
-        #for time in self.timeL[tidx:tidx+100]:
-            plt.figure(figsize=(16,6))
-            plt.title('Time: {:.2f}'.format(time/cgs.yr),loc='left')
-            plt.xlabel(r'Location $[R_J]$')
-            plt.ylabel(r'Satellites Mass')
-            plt.yscale('log')
-            plt.xscale('log')
-            plt.ylim(1.e23,1.e27)
-            plt.xlim(4.,100.0)
-            plt.subplots_adjust(right=0.95)
-            plt.xticks([dp.rinn/cgs.RJ,self.icelinesloc[time][0]/cgs.RJ],['{:.2f}'.format(dp.rinn/cgs.RJ),
-                                                                   '{:.2f}'.format(self.icelinesloc[time][0]/cgs.RJ)])
-            
-            #adjust the position of plot to make some space to legend 
-            #box = ax.get_position()
-            #ax.set_position([box.x0,box.y0, box.width, box.height*0.5])
-            radL = self.radD[time]
-            redgeL = np.array([dp.rinn]+ [np.sqrt(radL[i]*radL[i+1]) for i in range(len(radL)-1)]+[dp.rout])
+
+            locL = np.array([5.89, 9.38, 15.0, 26.3])*cgs.RJ
+            massL = np.array([0.893, 0.480, 1.48, 1.08])*1e26 
+            fcompL = np.array([0., 0.08, 0.47, 0.52])
+
+
+            fig, ax1 = plt.subplots(figsize=(10,10))
+            #fig.subplots_adjust(right=0.95)
+            ax1.set_title('Time: {:.4f}Myr'.format(time/cgs.yr/1e6),loc='left')
+            ax1.set_ylabel(r'Satellites Mass $[M_{Gany}]$')
+            ax1.set_ylim(1.e23/massL[2], 1.e27/massL[2])
+            ax1.set_yscale('log')
+            ax1.set_xscale('log')
+
+            #define the colorbar 
+            cmap = LinearSegmentedColormap.from_list(
+                'custom_cmap', [(0,'gray'), (0.35,'gray'), (1,'blue')], 
+                N=256
+            )
+            #plot the Gealian Satellites 
+            dotsize = 4*(massL/Pmass_0)**(1/3)
+            for loc in locL:
+                ax1.axvline(loc/cgs.RJ, color = 'black', linestyle='dashed', alpha = 0.3)
+            sca=ax1.scatter(locL/cgs.RJ, massL/massL[2], s = dotsize, c =fcompL, cmap =cmap ,vmin=0.0,vmax=0.5, alpha =1)
+            ax1.scatter(locL/cgs.RJ, massL/massL[2], s = 3*dotsize, facecolor ='none', edgecolor='black' )
+
+            #radL = self.radD[time]
+            #redgeL = np.array([dp.rinn]+ [np.sqrt(radL[i]*radL[i+1]) for i in range(len(radL)-1)]+[dp.rout])
             #get the number of dots, and normalized by the minimum number
-            numL =np.array((self.mtotD[time]/self.mD[time]))
-            numL_nom = ((numL/numL.min())**(1/2)).astype(int) *100
-            for i,rad in enumerate(radL):
+            #numL =np.array((self.mtotD[time]/self.mD[time]))
+            #numL_nom = ((numL/numL.min())**(1/2)).astype(int) *100
+            #for i,rad in enumerate(radL):
                 #the particles number is too large...
-                random_loc_parti = np.random.uniform(redgeL[i], redgeL[i+1],numL_nom[i])
-                vert_parti = 10**(np.linspace(23,27,numL_nom[i]))
-                plt.scatter(random_loc_parti/cgs.RJ,vert_parti, s=(self.mD[time][i]/mass_0)**(1/3),color='gray',alpha=0.3, edgecolors='none')
+            #    random_loc_parti = np.random.uniform(redgeL[i], redgeL[i+1],numL_nom[i])
+            #    vert_parti = 10**(np.linspace(23,27,numL_nom[i]))
+            #    plt.scatter(random_loc_parti/cgs.RJ,vert_parti, s=(self.mD[time][i]/mass_0)**(1/3),color='gray',alpha=0.3, edgecolors='none')
                 #ax.axvline(rad/cgs.RJ, linewidth= (self.mD[time][i]/mass_0)**(1/3), color = 'gray', linestyle='dotted', alpha =0.3)
             #import pdb;pdb.set_trace()
 
+            #2ed y axis
+            ax2 = ax1.twinx()
+            ax2.set_ylabel('Stokes number')
+            ax2.set_ylim(1e-6,1)
+            ax2.set_xscale('log')
+            ax2.set_xlim(4.,100.)
+            ax2.set_yscale('log')
+            ax2.plot(self.radD[time]/cgs.rJup, self.StD[time], color='black',alpha=0.3, linewidth=1)
+            ax2.scatter(self.radD[time]/cgs.RJ, self.StD[time], s=np.where(self.radD[time]>self.icelinesloc[time][0], 4,2), c=np.where(self.radD[time]>self.icelinesloc[time][0], 'blue', 'gray'))
+            ax2.set_xticks([dp.rinn/cgs.RJ,self.icelinesloc[time][0]/cgs.RJ],['{:.2f}'.format(dp.rinn/cgs.RJ),
+                                                                   '{:.2f}'.format(self.icelinesloc[time][0]/cgs.RJ)])
 
             #plot the special locations in the disk:[inner egde, iceline]
-            plt.axvline(dp.rinn/cgs.RJ, color = 'black', linewidth = 1, label = 'inner edge')
-            plt.axvline(self.icelinesloc[time][0]/cgs.RJ, color = 'blue', linestyle = 'dashed',label = 'Iceline')
+            ax1.axvline(dp.rinn/cgs.RJ, color = 'black', linewidth = 1, label = 'inner edge')
+            ax1.axvline(self.icelinesloc[time][0]/cgs.RJ, color = 'blue', linestyle = 'dashed',label = 'Iceline')
             
             #to make a legend and colorbar with a totoally transparent dot 
-            plt.scatter(0,0, c=0.1, cmap='Spectral',vmin=0.0,vmax=0.5)
-            if np.all(self.planetsloc[time]==np.nan) == False:
-                dotsize = 4*(self.planetsmass[time]/Pmass_0)**(1/3) # need to be modified
-                plt.scatter(self.planetsloc[time]/cgs.RJ, self.planetsmass[time], s = dotsize, c =self.planetsfcomp[time][:,1], cmap ='Spectral',vmin=0.0,vmax=0.5, alpha =1)
+            sca=ax1.scatter(0,0, c=0.1, cmap=cmap,vmin=0.0,vmax=0.5)
+            if not np.isnan(self.planetsloc[time]).all():
+                dotsize = 4*(np.array(self.planetsmass[time])/Pmass_0)**(1/3) # need to be modified
+                sca=ax1.scatter(np.array(self.planetsloc[time])/cgs.RJ, self.planetsmass[time]/massL[2], s = dotsize, c =np.array(self.planetsfcomp[time])[:,1], cmap =cmap ,vmin=0.0,vmax=0.5, alpha =1)
 
 
-            #for i,loc in enumerate(self.planetsloc[time]):
-                #dotsize = 4*(self.planetsmass[time][i]/Pmass_0)**(1/3) # need to be modified
-                #plt.scatter(loc/cgs.RJ, self.planetsmass[time][i], s = dotsize, c =self.planetsfcomp[time][i][1], cmap ='Spectral',vmin=0.0,vmax=0.5, alpha =1)
-            #plt.scatter(self.radD[time]/cgs.RJ,self.StD[time],s=1 ,label = '{:.2f}'.format(time/cgs.yr))
-            #plt.scatter(np.array(self.planetsloc[time])/cgs.RJ, self.planetsmass[time])
-
-            
-            #plt.pcolor(vmin=0,vmax=0.5)
-            #plt.clim(0,0.5)
-            plt.colorbar(label=r'Water Fraction [%]')
-            plt.legend(loc='lower left')
-            plt.savefig('./plot/satepart/{}.jpg'.format(time/cgs.yr))
+            fig.colorbar(sca, label=r'Water Fraction [%]',orientation='horizontal')
+            fig.legend(loc='upper right')
+            fig.savefig('./plot/satepart/{}.jpg'.format(time/cgs.yr))
             plt.close()
 
             ik+=100 
@@ -1076,13 +1089,13 @@ class Data(object):
         plt.close()
         
 
-    def make_animation(self, path='./plot/satepart_splitmerge'):
+    def make_animation(self, mp4name, path='./plot/satepart_splitmerge'):
         pic_list = []
         pics=os.listdir(path)
         pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
         frame = cv2.imread(os.path.join(path,pics_sorted[0]))
         height, width, layers = frame.shape
-        video_name =  "St.mp4"
+        video_name =  mp4name
         fps=30
         video_codec = cv2.VideoWriter_fourcc(*'mp4v')
         video = cv2.VideoWriter(video_name, video_codec, fps, (width, height))
