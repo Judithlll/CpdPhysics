@@ -119,8 +119,8 @@ def load_dict_from_file (fname):
 
 
 
-def St_iterate (eta,v_K,v_th,lmfp,rho_g,
-                Omega_K,R_d,rhoint=1.4,Sto=0.001, errorX=1e-4, nmax=100):
+def St_iterate (eta, vK, vth, lmfp, rhog,
+                OmegaK, Rd, rhoint=1.4,Sto=0.001, errorX=1e-4, nmax=100):
     """
     obtain Stokes number and drift velocity by fixed-point iteration
 
@@ -138,10 +138,11 @@ def St_iterate (eta,v_K,v_th,lmfp,rho_g,
     niter = 1
     while niter<nmax:
         niter += 1
-        v_r = physics.radial_v(St, eta, v_K)
+        vr = physics.radial_v(St, eta, vK)
 
         #call userfunction for Stokes number
-        Stn = userfun.Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint)
+        Stn = userfun.Stokes_number(delv=vr, Rd=Rd, vth=vth, lmfp=lmfp, OmegaK=OmegaK, 
+                                    rhog=rhog, rhoint=rhoint)
 
         #better to do relative error 
         error = abs(St/Stn-1)
@@ -151,11 +152,10 @@ def St_iterate (eta,v_K,v_th,lmfp,rho_g,
         else:
             St = Stn
 
-
     #print('# iterations:', niter)
     #if niter>50 and type(eta)==np.ndarray: import pdb; pdb.set_trace()
 
-    return Stn, v_r
+    return Stn, vr
 
 
 def get_stokes_number(disk,t,sPLmtot,rhoint):

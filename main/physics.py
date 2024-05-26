@@ -32,6 +32,11 @@ def crossedResonance (ta, jres, qinn, hasratio, per):
 def radial_v(St, eta, v_K):
     return -2*St/(St**2+1)*eta*v_K
 
+
+def Stokes_Epstein (Rd, rhoint, vth, rhog, OmegaK, **kwargs):
+    return Rd*rhoint *OmegaK /(vth*rhog)
+
+
 def sigma_D(mtotL, locL, rinn, rout):
     loc_edge = np.array([rinn]+
                         list(np.sqrt(locL[:-1]*locL[1:]))+

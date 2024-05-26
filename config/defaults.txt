@@ -13,4 +13,7 @@ jumpfracD = {general:0.2;PlanetsRes:0.5}
 
 doPlanets = False
 
+resampleMode = None
+dresample = {fdelS:0.04;fdelM:0.01}
+
 #saveDir = Data

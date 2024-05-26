@@ -122,7 +122,7 @@ while doEvo:
     
 
     #[24.02.01]cwo: added stopping condition // we could add more
-    final = system.time>=pars.tmax or system.mcp >=cgs.MJ
+    final = system.time>=pars.tmax
 
     # wrrite key information into logs and print things
     #[24.04.21]cwo:no absolute paths, please!
