@@ -19,3 +19,5 @@ doJump = False
 doPlanets = False
 doIcelines = False
 
+resampleMode = 'splitmerge'
+dresample = {'fdelS':0.1, 'fdelM':0.04}

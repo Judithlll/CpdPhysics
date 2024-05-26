@@ -33,21 +33,21 @@ class Mintimes (object):
     """
     store the minimam times
     """
-    def __init__(self, mintimedict, jumpfracD={}):
+    def __init__(self, mintimeL, jumpfracD={}):
         tevol = []
         tminL = []
         nameL = []
 
-        for i in range (len(mintimedict)):
-            tmin = mintimedict[i]['tmin']
-            name = mintimedict[i]['name']
+        for i in range (len(mintimeL)):
+            tmin = mintimeL[i]['tmin']
+            name = mintimeL[i]['name']
             setattr(self,name , tmin)
             
             tminL.append(tmin) 
             nameL.append(name)
             #TBD:need to be more general 
             if i>0:#don't consider the particles timescale here
-                if mintimedict[i]['name'] == 'PlanetsRes':
+                if mintimeL[i]['name'] == 'PlanetsRes':
                     tevol.append( jumpfracD['PlanetsRes']*tmin )
                 else:
                     tevol.append( jumpfracD['general']*tmin)
@@ -57,8 +57,11 @@ class Mintimes (object):
         if len(tevol)>0:
             self.max_tevol = np.min(tevol)
 
-    def mintimelist(self,mintimedict):
-        self.tminarr = np.array([ddum['tmin'] for ddum in mintimedict])
+        #first element is particles
+        self.dpart = mintimeL[0]
+
+    def mintimelist(self,mintimeL):
+        self.tminarr = np.array([ddum['tmin'] for ddum in mintimeL])
 
 
 class Messages (object):
@@ -146,13 +149,15 @@ class System(object):
         self.messages.add_message (self.ntime, message)
 
     def re_sample(self):
-        # add a judgement: only if the particles is in order, then do the resample 
-        if np.all(np.diff(self.particles.locL)>0.):
+
+        if pars.resampleMode=='splitmerge':
+
+            # add a judgement: only if the particles is in order, then do the resample 
+            assert( np.all(np.diff(self.particles.locL)>0.) )
+
             #TBD: introduce pars.fdelS, pars.fdelM
             newarr=resample.re_sample_splitmerge(self, self.particles, nsampleX = 2, **pars.dresample)
             if newarr is not None:
-                if len(newarr[0])>self.particles.num+40:
-                    import pdb; pdb.set_trace()
                 if np.all(np.diff(newarr[0])>0.):
                     #assign the key properties 
                     self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
@@ -164,10 +169,10 @@ class System(object):
                     self.particles.make_Y2d()
                 else:
                     print('some crossing caused by resampling')
-            
+
         else:
-            print('[core.py]: particles crossing')
-            import pdb;pdb.set_trace()
+            pass
+                
 
     #ZL-TBD: put this stuff in fileio.py
     #[24.04.21]CWO: I've again removed the logdir. It should ALWAYS be local!       
@@ -190,7 +195,7 @@ class System(object):
         #line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20)) 
 
         #[24.05.12]cwo:please, don't print to screen here..
-        print (line_evol)
+        #print (line_evol)
         line_plan = '{:10.2f}'.format(self.time/cgs.yr)+''.join('{:10d} {:20.2f} {:20.2f} {:20.2e} {:10.5f}'.format(self.planetL[i].number, self.planetL[i].max_jumpT, self.planetL[i].loc/cgs.RJ,self.planetL[i].mass, self.planetL[i].acc_rate) for i in range(self.nplanet))
         #if self.nplanet >0:
         #    import pdb;pdb.set_trace()
@@ -442,8 +447,7 @@ class System(object):
         if len(idx)>0:
             self.daction['remove'] = idx
         
-        #particles that enter the domain
-        Nadd = 0
+        
         
         #delmgasIn = dp.ratio*sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)[0]
         #self.dotMd = dp.ratio*dp.dot_Mg(self.time)
@@ -469,9 +473,10 @@ class System(object):
 
 
 
-        #if the total mass has exceeded some threshold "mtot1"
-        #create a new particle
+        Nadd = 0#particles that enter the domain
         if pars.resampleMode=='Nplevel':
+            #if the total mass has exceeded some threshold "mtot1"
+            #create a new particle
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
                 Nadd += 1
@@ -482,10 +487,13 @@ class System(object):
                 Nadd += 1 
                 #if add particles here, the total mass are always changed
                 self.particles.mtot1 = self.Minflux 
-                self.Minflux =0.
+                self.Minflux = 0.
+        elif pars.resampleMode==None:
+                self.Minflux = 0.
         else:
             print('[core.py]:No valid resampleMode')
             sys.exit()
+
         
         if Nadd>0:
             self.daction['add'] = Nadd
@@ -590,9 +598,9 @@ class System(object):
         tpart = np.abs(self.particles.Y2d/Y2dp)
 
         #get the collision timescale of particles 
-        tcol = abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *0.5/deltaTfraction
+        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *0.5/deltaTfraction)
 
-        tpart= np.append(tpart,tcol)
+        tpart = np.concatenate((tpart,tcol[np.newaxis,:]))
 
         mintimeL.append({'name':'particles', 'tmin': tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
