@@ -1,4 +1,5 @@
 import numpy as np
+import subprocess as sp
 import shutil
 import cv2
 import random
@@ -20,12 +21,12 @@ from matplotlib.colors import LinearSegmentedColormap
 
 def PIM():
     return 1.48e40
-def Stokes_number(v_r, R_d, v_th, lmfp, Omega_K, rho_g, rhoint = 1.4):
-    v_dg=np.abs(v_r)
-    Rep=4*R_d*v_dg/v_th/lmfp
+def Stokes_number(delv, Rd, vth, lmfp, OmegaK, rhog, rhoint = 1.4):
+    v_dg=np.abs(delv)
+    Rep=4*Rd*v_dg/vth/lmfp
     #following Shibaike, eq....
     CD=24/Rep*(1+0.27*Rep)**0.43+0.47*(1-np.exp(-0.04*Rep**0.38))
-    St=8/3/CD*rhoint*R_d/rho_g/v_dg*Omega_K
+    St=8/3/CD*rhoint*Rd/rhog/v_dg*OmegaK
     return St
 
 def St_fragment(alpha, cs, eta, loc, Omega_K, v_crit, icelineloc):
@@ -216,6 +217,7 @@ def do_stuff (system, init=False, final= False):
 
     else:
         data.data_process(system)
+        sp.run('tail -n1 log/system_evol.log', shell=True)
         #data object should be available...
         #tminarr = system.minTimes.tminarr 
         #sfmt = '{:6d} {:5d} {:10.2e} {:3d} {:7.2f} {:22s} {:7.2e}'

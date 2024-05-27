@@ -150,6 +150,8 @@ class System(object):
         #[24.05.12]cwo: create a messaging class
         self.messages = Messages ()
 
+        self.con_Jump =[]
+
 
     def add_message (self, mtype, message):
         """
@@ -199,10 +201,11 @@ class System(object):
         tmin = tminarr[imin]
 
         # get the lines will be written into files
-        efmt = '{:10d} {:10.2f} {:20d} {:10.2e} {:20s}'
+        efmt = '{:10d} {:10.2f} {:20d} {:10.2e} {:20s}'       
         jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
     
-        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20)) 
+        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20))+''.join('{:7s}'.format(str(con).rjust(7)) for con in self.con_Jump)
+
         #line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20)) 
 
         #[24.05.12]cwo:please, don't print to screen here..
@@ -240,10 +243,10 @@ class System(object):
             sp.run(['touch', logdir+'messages.log'])
 
             # generate the title foemation
-            etfmt = '{:10s} {:10s} {:20s} {:10s} {:20s}'
+            etfmt = '{:10s} {:10s} {:20s} {:10s} {:20s} {:7s}'
             jtfmt = '{:10s} {:20s} {:20s} {:30s}'
             ptfmt = '{:10s} {:10s} {:20s} {:20s} {:20s} {:10s}'
-            line_evol_title = etfmt.format('ntime'.rjust(10), 'time'.rjust(10), 'particles_number'.rjust(20), 'deltaT'.rjust(10), 'restrict_factor'.rjust(20))
+            line_evol_title = etfmt.format('ntime'.rjust(10), 'time'.rjust(10), 'particles_number'.rjust(20), 'deltaT'.rjust(10), 'restrict_factor'.rjust(20), 'conditions'.rjust(7))
             line_jump_title = jtfmt.format('njump'.rjust(10), 'time_begin_jump'.rjust(20), 'time_jumped_over'.rjust(20), 'jump_retrict_factor'.rjust(30))
             line_plan_title = ptfmt.format('time'.rjust(10), 'planet_num'.rjust(10), 'planet_max_jumpT'.rjust(20), 'location'.rjust(20), 'mass'.rjust(20), 'acc_rate'.rjust(10))
             titles = [line_evol_title, line_plan_title, line_jump_title]
@@ -758,8 +761,9 @@ class System(object):
             Npts = len(planet.planetMassData)
 
             # if the planet cross the inner edge, then the accretion is False
-            if planet.loc< self.rinn*(1-0.97):
+            if planet.loc< self.rinn*(1-0.03):
                 planet.accretion =False
+
             #the interval time of accretion, if the inteval time is too long, then we can say the planet will no longer accrets
             #if Npts >=1:
             #    t_inteval = self.time - planet.planetMassData[-1][0]
@@ -1029,6 +1033,8 @@ class System(object):
         else:
             con2 = (jumpT>(self.time-self.timeL[0])*100/len(self.timeL))
         
+        #initial relaxation time
+        con3 = self.Moutflux>0.4*self.minitDisk
 
         #if self.ntime%1000==0: 
         #    print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
@@ -1051,13 +1057,13 @@ class System(object):
 
             self.doJump = con1 & con2 &con3
         else:
-            #initial relaxation time
-            con3 = self.Moutflux>0.4*self.minitDisk
             self.doJump = con0 & con1 & con2 & con3
 
         
         #print([con0,con1,self.mintimeL[1:], self.time/cgs.yr]) 
         djump = {'jumpT':jumpT, 'tjumpkeys':tjumpkeys, 'tjumparr':tjumparr}
+
+        self.con_Jump = [con0, con1, con2, con3]
 
         return djump
 
@@ -1286,7 +1292,7 @@ def advance_planets (system):
                             weightL.append(p.mass*p.loc**0.5)
 
                         #joint migration timescale
-                        if 0.0 in invtmigL:
+                        if 0.0 in invtmigL and False:
                             invmigtime =0.
                         else:
                             invmigtime = np.sum(np.array(weightL)*np.array(invtmigL)) /np.sum(np.array(weightL))
