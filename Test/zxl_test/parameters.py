@@ -9,7 +9,7 @@ dsystempars = {'timeini': 0.0,
                'rhoPlanet': 1.9}
 
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
-                'nini':200,
+                'nini':700,
                 'initrule':'equallogspace'}  #initial number of particles
 
 #[24.01.08]LZX: don't know whether this is a good idea
@@ -28,10 +28,10 @@ jumpfracD={'general': 0.2,
 dgasgrid = {'rinn':5.89*cgs.RJ,'rout':100*cgs.RJ}
 gasmodel = 'prescribed'
 
-dgasprop = {'alpha': 1e-4, 
+dgasprop = {'alpha': 0.5e-4, 
             'frac': 0.2/1.5, # the accretion mass with unit: M_J/Myr
             'dgratio': 0.0016,
-            'rgg': 1.705e-7,
+            'rgg': 0.88e-7,
             'Mcp0':0.4*cgs.MJ,
             'meanmol': 2.34,
             'sigmol':2e-15,
@@ -47,7 +47,7 @@ vc = {'icy': 5.e3,
       'silicates': 5.e2}
 
 resampleMode = 'splitmerge' #'Nplevel'
-dresample = {'fdelS':0.02,'fdelM':0.005}
+dresample = {'fdelS':0.04,'fdelM':0.005}
 doJump = True
 doPlanets = True
 doIcelines = True

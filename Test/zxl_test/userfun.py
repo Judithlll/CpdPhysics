@@ -134,7 +134,7 @@ def dm_dt(Rd, delv, Hd, sigD, fcomp):
 def epsilon_PA (planetLoc,planetMass,cross_p):
     """
     Get the pebble accretion rate
-    """
+    #"""
 
     St = cross_p.St
     eta = cross_p.eta
@@ -178,7 +178,7 @@ def init_planets ():
     #fcomp = fcomp /sum(fcomp)
 
     #return lists for the N-planets we have 
-    timeL = [0.4e6*cgs.yr, 1.5e6*cgs.yr, 1.7e6*cgs.yr, 1.8e6*cgs.yr] 
+    timeL = [0.4e6*cgs.yr, 1.5e6*cgs.yr, 1.7e6*cgs.yr, 1.9e6*cgs.yr] 
     #some things wrong with the initial location is set to the out edge
     #about particles number
     locationL = [50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup, 50*cgs.rJup] 
@@ -712,15 +712,19 @@ class Data(object):
             locL = np.array([5.89, 9.38, 15.0, 26.3])*cgs.RJ
             massL = np.array([0.893, 0.480, 1.48, 1.08])*1e26 
             fcompL = np.array([0., 0.08, 0.47, 0.52])
+            nameL = ['I', 'E', 'G', 'C']
 
 
-            fig, ax1 = plt.subplots(figsize=(10,10))
+            fig, ax1 = plt.subplots(figsize=(10,9))
+            fig.subplots_adjust(bottom=0)
             #fig.subplots_adjust(right=0.95)
-            ax1.set_title('Time: {:.4f}Myr'.format(time/cgs.yr/1e6),loc='left')
-            ax1.set_ylabel(r'Satellites Mass $[M_{Gany}]$')
-            ax1.set_ylim(1.e23/massL[2], 1.e27/massL[2])
+            ax1.set_title('Time: {:.2f}Myr'.format(time/cgs.yr/1e6),loc='left')
+            ax1.set_xlabel('Location $[R_J]$')
+            ax1.set_ylabel(r'Satellites Mass $[M_{\oplus}]$')
+            ax1.set_ylim(1.e23/cgs.Mea, 1.e27/cgs.Mea)
             ax1.set_yscale('log')
             ax1.set_xscale('log')
+            
 
             #define the colorbar 
             cmap = LinearSegmentedColormap.from_list(
@@ -728,11 +732,12 @@ class Data(object):
                 N=256
             )
             #plot the Gealian Satellites 
-            dotsize = 4*(massL/Pmass_0)**(1/3)
-            for loc in locL:
+            dotsize = 16*(massL/Pmass_0)**(1/3)
+            for i,loc in enumerate(locL):
                 ax1.axvline(loc/cgs.RJ, color = 'black', linestyle='dashed', alpha = 0.3)
-            sca=ax1.scatter(locL/cgs.RJ, massL/massL[2], s = dotsize, c =fcompL, cmap =cmap ,vmin=0.0,vmax=0.5, alpha =1)
-            ax1.scatter(locL/cgs.RJ, massL/massL[2], s = 3*dotsize, facecolor ='none', edgecolor='black' )
+                ax1.text(loc/cgs.RJ, massL[i]/cgs.Mea, nameL[i], fontsize=20, ha='left', va='center')
+            #sca=ax1.scatter(locL/cgs.RJ, massL/cgs.Mea, s = dotsize, c =fcompL, cmap =cmap ,vmin=0.0,vmax=0.5, alpha =1)
+            #ax1.scatter(locL/cgs.RJ, massL/cgs.Mea, s = 3*dotsize, facecolor ='none', edgecolor='black' )
 
             #radL = self.radD[time]
             #redgeL = np.array([dp.rinn]+ [np.sqrt(radL[i]*radL[i+1]) for i in range(len(radL)-1)]+[dp.rout])
@@ -760,18 +765,18 @@ class Data(object):
                                                                    '{:.2f}'.format(self.icelinesloc[time][0]/cgs.RJ)])
 
             #plot the special locations in the disk:[inner egde, iceline]
-            ax1.axvline(dp.rinn/cgs.RJ, color = 'black', linewidth = 1, label = 'inner edge')
+            ax1.axvline(dp.rinn/cgs.RJ, color = 'black', linewidth = 1, linestyle= 'dotted', label = 'inner edge')
             ax1.axvline(self.icelinesloc[time][0]/cgs.RJ, color = 'blue', linestyle = 'dashed',label = 'Iceline')
             
             #to make a legend and colorbar with a totoally transparent dot 
             sca=ax1.scatter(0,0, c=0.1, cmap=cmap,vmin=0.0,vmax=0.5)
             if not np.isnan(self.planetsloc[time]).all():
-                dotsize = 4*(np.array(self.planetsmass[time])/Pmass_0)**(1/3) # need to be modified
-                sca=ax1.scatter(np.array(self.planetsloc[time])/cgs.RJ, self.planetsmass[time]/massL[2], s = dotsize, c =np.array(self.planetsfcomp[time])[:,1], cmap =cmap ,vmin=0.0,vmax=0.5, alpha =1)
+                dotsize = 16*(np.array(self.planetsmass[time])/Pmass_0)**(1/3) # need to be modified
+                sca=ax1.scatter(np.array(self.planetsloc[time])/cgs.RJ, np.array(self.planetsmass[time])/cgs.Mea, s = dotsize, c =np.array(self.planetsfcomp[time])[:,1], cmap =cmap ,vmin=0.0,vmax=0.5, alpha =1)
 
 
-            fig.colorbar(sca, label=r'Water Fraction [%]',orientation='horizontal')
-            fig.legend(loc='upper right')
+            fig.colorbar(sca, label=r'Water Fraction [%]',orientation='horizontal',pad =0.1)
+            ax1.legend(loc='upper right')
             fig.savefig('./plot/satepart/{}.jpg'.format(time/cgs.yr))
             plt.close()
 
@@ -948,8 +953,8 @@ class Data(object):
         plt.savefig('./plot/disk_properties.jpg')
         plt.close()
     
-    def plot_pebble_Sigma(self, tL, mode = 'particle'):
-        timeL =tL + dp.tgap
+    def plot_pebble_Sigma(self, tL, mode = 'grid'):
+        timeL =tL
         
         plt.figure()
         plt.title('pebble surface density')
@@ -961,7 +966,7 @@ class Data(object):
 
             plt.yscale('log')
             plt.xscale('log')
-            plt.ylim(1e-5,10)
+            plt.ylim(1e-3,10)
             for time in timeL:
                 tidx = np.argmin(np.abs(self.timeL-time))
                 ti = self.timeL[tidx]
@@ -975,13 +980,12 @@ class Data(object):
                 sigma = mtot /(2*np.pi*loc*warr)
                     
                 plt.plot(loc/cgs.rJup, sigma, 'x-', label = str('{:7.2f}'.format(time/cgs.yr)))
-                #dotMd = dp.dot_Mg(ti)*dp.ratio
-                #loc = self.radD[ti]
-                #v_r = self.v_rD[ti]
+                dotMd = dp.dot_Mg(ti)*dp.ratio
+                v_r = self.v_rD[ti]
 
 
-                #sigmaP = dotMd/(2*np.pi*loc*(-v_r))
-                #plt.plot(loc/cgs.rJup, sigmaP, label = 'particles'+"{:.2f}".format(ti/cgs.yr) )
+                sigmaP = dotMd/(2*np.pi*loc*(-v_r))
+                plt.plot(loc/cgs.rJup, sigmaP, label = 'particles'+"{:.2f}".format(time/cgs.yr) )
                 #sigmaP = np.array([])
                 #for i in range(len(loc)-1):
                 #    invo_idx = np.argwhere((grids>loc[i]) &(grids<loc[i+1])) 

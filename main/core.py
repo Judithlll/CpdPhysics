@@ -349,6 +349,21 @@ class System(object):
         self.particles.get_auxilary(self.disk)
 
         self.minitDisk = sum(self.particles.mtotL)
+
+        ##TBD: check the surface density
+        #loc = self.particles.locL
+        #sigG, *dum = self.gas.get_key_disk_properties(loc,0.0)
+
+        #sigP = sigG *0.01
+
+        #mtot = self.particles.mtotL
+        #boundaries = np.sqrt(loc[1:]*loc[:-1])
+        #boundaries = np.append(dp.rinn,boundaries)
+        #boundaries = np.append(boundaries,dp.rout)
+        #warr = np.diff(boundaries)
+        #sigma = mtot /(2*np.pi*loc*warr)
+
+        #import pdb; pdb.set_trace()
         
 
 
@@ -1292,7 +1307,7 @@ def advance_planets (system):
                             weightL.append(p.mass*p.loc**0.5)
 
                         #joint migration timescale
-                        if 0.0 in invtmigL and False:
+                        if 0.0 in invtmigL:
                             invmigtime =0.
                         else:
                             invmigtime = np.sum(np.array(weightL)*np.array(invtmigL)) /np.sum(np.array(weightL))
@@ -1652,9 +1667,16 @@ class Superparticles(object):
 
         ## CWO: surface density should follow from position of the Lagrangian particles...
         #get sigD from simulation itself
-        #sigD = physics.sigma_D(self.mtotL, loc, dp.rinn, dp.rout)
-        
+        #sigD1 = physics.sigma_D(self.mtotL, loc, dp.rinn, dp.rout)
+        #loc_edge = np.array([dp.rinn]+
+        #                list(np.sqrt(self.locL[:-1]*self.locL[1:]))+
+        #                [dp.rout])
+        #occ_space = np.diff(loc_edge)
+        #sigD = self.mtotL/(2*np.pi*self.locL*occ_space)  
         sigD = self.dot_Md(time) /(-2*loc*np.pi*self.v_r) #v_r<0
+        #plt.plot(sigD1,'x-')
+        #plt.plot(sigD)
+        #plt.show()
 
         #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..
         delv = userfun.del_v (self.St, self)
