@@ -46,6 +46,7 @@ tmax = 14.3e6*cgs.yr
 vc = {'icy': 5.e3,
       'silicates': 5.e2}
 
+sfdmode = 'steady'
 resampleMode = 'splitmerge' #'Nplevel'
 dresample = {'fdelS':0.04,'fdelM':0.005}
 doJump = True

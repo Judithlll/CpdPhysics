@@ -17,3 +17,5 @@ resampleMode = None
 dresample = {fdelS:0.04;fdelM:0.01}
 
 #saveDir = Data
+
+sfdmode = simple

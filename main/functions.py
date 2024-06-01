@@ -172,6 +172,26 @@ def get_stokes_number(disk,t,sPLmtot,rhoint):
     St,v_r = St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd) 
     return St
 
+
+def sfd_simple (msup, loc):
+    """
+    calculate the surface density at i based on the distance
+    between i-1 and i+1
+    """
+
+    wdel = 0.5*np.log(loc[2:]/loc[:-2])
+
+    #[22.08.19]added this hack to prevent the 
+    #traffic jam at the inner boundary
+    w0 = max(np.log(loc[1]/loc[0]), 0.5*np.log(loc[2]/loc[0]) )
+
+    #extrapolate end points
+    wdel = np.concatenate(([w0], wdel, [np.log(loc[-1]/loc[-2])]))
+
+    sfd = msup /(2*np.pi *loc**2) /wdel
+    return sfd
+
+
 def dotMgTscale(radL,deltaTL):
     """
     calculate the time scale of mass flux

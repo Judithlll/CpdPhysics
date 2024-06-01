@@ -176,7 +176,7 @@ class System(object):
                     #also we need to get other properties of particles 
                     #idea is make an function to get all these auxiliary
                     self.get_disk()
-                    self.particles.get_auxilary(self.disk)
+                    self.particles.get_auxiliary(self.disk, self.time)
                     self.particles.make_Y2d()
                 else:
                     print('some crossing caused by resampling')
@@ -346,7 +346,7 @@ class System(object):
 
         self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
         self.get_disk()
-        self.particles.get_auxilary(self.disk)
+        self.particles.get_auxiliary(self.disk, self.time)
 
         self.minitDisk = sum(self.particles.mtotL)
 
@@ -625,7 +625,7 @@ class System(object):
         mintimeL = []
         
         self.get_disk() 
-        self.particles.get_auxilary(self.disk)
+        self.particles.get_auxiliary(self.disk, self.time)
         #self.particles.make_Y2d()
         Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time)
 
@@ -1600,7 +1600,7 @@ class Superparticles(object):
 
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
 
-    def get_auxilary(self,disk):
+    def get_auxiliary (self, disk, time):
         userparL = disk.add_uservar (dp.user_add_var())    #variables
         userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
 
@@ -1616,12 +1616,21 @@ class Superparticles(object):
                                  Rd,
                                  Sto=self.stokesOld)
 
-        dauxi = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg} 
+        if pars.sfdmode=='simple':
+            #adds the surface to the particles
+            sfd = ff.sfd_simple (self.mtotL, self.locL)
+        elif pars.sfdmode=='steady':
+            sfd = disk.dot_Md(time) /(-2*self.locL*np.pi*v_r) #v_r<0
+        else:
+            sfd = None
+
+        dauxi = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg, 'sfd':sfd} 
         for key in userparL+userevalL+userfuncL:
             dauxi[key] = getattr(disk, key)
 
         for key,val in dauxi.items():
             setattr(self, key, val)
+
 
     def dY2d_dt (self,Y2d,time):
         """
@@ -1673,7 +1682,7 @@ class Superparticles(object):
         #                [dp.rout])
         #occ_space = np.diff(loc_edge)
         #sigD = self.mtotL/(2*np.pi*self.locL*occ_space)  
-        sigD = self.dot_Md(time) /(-2*loc*np.pi*self.v_r) #v_r<0
+        #sigD = self.dot_Md(time) /(-2*loc*np.pi*self.v_r) #v_r<0
         #plt.plot(sigD1,'x-')
         #plt.plot(sigD)
         #plt.show()
@@ -1682,7 +1691,7 @@ class Superparticles(object):
         delv = userfun.del_v (self.St, self)
         
         #TBD: provide the composition as an argument (in general way)
-        dmdt = userfun.dm_dt (self.Rd, delv, Hd, sigD, self.fcomp)
+        dmdt = userfun.dm_dt (self.Rd, delv, Hd, self.sfd, self.fcomp)
 
         Y2ddt = np.zeros_like(Y2d)
         Y2ddt[0] = drdt
@@ -1711,7 +1720,7 @@ class Superparticles(object):
         
         tSpan=np.array([t0,tFi])
         tstep=(tFi-t0)/nstep
-        #self.get_auxilary(disk) 
+        #self.get_auxiliary(disk) 
         Y2copy = np.copy(self.Y2d)
 
         #integrates system to tFi
