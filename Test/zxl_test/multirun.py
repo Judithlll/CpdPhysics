@@ -53,13 +53,13 @@ for par in parL:
     #3. change the name of pickles according to the parameters used 
     dirname = './pickles/{}+{}'.format(parname, par)
     sp.run(['mkdir', dirname])
-    sp.run(['mv', './pickles/data.pickle', '{}/data.pickle'.format(dirname)])
-    sp.run(['mv', './pickles/system.pickle', '{}/system.pickle'.format(dirname)])
-    sp.run(['cp', './parameters.py', '{}/parameters.py'.format(dirname)])
+    sp.run(['mv', './pickles/data.pickle', dirname+'/data.pickle'])
+    sp.run(['mv', './pickles/system.pickle', dirname+'/system.pickle'])
+    sp.run(['cp', './parameters.py', dirname+'/parameters.py'])
     print('[multirun]: the pickles and parameters have been put in the specifical directory' )
 
     #plot the multi parameter figure
-    sp.run(['python', 'plot.py'])
+    #sp.run(['python', 'plot.py'])
 #TBD: change some parameters at one time 
 #TBD: plot multi parameters figures. 
 

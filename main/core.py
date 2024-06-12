@@ -204,7 +204,7 @@ class System(object):
         efmt = '{:10d} {:10.2f} {:20d} {:10.2e} {:20s}'       
         jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
     
-        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20))+''.join('{:7s}'.format(str(con).rjust(7)) for con in self.con_Jump)
+        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num,self.deltaT, nameM.rjust(20))+''.join('{:7s}'.format(str(con).rjust(7)) for con in self.con_Jump)
 
         #line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20)) 
 

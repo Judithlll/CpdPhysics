@@ -5,6 +5,7 @@
 *.png
 *.mp4
 *.gif
+*.log
 log/
 plot/
 pickles/
