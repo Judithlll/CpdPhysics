@@ -1,7 +1,7 @@
 import numpy as np
 import subprocess as sp
 import shutil
-#import cv2
+import cv2
 import random
 import fileio
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ import copy
 import parameters as pars     
 #import imageio.v2 as imageio
 import os
-#import pandas as pd
+import pandas as pd
 import parameters as pars
 import disk_properties as dp
 import physics
@@ -190,7 +190,7 @@ def init_planets ():
 def init_compos (material):
     dcompos = {}
     if material=='silicates':
-        dcompos['Zinit'] = 0.001 #cwo made smaller by factor 10
+        dcompos['Zinit'] = 0.001  #cwo made smaller by factor 10
     elif material=='H2O':
         dcompos['name'] = 'H2O'
         dcompos['Zinit'] = 0.001
@@ -257,6 +257,7 @@ class Data(object):
         self.fcompD={}
         self.v_rD = {}
         self.StD = {}
+        self.sfd = {}
         self.cumulative_change={'remove':[],'add':0}
         self.planetsmass = {}
         self.planetsloc = {}
@@ -291,6 +292,7 @@ class Data(object):
         self.mD.setdefault(time, system.particles.massL)
         self.mtotD.setdefault(time, system.particles.mtotL)
         self.fcompD.setdefault(time, system.particles.fcomp)
+        self.sfd.setdefault(time, system.particles.sfd)
         self.dactionD.setdefault(time, system.daction)
         try: 
             self.v_rD[time]=system.particles.v_r
@@ -711,12 +713,12 @@ class Data(object):
 
             locL = np.array([5.89, 9.38, 15.0, 26.3])*cgs.RJ
             massL = np.array([0.893, 0.480, 1.48, 1.08])*1e26 
-            fcompL = np.array([0., 0.08, 0.47, 0.52])
+            #fcompL = np.array([0., 0.08, 0.47, 0.52])
             nameL = ['I', 'E', 'G', 'C']
 
 
             fig, ax1 = plt.subplots(figsize=(10,9))
-            fig.subplots_adjust(bottom=0)
+            fig.subplots_adjust(bottom=0,top=0.95)
             #fig.subplots_adjust(right=0.95)
             ax1.set_title('Time: {:.2f}Myr'.format(time/cgs.yr/1e6),loc='left')
             ax1.set_xlabel('Location $[R_J]$')
@@ -761,9 +763,11 @@ class Data(object):
             ax2.set_yscale('log')
             ax2.plot(self.radD[time]/cgs.rJup, self.StD[time], color='black',alpha=0.3, linewidth=1)
             ax2.scatter(self.radD[time]/cgs.RJ, self.StD[time], s=np.where(self.radD[time]>self.icelinesloc[time][0], 4,2), c=np.where(self.radD[time]>self.icelinesloc[time][0], 'blue', 'gray'))
-            ax2.set_xticks([dp.rinn/cgs.RJ,self.icelinesloc[time][0]/cgs.RJ],['{:.2f}'.format(dp.rinn/cgs.RJ),
-                                                                   '{:.2f}'.format(self.icelinesloc[time][0]/cgs.RJ)])
+            ax2.set_xticks([dp.rinn/cgs.RJ,self.icelinesloc[time][0]/cgs.RJ, 10.,20.,50.],
+                           ['{:.2f}'.format(dp.rinn/cgs.RJ),
+                            '{:.2f}'.format(self.icelinesloc[time][0]/cgs.RJ), '','20','50'])
 
+            ax1.tick_params(axis='both', which='major', length=7, width=1) 
             #plot the special locations in the disk:[inner egde, iceline]
             ax1.axvline(dp.rinn/cgs.RJ, color = 'black', linewidth = 1, linestyle= 'dotted', label = 'inner edge')
             ax1.axvline(self.icelinesloc[time][0]/cgs.RJ, color = 'blue', linestyle = 'dashed',label = 'Iceline')
@@ -860,7 +864,7 @@ class Data(object):
         time = np.array(list(self.planetsloc.keys()))
         
         planetst = 0.8e6*cgs.yr
-        plt.ylim(planetst/cgs.yr,30e6)
+        plt.ylim(planetst/cgs.yr,20e6)
         stidx = np.argwhere(time>planetst)[0][0]
         
         dotssize = masslist/np.nanmin(masslist)*0.1
@@ -972,6 +976,7 @@ class Data(object):
                 ti = self.timeL[tidx]
                 mtot = self.mtotD[ti]
                 loc = self.radD[ti] #ordered
+                sfd = self.sfd[ti]
 
                 boundaries = np.sqrt(loc[1:]*loc[:-1])
                 boundaries = np.append(dp.rinn,boundaries)
@@ -979,13 +984,13 @@ class Data(object):
                 warr = np.diff(boundaries)
                 sigma = mtot /(2*np.pi*loc*warr)
                     
-                plt.plot(loc/cgs.rJup, sigma, 'x-', label = str('{:7.2f}'.format(time/cgs.yr)))
-                dotMd = dp.dot_Mg(ti)*dp.ratio
-                v_r = self.v_rD[ti]
+                #plt.plot(loc/cgs.rJup, sigma, 'x-', label = str('{:7.2f}'.format(time/cgs.yr)))
+                #dotMd = dp.dot_Mg(ti)*dp.ratio
+                #v_r = self.v_rD[ti]
 
 
-                sigmaP = dotMd/(2*np.pi*loc*(-v_r))
-                plt.plot(loc/cgs.rJup, sigmaP, label = 'particles'+"{:.2f}".format(time/cgs.yr) )
+                #sigmaP = dotMd/(2*np.pi*loc*(-v_r))/len(fcomp[0])*np.count_nonzero(fcomp,axis=1)
+                plt.plot(loc/cgs.rJup, sfd, label = 'particles'+"{:.2f}".format(time/cgs.yr) )
                 #sigmaP = np.array([])
                 #for i in range(len(loc)-1):
                 #    invo_idx = np.argwhere((grids>loc[i]) &(grids<loc[i+1])) 
@@ -1027,7 +1032,7 @@ class Data(object):
         plt.ylim(1e-6, 1)
         plt.xlabel('Distance from the planet [$R_J$]')
         plt.ylabel('Stokes number')
-        color = ['blue', 'red', 'green']
+        color = ['blue', 'm', 'green']
         labels=[r'$4\times 10^6  yrs$',r'$5\times 10^6  yrs$',r'$6\times 10^6  yrs$']
         for i,time in enumerate(timeL):
             tidx = np.argmin(np.abs(self.timeL-time))
@@ -1042,12 +1047,12 @@ class Data(object):
             #sigG, T = self.gas.get_key_disk_properties(loc_new, time)[0:2]
             #St_new = 0.23*(2/(3+2*p+q))**(4/5)*(10/(18-39*q))**(2/5)*(dp.ratio/0.003)**(2/5)*(dp.alpha/1e-4)**(1/5)*(T/160)**(-2/5)*(dp.Mcp_t(time)/cgs.MJ)**(2/5)*(loc_new/10/cgs.RJ)**(-2/5)
             
-            plt.plot(loc/cgs.rJup, St, '.-',label = "{:.2f}".format(time/cgs.yr), color =color[i])
+            plt.plot(loc/cgs.rJup, St, '.-',label = "{:.2f}".format(time/cgs.yr))
             #plt.plot(loc_new/cgs.rJup, St_new, '--',label = "{:.2f}_powerlaw".format(ti/cgs.yr))
             #for i,loc in enumerate(self.planetsloc[ti]): 
             #    plt.axvline(loc/cgs.rJup, linestyle='dashed', color='gray')
             
-            plt.axvline(self.icelinesloc[ti][0]/cgs.RJ, linestyle = 'dotted', color =color[i])
+            plt.axvline(self.icelinesloc[ti][0]/cgs.RJ, linestyle = 'dotted')
         plt.legend()
         plt.savefig(savepath+'St{:.2f}.jpg'.format(time/cgs.yr))
         plt.close()

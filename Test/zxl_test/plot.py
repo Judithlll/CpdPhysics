@@ -20,16 +20,15 @@ system = fileio.load_class('./pickles/','system.pickle')
 
 
 #data[0].plot_planet_evolution()
-#data[0].plot_peff_log()
+data[0].plot_peff_log()
 #data[0].plot_iceline()
-#data[0].plot_growth_timescale()
+data[0].plot_growth_timescale()
 #data[0].plot_satepart()
 #data[0].plot_disk(np.array([0.0,1e6,10e6])*cgs.yr)
-data[0].plot_pebble_Sigma(tL =np.array(np.array([0.1e4,3e6])*cgs.yr))
+data[0].plot_pebble_Sigma(tL =np.array(np.array([1e6,5e6,9e6])*cgs.yr))
 
-stop
 
-#data[0].plot_St(tL =np.array(np.array([0.3e6,3e6])*cgs.yr))
+data[0].plot_St(tL =np.array(np.array([1e6,5e6,9e6])*cgs.yr))
 data[0].make_animation(mp4name= 'satepart.mp4', path='./plot/satepart')
 #data[0].plot_St_t()
 #data[0].make_animation(mp4name= 'St_t.mp4',path='./plot/St_t')

@@ -28,7 +28,7 @@ jumpfracD={'general': 0.2,
 dgasgrid = {'rinn':5.89*cgs.RJ,'rout':100*cgs.RJ}
 gasmodel = 'prescribed'
 
-dgasprop = {'alpha': 0.5e-4, 
+dgasprop = {'alpha':5e-05, 
             'frac': 0.2/1.5, # the accretion mass with unit: M_J/Myr
             'dgratio': 0.0016,
             'rgg': 0.88e-7,
@@ -39,12 +39,12 @@ dgasprop = {'alpha': 0.5e-4,
             'tgap': 1.e6*cgs.yr
             }
 
-#tmax = 12018782.555918233*cgs.yr
-tmax = 14.3e6*cgs.yr
+tmax = 347140156224193.44 
 
 #critical velocity for fragmentation
-vc = {'icy': 5.e3,
-      'silicates': 5.e2}
+vc={'icy': 5.e3,
+    'silicates': 5.e2, 
+    }
 
 sfdmode = 'steady'
 resampleMode = 'splitmerge' #'Nplevel'

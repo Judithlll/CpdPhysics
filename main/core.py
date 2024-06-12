@@ -204,7 +204,7 @@ class System(object):
         efmt = '{:10d} {:10.2f} {:20d} {:10.2e} {:20s}'       
         jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
     
-        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20))+''.join('{:7s}'.format(str(con).rjust(7)) for con in self.con_Jump)
+        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20))+''.join('{:7s}'.format(str(con).rjust(7)) for con in self.con_Jump)
 
         #line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20)) 
 
@@ -1049,7 +1049,9 @@ class System(object):
             con2 = (jumpT>(self.time-self.timeL[0])*100/len(self.timeL))
         
         #initial relaxation time
-        con3 = self.Moutflux>0.4*self.minitDisk
+        #[24.06.10]LZX: consider the iceline effect, the outflux should be larger 
+        #than the total silicate mass
+        con3 = self.Moutflux>self.particles.fcompini[0]*self.minitDisk
 
         #if self.ntime%1000==0: 
         #    print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
@@ -1307,6 +1309,8 @@ def advance_planets (system):
                             weightL.append(p.mass*p.loc**0.5)
 
                         #joint migration timescale
+                        #TBD: this should not be like this, should get from the initial 
+                        #magnetic field, make this an option
                         if 0.0 in invtmigL:
                             invmigtime =0.
                         else:
@@ -1618,9 +1622,12 @@ class Superparticles(object):
 
         if pars.sfdmode=='simple':
             #adds the surface to the particles
-            sfd = ff.sfd_simple (self.mtotL, self.locL)
+            sfd = ff.sfd_simple (self.mtotL, self.locL)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
         elif pars.sfdmode=='steady':
-            sfd = disk.dot_Md(time) /(-2*self.locL*np.pi*v_r) #v_r<0
+            sfd = disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
+            #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
+            #import pdb;pdb.set_trace()
+
         else:
             sfd = None
 

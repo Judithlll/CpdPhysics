@@ -75,13 +75,13 @@ def M_influx(t0,tEnd):
     # Minflux=ratio*dotMg_gap()*tdep*(np.exp(tgap/tdep) -np.exp(-(t-tgap)/tdep))
     return Minflux
 
-def dot_Md(time):
+def dot_Md (time):
     """
     get the solid mass flow
 
     ratio: the dust to gas ratio
     """
-    Mfd=ratio*dot_Mg(time)
+    Mfd = ratio*dot_Mg(time)
     return Mfd
 
 def v_K(r,t):
