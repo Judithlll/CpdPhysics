@@ -4,7 +4,7 @@ import numpy as np
 ## A very simple PPD...
 
 rinn = 0.1 *cgs.au
-rout = 100 *cgs.au
+rout = 800 *cgs.au
 
 #this is necessary apparently...
 #sigmol=2e-15
@@ -48,8 +48,8 @@ def key_disk_properties (rad, t, dold=None):
 
 def eta (disk):
     #eq.20 YS
-    #hgas = 0.033 *(disk.loc/cgs.au)**0.25
-    hgas = disk.cs/disk.vK
+    #hgas = disk.cs/disk.vK
+    hgas = 0.033 *(disk.loc/cgs.au)**0.25
     return 1.6 *hgas**2
 
 def m_gas (rad):

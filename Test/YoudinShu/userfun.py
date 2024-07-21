@@ -4,6 +4,52 @@ import subprocess as sp
 import physics
 import pylab as pl
 
+def init_compos_Z (material):
+    """
+    set the initial composition of the disk Z
+
+    this is a 2D array, such that Z(i,j) gives
+    the composition of particle i for species j
+    """
+
+    #repackage
+    rc = 200*cgs.au
+    if material=='silicates':
+        def f_compos (rad):
+            Zsil = 0.007 *np.exp(-(rad/rc)**2)
+            return Zsil
+
+    return f_compos
+
+
+def init_compos (compos):
+    dcompos = {}
+    if compos=='silicates':
+        dcompos['Z_init'] = init_compos_Z (compos)
+
+    return dcompos
+
+
+def g_r (rad, gas, d=1.5):
+    Z_0 = init_compos_Z ('silicates')
+    Z0 = Z_0(rad)
+
+    sig0, temp, mmw = gas.get_key_disk_properties(rad,0.0)
+    #sig0, mmw = disk.sigma_gas_ini (rad)
+    #sig0 = Z0*disk.sigma_gas_ini (rad)
+    return rad**(d+1) *sig0*Z0
+
+
+def sigma_rt (rad, vdr, time, gas, d=1.5):
+    """
+    Youdin & Shu solution
+    """
+    ri = rad *(1 -(d-1)*vdr*time/rad)**(-1/(d-1))
+    sig = rad**(-d-1) *g_r(ri,gas)
+    return sig
+
+
+
 def do_stuff (system, init=False, final=False):
     global iplot, tplot, fg, ax
 
@@ -23,6 +69,10 @@ def do_stuff (system, init=False, final=False):
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
         print(line)
 
+        #sfmt = '{:10.3e} {:10.3e} {:10.3e}'        
+        #line = sfmt.format(system.time, system.particles.v_r[-1], system.particles.locL[-1]/cgs.au)
+        #print(line)
+
         #if len(system.messages.msgL)>0: import pdb; pdb.set_trace()
 
         if system.time>=tplot[iplot]:
@@ -33,8 +83,15 @@ def do_stuff (system, init=False, final=False):
             ax.loglog(system.particles.locL/cgs.au, system.particles.sfd, '.', 
                         ms=2, lw=0.5, c=colL[iplot])
 
+            sigana = sigma_rt (system.particles.locL, -system.particles.v_r, system.time, system.gas)
+
+            ax.loglog(system.particles.locL/cgs.au, sigana, c='k', lw=0.5)
+            ax1.semilogx(system.particles.locL/cgs.au, system.particles.sfd/sigana-1, c=colL[iplot], lw=0.5)
+            ax2.semilogx(system.particles.locL/cgs.au, system.particles.sfd/sigana-1, c=colL[iplot], lw=0.5)
+
             for aa in [ax,ax1]:
                 aa.set_xlim(0.4, 250)
+
 
             ax.set_ylim(1e-3, 2e3)
             ax1.set_ylim(-0.1, 0.1)

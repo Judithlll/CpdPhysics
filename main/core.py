@@ -345,6 +345,7 @@ class System(object):
         """
 
         #[24.07.21]CWO: not sure if we need dp.rout here...
+        #               this self.rinn and dp.rout is weird...
 
         self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
         self.get_disk()
@@ -368,7 +369,6 @@ class System(object):
         #import pdb; pdb.set_trace()
         
 
-
     def init_gas (self, gasL=None, dcomposL=None, dgrid={}):
         """
         init_gas is called at initialization. It adds an instance of the GAS class
@@ -385,8 +385,8 @@ class System(object):
             dgas = {}
 
         dum = GAS (gasL, dcomposL, mode=pars.gasmodel, time=self.time, **dgas)
-
         return dum
+
 
     def get_disk (self):
 
@@ -401,21 +401,20 @@ class System(object):
         """
         Integrate the particles forward by amount deltaT
 
-        Evolving system to the self.time
+        Evolving system to self.time
         """
         # prevent the large value 'eats' the small value
         if self.deltaT/self.time <1e-15:
             import pdb;pdb.set_trace()
         
-            
         Yt = self.particles.update(self.time,self.time+self.deltaT,self.disk,timestepn)
-
 
         if self.time==np.nan or self.deltaT==np.nan:
             print('hello')
             import pdb;pdb.set_trace()
 
         return Yt
+
 
     def back_up_last_data(self):
         """
@@ -968,7 +967,7 @@ class System(object):
 
         #determine next timestep
         deltaT = deltaTfraction *min(self.minTimes.tminarr)
-        
+
         #limit increase of deltaT to (some number)
         if self.ntime>0:
             deltaT = min(deltaT, self.oldstate.deltaT*1.01)
@@ -1616,8 +1615,11 @@ class Superparticles (object):
 
         if pars.dragmodel=='Epstein':
             St = physics.Stokes_Epstein (Rd, self.rhoint, disk.vth, disk.rhog, disk.OmegaK)
-            v_r = physics.radial_v (St, disk.eta, disk.vK)
+            St *= np.sqrt(8/np.pi) #difference b/w sound speed and thermal velocity
 
+            #this is how Youdin & Shu do it..
+            v_r = -2*St *disk.eta *disk.vK
+            
         else:#default
             #[24.07.21]cwo: what is done with the internal density of the particles (self.rhoint)?
             #obtain Stokes number by iterating on drag law
@@ -1731,24 +1733,46 @@ class Superparticles (object):
         #    return Y2ddt  
         return Y2ddt
     
-    def update (self,t0,tFi,disk,nstep=10):
+
+    def update (self,t0,tn,disk,nstep=10):
         """
-        this integrate the particles until tFi
+        this integrate the particles until tn
         disk: disk object
         """
 
-        
-        tSpan=np.array([t0,tFi])
-        tstep=(tFi-t0)/nstep
-        #self.get_auxiliary(disk) 
-        Y2copy = np.copy(self.Y2d)
+        Y0 = np.copy(self.Y2d)
+        delt = tn -t0
 
-        #integrates system to tFi
-        Yt = ode.ode(self.dY2d_dt,Y2copy,tSpan,tstep,'RK5')
+        if pars.dtimesteppars['itgmethod']=='Euler':
+            Yn = Y0 +self.dY2d_dt (Y0, t0) *delt
 
-        # self.mtotL=Yt[-1,2,:] #no longer updated
-        self.locL = Yt[-1,0,:]
-        self.massL =Yt[-1,1,:]
+            self.locL = Yn[0]
+            self.massL = Yn[1]
+
+        elif pars.dtimesteppars['itgmethod']=='Heun':
+            Y1 = Y0 +self.dY2d_dt (Y0, t0) *delt #predictor
+
+            #cwo: not entirely sure if all properties in self are automatically updated...
+            #       get_auxiliary needs to be called
+            Y2 = Y0 +self.dY2d_dt (Y1, tn) *delt #corrector
+            Yn = 0.5*(Y1+Y2)
+
+            self.locL = Yn[0]
+            self.massL = Yn[1]
+
+        #[24.07.21]cwo: there's smth wrong with this...
+        elif pars.dtimesteppars['itgmethod']=='RK5':
+
+            tSpan=np.array([t0,tn])
+            tstep=(tn-t0)/nstep
+            #self.get_auxiliary(disk) 
+
+            #integrates system to tn
+            Yn = ode.ode(self.dY2d_dt,Y0,tSpan,tstep,'RK5')
+
+            # self.mtotL=Yt[-1,2,:] #no longer updated
+            self.locL = Yn[-1,0,:]
+            self.massL =Yn[-1,1,:]
 
         #[24.01.05]CWO
         #after the integration, extract the particle properties
@@ -1760,8 +1784,7 @@ class Superparticles (object):
 
         #elif restrictby == 'fragmentation':
             
-
-        return Yt
+        return Yn
 
     
     def remove_particles (self,remove_idx):

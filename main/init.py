@@ -108,7 +108,6 @@ def load_composdata (calldir, composL):
         if hasattr(userfun, 'init_compos'):
             dadd = userfun.init_compos(compos)
             dcompos.update(dadd)
-        #   import pdb; pdb.set_trace()
 
         
         #Z_init is some function that determines the initial abundance
@@ -120,6 +119,7 @@ def load_composdata (calldir, composL):
                 print('[init.py]:aborting')
                 sys.exit()
 
+        #[24.07.21]cwo: can this be removed?!
         if False:
             #(initial) position of iceline
             if dcompos['iceline'] == True:

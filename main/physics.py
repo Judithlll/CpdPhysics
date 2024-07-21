@@ -30,6 +30,9 @@ def crossedResonance (ta, jres, qinn, hasratio, per):
     return trappedinResonance
 
 def radial_v(St, eta, v_K):
+    """
+    This could be expanded on...
+    """
     return -2*St/(St**2+1)*eta*v_K
 
 
