@@ -45,6 +45,7 @@ def sigma_D(mtotL, locL, rinn, rout):
     sigD = mtotL/(2*np.pi*locL*occ_space) 
     return sigD
 
+
 def get_auxiliary (mcp, loc, sigmaG, temp, mu, sigmol):
 
     omega = np.sqrt(cgs.gC *mcp/loc**3)      

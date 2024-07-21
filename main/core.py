@@ -344,6 +344,8 @@ class System(object):
         [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
         """
 
+        #[24.07.21]CWO: not sure if we need dp.rout here...
+
         self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
         self.get_disk()
         self.particles.get_auxiliary(self.disk, self.time)
@@ -386,7 +388,7 @@ class System(object):
 
         return dum
 
-    def get_disk(self):
+    def get_disk (self):
 
         #we need these 2 things to initalize the class object
         out = self.gas.get_key_disk_properties (self.particles.locL, self.time)
@@ -527,7 +529,7 @@ class System(object):
         elif pars.resampleMode==None:
                 self.Minflux = 0.
         else:
-            print('[core.py]:No valid resampleMode')
+            print('[core.py]:No valid resampleMode, choose from: [Nplevel,splitmerge,None]')
             sys.exit()
 
         
@@ -617,7 +619,7 @@ class System(object):
         #self.particles.split_particles(self.rinn,dp.rout)
 
 
-    def new_timestep (self, tEnd, deltaTfraction = 0.2, afterjump = False, jumpfracD={},**kwargs):
+    def new_timestep (self, tEnd, deltaTfraction=0.2, afterjump = False, jumpfracD={},**kwargs):
         """
         chooses a timestep
         """
@@ -1434,7 +1436,7 @@ class SingleSP(object):
             setattr(self,key,val)
 
 
-class Superparticles(object):
+class Superparticles (object):
 
     def __init__(self, rinn, rout, dcomposL, gas, nini=40, Rdi=0.1, 
             initrule='equalmass'):
@@ -1604,21 +1606,29 @@ class Superparticles(object):
 
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
 
+
     def get_auxiliary (self, disk, time):
         userparL = disk.add_uservar (dp.user_add_var())    #variables
         userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
 
         userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
         Rd = self.get_radius()
-        #obtain Stokes number by iterating on drag law
-        St, v_r = ff.St_iterate (disk.eta,
-                                 disk.vK,
-                                 disk.vth,
-                                 disk.lmfp,
-                                 disk.rhog,
-                                 disk.OmegaK,
-                                 Rd,
-                                 Sto=self.stokesOld)
+
+        if pars.dragmodel=='Epstein':
+            St = physics.Stokes_Epstein (Rd, self.rhoint, disk.vth, disk.rhog, disk.OmegaK)
+            v_r = physics.radial_v (St, disk.eta, disk.vK)
+
+        else:#default
+            #[24.07.21]cwo: what is done with the internal density of the particles (self.rhoint)?
+            #obtain Stokes number by iterating on drag law
+            St, v_r = ff.St_iterate (disk.eta,
+                                     disk.vK,
+                                     disk.vth,
+                                     disk.lmfp,
+                                     disk.rhog,
+                                     disk.OmegaK,
+                                     Rd,
+                                     Sto=self.stokesOld)
 
         if pars.sfdmode=='simple':
             #adds the surface to the particles
@@ -1696,6 +1706,9 @@ class Superparticles(object):
 
         #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..
         delv = userfun.del_v (self.St, self)
+
+        #[24.07.21]cwo: it seems that Hd and delv are only used in dmdt below
+        #TBD: so they can be incorporated in userfun.dm_dt directly (right?)
         
         #TBD: provide the composition as an argument (in general way)
         dmdt = userfun.dm_dt (self.Rd, delv, Hd, self.sfd, self.fcomp)

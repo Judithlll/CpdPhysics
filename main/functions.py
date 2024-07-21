@@ -120,7 +120,7 @@ def load_dict_from_file (fname):
 
 
 def St_iterate (eta, vK, vth, lmfp, rhog,
-                OmegaK, Rd, rhoint=1.4,Sto=0.001, errorX=1e-4, nmax=100):
+                OmegaK, Rd, rhoint=1.4, Sto=0.001, errorX=1e-4, nmax=100):
     """
     obtain Stokes number and drift velocity by fixed-point iteration
 
