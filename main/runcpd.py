@@ -72,6 +72,8 @@ while doEvo:
     if system.nplanet>0:
         core.advance_planets (system)
 
+
+
     #do this again? LZX: maybe not, post_process mainly for particles
     #   system.post_process()
     system.post_process()
@@ -107,9 +109,14 @@ while doEvo:
         system.new_timestep(pars.tmax, afterjump = True, jumpfracD = pars.jumpfracD, **pars.dtimesteppars)
         system.reset_after_jump()
     else:
+        ## All steps have been taken, update ALL disk and particle properties to the new time
         #1)update the system time 
         #2)get the new deltaT 
         system.time += system.deltaT
+
+        #TBD: --> system.get_auxiliary (?)
+        system.get_disk() #TBD: Mcp(t) stuff
+        system.particles.get_auxiliary(system.disk, system.time)
         system.new_timestep(pars.tmax, jumpfracD=pars.jumpfracD, **pars.dtimesteppars)
         system.re_sample()
         #system.query_splitmerge ()

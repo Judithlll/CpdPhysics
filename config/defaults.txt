@@ -7,7 +7,7 @@ gasmodel = prescribed
 dragmodel = None
 initrule = equalmass
 
-dtimesteppars = {itgmethod:RK5}
+dtimesteppars = {itgmethod:Euler}
 
 ## jumpfrac dictionary
 jumpfracD = {general:0.2;PlanetsRes:0.5}

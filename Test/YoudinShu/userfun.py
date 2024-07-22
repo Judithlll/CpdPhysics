@@ -16,7 +16,7 @@ def init_compos_Z (material):
     rc = 200*cgs.au
     if material=='silicates':
         def f_compos (rad):
-            Zsil = 0.007 *np.exp(-(rad/rc)**2)
+            Zsil = 0.007  *np.exp(-(rad/rc)**2)
             return Zsil
 
     return f_compos

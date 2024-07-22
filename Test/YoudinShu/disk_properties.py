@@ -38,7 +38,7 @@ def key_disk_properties (rad, t, dold=None):
     """
     #MMSN with cut-offf, see YS fig 5
     rc = 200*cgs.au
-    sigma = 1700 *(rad/cgs.au)**-1.5 #*np.exp(-rad/rc)
+    sigma = 1700 *(rad/cgs.au)**-1.5 #*np.exp(-(rad/rc)**2)
     mgas = m_gas(rad)
 
     #YS eq.4
@@ -48,8 +48,8 @@ def key_disk_properties (rad, t, dold=None):
 
 def eta (disk):
     #eq.20 YS
-    #hgas = disk.cs/disk.vK
-    hgas = 0.033 *(disk.loc/cgs.au)**0.25
+    hgas = disk.cs/disk.vK
+    #hgas = 0.033 *(disk.loc/cgs.au)**0.25
     return 1.6 *hgas**2
 
 def m_gas (rad):

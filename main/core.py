@@ -159,7 +159,14 @@ class System(object):
         """
         self.messages.add_message (self.ntime, mtype, message)
 
-    def re_sample(self):
+
+    def get_auxiliary (self):
+
+        disk = self.get_disk()
+        self.particles.get_auxiliary()
+
+
+    def re_sample (self):
 
         if pars.resampleMode=='splitmerge':
 
@@ -388,12 +395,15 @@ class System(object):
         return dum
 
 
-    def get_disk (self):
+    def get_disk (self, time=None):
+
+        if time is None:
+            time = self.time
 
         #we need these 2 things to initalize the class object
-        out = self.gas.get_key_disk_properties (self.particles.locL, self.time)
+        out = self.gas.get_key_disk_properties (self.particles.locL, time)
 
-        self.disk = physics.DISK (*out, self.particles.locL, self.time, self.mcp) #pro
+        self.disk = physics.DISK (*out, self.particles.locL, time, self.mcp) #pro
         self.disk.add_auxiliary ()
 
 
@@ -406,14 +416,42 @@ class System(object):
         # prevent the large value 'eats' the small value
         if self.deltaT/self.time <1e-15:
             import pdb;pdb.set_trace()
+
+
+        Y0 = np.copy(self.particles.Y2d)
+        t0 = self.time
+        tn = t0 +self.deltaT
+
+        if pars.dtimesteppars['itgmethod']=='Euler':
+            Yn = Y0 +self.particles.dY2d_dt(Y0,t0) *self.deltaT
+
         
-        Yt = self.particles.update(self.time,self.time+self.deltaT,self.disk,timestepn)
+        elif pars.dtimesteppars['itgmethod']=='Heun':
+            Y1 = Y0 +self.particles.dY2d_dt(Y0,t0) *self.deltaT
+
+            self.particles.locL = Y1[0]
+            self.particles.massL = Y1[1]
+
+            self.get_disk(tn) 
+            self.particles.get_auxiliary(self.disk, tn)
+
+            Y2 = Y0 +self.particles.dY2d_dt(Y1,t0) *self.deltaT
+            Yn = 0.5*(Y1+Y2)
+
+        elif pars.dtimesteppars['itgmethod']=='RK4':
+            #TBD
+            pass
+
+        self.particles.locL = Yn[0]
+        self.particles.massL = Yn[1]
+
+        #Yt = self.particles.update(self.time,self.time+self.deltaT,self.disk,timestepn)
 
         if self.time==np.nan or self.deltaT==np.nan:
             print('hello')
             import pdb;pdb.set_trace()
 
-        return Yt
+        return Yn
 
 
     def back_up_last_data(self):
@@ -625,8 +663,6 @@ class System(object):
         #organize the procedure a bit (for quasi-steady evolution... later!)
         mintimeL = []
         
-        self.get_disk() 
-        self.particles.get_auxiliary(self.disk, self.time)
         #self.particles.make_Y2d()
         Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time)
 
@@ -1607,6 +1643,11 @@ class Superparticles (object):
 
 
     def get_auxiliary (self, disk, time):
+        """
+        ...
+        """
+        #TBD: merge get_disk() // Mcp(t) into this...
+
         userparL = disk.add_uservar (dp.user_add_var())    #variables
         userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
 
@@ -1744,7 +1785,7 @@ class Superparticles (object):
         delt = tn -t0
 
         if pars.dtimesteppars['itgmethod']=='Euler':
-            Yn = Y0 +self.dY2d_dt (Y0, t0) *delt
+            Yn = Y0 +self.dY2d_dt(Y0,t0) *delt
 
             self.locL = Yn[0]
             self.massL = Yn[1]
