@@ -160,10 +160,15 @@ class System(object):
         self.messages.add_message (self.ntime, mtype, message)
 
 
-    def get_auxiliary (self):
+    def get_auxiliary (self, time= None):
+        '''
+        Do the get_auxiliary of particals
+        the disk need to be updated according to the time, and so the 
+        mcp 
+        '''
 
-        disk = self.get_disk()
-        self.particles.get_auxiliary()
+        self.get_disk(time)
+        self.particles.get_auxiliary(self.disk, time)
 
 
     def re_sample (self):
@@ -399,11 +404,15 @@ class System(object):
 
         if time is None:
             time = self.time
+            mcp = self.mcp 
+        else: 
+            mcp = dp.Mcp_t(time)
+
 
         #we need these 2 things to initalize the class object
         out = self.gas.get_key_disk_properties (self.particles.locL, time)
 
-        self.disk = physics.DISK (*out, self.particles.locL, time, self.mcp) #pro
+        self.disk = physics.DISK (*out, self.particles.locL, time, mcp) #pro
         self.disk.add_auxiliary ()
 
 
@@ -432,13 +441,20 @@ class System(object):
             self.particles.locL = Y1[0]
             self.particles.massL = Y1[1]
 
-            self.get_disk(tn) 
-            self.particles.get_auxiliary(self.disk, tn)
+            self.get_auxiliary(tn)
+            #self.get_disk(tn) 
+            #self.particles.get_auxiliary(self.disk, tn)
 
             Y2 = Y0 +self.particles.dY2d_dt(Y1,t0) *self.deltaT
             Yn = 0.5*(Y1+Y2)
 
         elif pars.dtimesteppars['itgmethod']=='RK4':
+            #seems complex
+            Y1 = Y0 +self.particles.dY2d_dt(Y0,t0) *self.deltaT
+
+            self.get_auxiliary(self.time+self.deltaT)
+            Y2 = Y1 +self.particles.dY2d_dt(Y1,)
+
             #TBD
             pass
 
