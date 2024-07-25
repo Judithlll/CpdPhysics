@@ -452,8 +452,11 @@ class System(object):
             k1 = self.particles.dY2d_dt(Y0, t0)
             
             t2 = t0+self.deltaT/2 
+            #[24.07.25]cwo: shouldn't you do statements as "self.particles.locL = ..." as I did above in Heun's method?
             self.get_auxiliary(t2)
             k2 = self.particles.dY2d_dt(Y0+self.deltaT*k1/2, t2)
+
+            #[24.07.25]cwo: shouldn't you here also call self.get_auxililary ??
             k3 = self.particles.dY2d_dt(Y0+self.deltaT*k2/2, t2)
 
             self.get_auxiliary(tn)

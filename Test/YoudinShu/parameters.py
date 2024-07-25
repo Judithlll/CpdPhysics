@@ -10,7 +10,7 @@ dparticleprops = {'Rdi':0.1,  #initial size of particles in cm
                 'nini':2000,  #initial number of particles
                 'initrule':'equallogspace'} #how particles are distributed
 
-dtimesteppars = {'deltaTfraction':1e-1, 'itgmethod':'Euler'}
+dtimesteppars = {'deltaTfraction':1e-1, 'itgmethod':'Heun'}
 
 dgasgrid = {'rinn':0.1*cgs.au,'rout':800*cgs.au}
 gasmodel = 'prescribed'
