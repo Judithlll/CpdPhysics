@@ -4,7 +4,7 @@ import math as m
 """
 mainly wants to solve the ODE with multi-dimension initial conditions
 """
-def RK5(fun_name,y0,t_span,step,*args):
+def RK4(fun_name,y0,t_span,step,*args):
     """
     fun_name: the name of the ODE to be solved like"fun_name(y0,t)"
 
@@ -100,12 +100,12 @@ def Euler(fun_name,y0,t_span,step,*args):
     return y
 
 
-def ode(fun_name,y0,t_span,step,method='RK5',*args):
+def ode(fun_name,y0,t_span,step,method='RK4',*args):
     """
-    method: string. can be 'Euler', 'RK5' or 'Heun', the default method is 'RK5'
+    method: string. can be 'Euler', 'RK4' or 'Heun', the default method is 'RK4'
     """
-    if method=='RK5':
-        y=RK5(fun_name,y0,t_span,step,*args)
+    if method=='RK4':
+        y=RK4(fun_name,y0,t_span,step,*args)
 
     if method=='Euler':
         y=Euler(fun_name,y0,t_span,step,*args)

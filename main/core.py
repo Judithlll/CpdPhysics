@@ -430,6 +430,8 @@ class System(object):
         Y0 = np.copy(self.particles.Y2d)
         t0 = self.time
         tn = t0 +self.deltaT
+        #NOTE: need to update the properties of particles according to the time of every 
+        #      midium step
 
         if pars.dtimesteppars['itgmethod']=='Euler':
             Yn = Y0 +self.particles.dY2d_dt(Y0,t0) *self.deltaT
@@ -442,21 +444,26 @@ class System(object):
             self.particles.massL = Y1[1]
 
             self.get_auxiliary(tn)
-            #self.get_disk(tn) 
-            #self.particles.get_auxiliary(self.disk, tn)
 
             Y2 = Y0 +self.particles.dY2d_dt(Y1,t0) *self.deltaT
             Yn = 0.5*(Y1+Y2)
 
         elif pars.dtimesteppars['itgmethod']=='RK4':
-            #seems complex
-            Y1 = Y0 +self.particles.dY2d_dt(Y0,t0) *self.deltaT
+            k1 = self.particles.dY2d_dt(Y0, t0)
+            
+            t2 = t0+self.deltaT/2 
+            self.get_auxiliary(t2)
+            k2 = self.particles.dY2d_dt(Y0+self.deltaT*k1/2, t2)
+            k3 = self.particles.dY2d_dt(Y0+self.deltaT*k2/2, t2)
 
-            self.get_auxiliary(self.time+self.deltaT)
-            Y2 = Y1 +self.particles.dY2d_dt(Y1,)
+            self.get_auxiliary(tn)
+            k4 = self.particles.dY2d_dt(Y0+self.deltaT*k3,   tn)
+            
+            Yn = Y0 +self.deltaT/6 *(k1+2*k2+2*k3+k4)
 
-            #TBD
-            pass
+        else:
+            print('[core-update_particles]: the {} is not a valid integration method, please check'.format(pars.dtimesteppars))
+            import pdb;pdb.set_trace()
 
         self.particles.locL = Yn[0]
         self.particles.massL = Yn[1]
@@ -1818,14 +1825,14 @@ class Superparticles (object):
             self.massL = Yn[1]
 
         #[24.07.21]cwo: there's smth wrong with this...
-        elif pars.dtimesteppars['itgmethod']=='RK5':
+        elif pars.dtimesteppars['itgmethod']=='RK4':
 
             tSpan=np.array([t0,tn])
             tstep=(tn-t0)/nstep
             #self.get_auxiliary(disk) 
 
             #integrates system to tn
-            Yn = ode.ode(self.dY2d_dt,Y0,tSpan,tstep,'RK5')
+            Yn = ode.ode(self.dY2d_dt,Y0,tSpan,tstep,'RK4')
 
             # self.mtotL=Yt[-1,2,:] #no longer updated
             self.locL = Yn[-1,0,:]

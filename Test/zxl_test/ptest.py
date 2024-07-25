@@ -17,7 +17,7 @@ dtimesteppars = {'deltaTfraction': 0.2,
                  'timestepn': 1} #belong to integrator
 
 #TBD: implement integrator properties
-dintegratorpars = {'name':'RK5', 'timestepn':3}
+dintegratorpars = {'name':'RK4', 'timestepn':3}
 
 #give the jumpfraction here, 
 #which means how accrute the jump you want to have, the smaller, the more accrute
