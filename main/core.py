@@ -442,7 +442,6 @@ class System(object):
 
             self.particles.locL = Y1[0]
             self.particles.massL = Y1[1]
-
             self.get_auxiliary(tn)
 
             Y2 = Y0 +self.particles.dY2d_dt(Y1,t0) *self.deltaT
@@ -466,7 +465,7 @@ class System(object):
 
         else:
             print('[core-update_particles]: the {} is not a valid integration method, please check'.format(pars.dtimesteppars))
-            import pdb;pdb.set_trace()
+            sys.exit(1)
 
         self.particles.locL = Yn[0]
         self.particles.massL = Yn[1]
