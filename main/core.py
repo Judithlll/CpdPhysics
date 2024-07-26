@@ -447,20 +447,30 @@ class System(object):
             Yn = 0.5*(Y1+Y2)
 
         elif pars.dtimesteppars['itgmethod']=='RK4':
-            k1 = self.particles.dY2d_dt(Y0, t0)
-            
+            k1 = self.particles.dY2d_dt(Y0,t0)
+            Y1 = Y0 +k1*self.deltaT 
+            self.particles.locL = Y1[0]
+            self.particles.massL = Y1[1]
+
             t2 = t0+self.deltaT/2 
-            #[24.07.25]cwo: shouldn't you do statements as "self.particles.locL = ..." as I did above in Heun's method?
+
             self.get_auxiliary(t2)
             k2 = self.particles.dY2d_dt(Y0+self.deltaT*k1/2, t2)
+            Y2 = Y0 + k2*self.deltaT 
+            self.particles.locL = Y2[0]
+            self.particles.massL = Y2[1]
 
-            #[24.07.25]cwo: shouldn't you here also call self.get_auxililary ??
+            self.get_auxiliary(t2)
             k3 = self.particles.dY2d_dt(Y0+self.deltaT*k2/2, t2)
-
+            Y3 = Y0 + k3*self.deltaT 
+            self.particles.locL = Y3[0]
+            self.particles.massL = Y3[1]
+            
             self.get_auxiliary(tn)
             k4 = self.particles.dY2d_dt(Y0+self.deltaT*k3,   tn)
+            Y4 = Y0 + k4*self.deltaT
             
-            Yn = Y0 +self.deltaT/6 *(k1+2*k2+2*k3+k4)
+            Yn = 1/6*(Y1+2*Y2+2*Y3+Y4)
 
         else:
             print('[core-update_particles]: the {} is not a valid integration method, please check'.format(pars.dtimesteppars))
