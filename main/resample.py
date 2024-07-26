@@ -21,6 +21,12 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 
     sp pos:         0   1   2   3   ...
     midpoints:        0   1   2
+
+    Parameters: 
+    
+    fdelS: the fractionally critical distance of particles for splitting
+    fdelM: the fractionally critical distance of particles for merging 
+    fdelDM: the fractionally critical distance of particles for directly merging
     """
     loc = spN.locL 
     marr = spN.mtotL

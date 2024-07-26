@@ -178,7 +178,6 @@ class System(object):
             # add a judgement: only if the particles is in order, then do the resample 
             assert( np.all(np.diff(self.particles.locL)>0.) )
 
-            #TBD: introduce pars.fdelS, pars.fdelM
             newarr = resample.re_sample_splitmerge(self,self.particles,nsampleX=2,**pars.dresample)
             if newarr is not None:
                 if np.all(np.diff(newarr[0])>0.):
@@ -712,9 +711,6 @@ class System(object):
 
             return
 
-        #TBD: add central mass timescale to mintimeL
-            #[23.01.19]LZX: maybe we don't need this, because we can always get the accurate value from the user-defined function
-        #central mass growth timescale
 
         McTscale = np.inf
         if self.time > 0:
@@ -757,7 +753,6 @@ class System(object):
 
             #planet migration T.
             #oldstate needs to have the same shape (otherwise not the same planet)
-            #TBD: This should be improved. Better if we can refer it like: planet.previoustime.loc 
             PlocaTscale[i] = np.float64(planet.loc)/abs(planet.dlocdt)                
 
             #resonance approaching T.
@@ -879,7 +874,6 @@ class System(object):
                 
                 while Nfit<=Npts:
                     ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
-                    #TBD: do this analitically to avoid the error caused by the initial guess
 
                     mdots = massdots[-Nfit:]
                     tdots = timedots[-Nfit:]
@@ -1300,12 +1294,6 @@ def advance_iceline (system):
 def advance_planets (system):
     """
     [23.12.06]copied/edited from NewLagrange
-
-    For now, planet migration and composition is not considered
-
-    TBD:
-        - add composition changes to planets
-        - add migration rate
     """
     res_chainL = ff.get_res_chain(system.res_setL)
 
@@ -1667,9 +1655,10 @@ class Superparticles (object):
 
     def get_auxiliary (self, disk, time):
         """
-        ...
+        Get the auxiliary properties of particles in disk, which 
+        need disk properties in the particles's locations
         """
-        #TBD: merge get_disk() // Mcp(t) into this...
+
 
         userparL = disk.add_uservar (dp.user_add_var())    #variables
         userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
@@ -1776,7 +1765,7 @@ class Superparticles (object):
         #[24.07.21]cwo: it seems that Hd and delv are only used in dmdt below
         #TBD: so they can be incorporated in userfun.dm_dt directly (right?)
         
-        #TBD: provide the composition as an argument (in general way)
+        #provide the composition as an argument (in general way)
         dmdt = userfun.dm_dt (self.Rd, delv, Hd, self.sfd, self.fcomp)
 
         Y2ddt = np.zeros_like(Y2d)
@@ -1903,75 +1892,6 @@ class Superparticles (object):
         #self.Y2d[-1]=mtot
 
         return
-    #TBD: split the inner particles to increase the resolution
-    def split_particles(self,rinn,rout):
-        """
-        split particles when the resolution is too small 
-
-        Super complex!!!
-        mainly the problem exist in the advance_..., split will make the 
-        decision of particles index really hard.
-        """
-        split_locL = [rinn]+[np.sqrt(self.locL[i]*self.locL[i+1]) for i in range(self.num-1)]+[rout]
-        occ_spaceL = np.abs(np.diff(split_locL))
-        
-        #The critical space fraction one particle can occupy
-        crit_frac = 1/100 
-        crit_space = crit_frac*(rout-rinn)
-        
-        for i,occ_space in enumerate(occ_spaceL):
-            #only do the split once, if the occpied space is still too large , then next step 
-            #can continue the split
-            if occ_space > crit_space:
-                #if occpied space larger than critical space, then do the split.
-
-                #plt.plot(self.locL,'x-')
-                #for l in split_loc:
-                #    plt.axhline(l, linestyle='dashed',color='gray',linewidth=1)
-                #print('some particles needed to be splitted')
-                
-                #the princeple: keep the surface density the same 
-                #for simplicity, we say the mass of newparticles comes from the outer particle
-                if i==0:
-                    #the location of original particle 
-                    loc_old_outer = self.locL[i]
-                    #the location of new particle 
-                    loc_new = split_locL[i]
-                    
-
-                    split_loc_new = np.sqrt(loc_old_outer*loc_new)
-
-                    occ_space_old = split_locL[i+1]-split_loc_new
-                    #occ_space_new = split_loc_new - rinn 
-
-                    mtot_old = occ_space_old/occ_space *self.mtotL[i]
-                    mtot_new = self.mtotL[i]-mtot_old 
-
-                    #now add the new particle to the lists
-                    for prop in self.propL:
-                        lis = getattr(self,prop)
-                        if prop == 'mtotL':
-                            lis[i] = mtot_old 
-                            lis = np.append(mtot_new, lis)
-                            setattr(self, prop, lis)
-
-                        elif prop == 'locL':
-                            lis = np.append(loc_new, lis)
-                            setattr(self, prop, lis)
-
-                        elif len(lis) ==self.num:
-                            setattr(self, prop, np.append(lis[0],lis,1))
-                    self.num +=1 
-
-                else:
-                    pass 
-                    #loc_old_outer = self.locL[i]
-                    #loc_old_inner = self.locL[i-1]
-                    #loc_new = split_locL[i]
-
-                    #split_loc_new = np.sqrt(loc_old*loc_new)
-
-                             
 
 
 class PLANET ():
