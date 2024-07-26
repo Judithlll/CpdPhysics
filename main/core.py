@@ -683,8 +683,21 @@ class System(object):
 
     def new_timestep (self, tEnd, deltaTfraction=0.2, afterjump = False, jumpfracD={},**kwargs):
         """
-        chooses a timestep
+        - determine w/r planets end up in resonance
+        - chooses a timestep
+
+        As such, we look at the following processes
+        - the change in the particles state vector Y/Y_t (tpart)
+        - the relative motions among the particles (tcol -- this involves deltaTfraction)
+        - the change in the planet's mass/location/composition (PxxxTscale)
+        - the growth rate of the central mass object (McTscale]
+        - TBD (mdotTgscale) [what's that?]
+        - the timescale on which resonances are approach (pratTscale)
+
         """
+        #[24.07.26]TBD: this function is too long. It may become incomprehensible what's going on. 
+        #               it needs to better commented and broken up where possible
+
         #organize the procedure a bit (for quasi-steady evolution... later!)
         mintimeL = []
         
@@ -786,6 +799,11 @@ class System(object):
                         
                         ta = PlocaTscale[i]
                         qinn = self.planetD[uname- 1].mass/ self.mcp
+
+                        #[24.07.26]cwo: it seems you use the particles properties to get the
+                        #               aspect ratio at the planet's location through interpolation
+                        #               ... very ugly. There's no other way to do this?
+
                         #we can use the interpolation with particles Hg
                         try:
                             f_Hg = interp1d(self.particles.locL, self.particles.Hg, kind = 'linear', fill_value="extrapolate")
@@ -797,7 +815,7 @@ class System(object):
                         haspect = Hg/planet.loc
                         tPer = 2*np.pi/physics.Omega_K(planet.loc, self.mcp)
                         getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
-                        getTrapped = True
+                        getTrapped = True #[24.07.26]why always true?
                         
                         if getTrapped:
                             planet.resS = 'R'
@@ -815,7 +833,7 @@ class System(object):
                             jres = planet.inxt +1
                             pdel = prat - (jres+1)/jres
                             pdelold = pratold - (jres+1)/jres
-                            pratTscale[i] =np.float64(pdel) /(1e-100 +pdelold-pdel) *self.deltaT 
+                            pratTscale[i] = np.float64(pdel) /(1e-100+pdelold-pdel) *self.deltaT 
                     
 
                     #calculate how fast the planets approach resonance 
@@ -829,6 +847,8 @@ class System(object):
 
 
             #fit the planet growth by pebble accretion
+            #[24.07.26]cwo: numbers like these cannot just be hard-coded deep in the program
+            #               make a model parameters?
             thre_jump_max = 1e-3  #threshold when getting the max jumpT
 
             #store mass data first
@@ -837,6 +857,8 @@ class System(object):
                 planet.planetMassData.append([self.time , planet.mass])
             Npts = len(planet.planetMassData)
 
+            #[24.07.26]cwo: number "0.03" seems arbitrary. Also, why does this need to be stated
+            #               here. It seems more like smth for post_process 
             # if the planet cross the inner edge, then the accretion is False
             if planet.loc< self.rinn*(1-0.03):
                 planet.accretion =False
@@ -1020,10 +1042,10 @@ class System(object):
         
             mintimeL.append({'name': 'icelineloca', 'tmin': min(IlocaTscale)})
 
+
+        ## We are (finally) ready to determine the new timestep (deltaT)
     
         # put mintimeL into system object for now to check
-        #self.mintimeL=mintimeL
-        #make a class to use this mintimeL, change the name 
         self.minTimes = Mintimes(mintimeL, jumpfracD)
 
         #determine next timestep
