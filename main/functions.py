@@ -13,8 +13,8 @@ import subprocess as sp
 
 def clear_dir(directory):
     """
-    ZL-TBD: please write a few lines in docstring what this function
-            is supposed to do
+    mainly used in plot a series of figures. If the directory is not empty, 
+    then clear the directory
     """
     if os.path.exists(directory):
         #[24.04.21]cwo: I have no idea what is going on here...
@@ -122,9 +122,13 @@ def load_dict_from_file (fname):
 def St_iterate (eta, vK, vth, lmfp, rhog,
                 OmegaK, Rd, rhoint=1.4, Sto=0.001, errorX=1e-4, nmax=100):
     """
-    obtain Stokes number and drift velocity by fixed-point iteration
+    Get Stokes number and drift velocity by fixed-point iteration
+    
+    The Stokes number rely on the size of particles, also the size rely on 
+    Stokes_number in the pre-fractor CD (and more clearly the Re), so here 
+    we need iteration. 
 
-    ZL-TBD: put some documentation here on what this does!
+    maybe there can be an analitically solution, but its a little complex
     """
     #put in physics.py
 

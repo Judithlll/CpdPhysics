@@ -91,7 +91,6 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
         #qr=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
         
         #kley-nelson 2011 eq14
-        ## TBD: make more check: this migration rate is much larger than old one, and seems will be positive sometimes
         torq0 = (planetMass/mcp)**2 *(disk.Hg/planetLoc)**(-2)*disk.sigmaG *planetLoc**4*disk.OmegaK**2
         p_phi = planetMass*np.sqrt(cgs.gC*mcp*planetLoc)
         
@@ -124,7 +123,7 @@ def dm_dt(Rd, delv, Hd, sigD, fcomp):
     the time derivetive of particles's mass, determine how particles grow
     if icy fraction == 0, then come to fragmentation (some assumption here)
     """
-    #TBD calculate/define fragm. velocity based on composition
+    #TBD: make a smoother function to do this 
     vc = pars.vc['silicates']*fcomp[:,0]+ pars.vc['icy']*fcomp[:,1]
     Fcomp = np.ones_like(Rd)
     Fcomp = np.where(delv/vc>1, -1, 1) 
@@ -343,8 +342,6 @@ class Data(object):
 
         doParticles: decide to process particles' data or not
         """
-        #TBD: here process the particles data with dactionD
-        
         # if particles ware removed, then put a np.nan into this location. 
         # for now, I can just use the number of the removed particles to add the np.nan to the head of every list. I think more reasonable is to put in the np.nan according to the removed index, but it seems too complex.
         if doParticles:

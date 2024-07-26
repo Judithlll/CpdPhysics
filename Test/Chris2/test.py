@@ -32,9 +32,9 @@ while system.time<pars.tmax:
         core.advance_planets (system)
 
     system.post_process()
-    #TBD: postprocess particles (add/remove)
+    #postprocess particles (add/remove)
     
-    #TBD: change system.time
+    #change system.time
     system.time += system.deltaT
 
     userfun.do_stuff(system)

@@ -102,7 +102,7 @@ def init_planets ():
         - mass
         - composition
 
-    [23.12.05]:it's probably better to format this as dictionaries (TBD!)
+    [23.12.05]:it's probably better to format this as dictionaries
     """
     #composition should follow what you have defined in parameters
     #and be normalized

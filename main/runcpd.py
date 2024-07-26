@@ -114,9 +114,7 @@ while doEvo:
         #2)get the new deltaT 
         system.time += system.deltaT
 
-        #TBD: --> system.get_auxiliary (?)
-        system.get_disk() #TBD: Mcp(t) stuff
-        system.particles.get_auxiliary(system.disk, system.time)
+        system.get_auxiliary(system.time)
         system.new_timestep(pars.tmax, jumpfracD=pars.jumpfracD, **pars.dtimesteppars)
         system.re_sample()
         #system.query_splitmerge ()
