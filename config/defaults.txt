@@ -10,7 +10,7 @@ initrule = equalmass
 dtimesteppars = {itgmethod:Euler}
 
 ## jumpfrac dictionary
-jumpfracD = {general:0.2;PlanetsRes:0.5}
+jumpfracD = {general:0.2;PlanetsRes:0.5;thre_jump_max:0.001}
 
 doPlanets = False
 

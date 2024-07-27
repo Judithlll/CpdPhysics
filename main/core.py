@@ -167,8 +167,8 @@ class System(object):
         mcp 
         '''
 
-        self.get_disk(time)
-        self.particles.get_auxiliary(self.disk, time)
+        disk = self.get_disk(time)
+        self.particles.get_auxiliary(disk, time)
 
 
     def re_sample (self):
@@ -186,8 +186,8 @@ class System(object):
                     self.particles.num = len(self.particles.locL)
                     #also we need to get other properties of particles 
                     #idea is make an function to get all these auxiliary
-                    self.get_disk()
-                    self.particles.get_auxiliary(self.disk, self.time)
+                    disk = self.get_disk()
+                    self.particles.get_auxiliary(disk, self.time)
                     self.particles.make_Y2d()
                 else:
                     print('some crossing caused by resampling')
@@ -359,8 +359,8 @@ class System(object):
         #               this self.rinn and dp.rout is weird...
 
         self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
-        self.get_disk()
-        self.particles.get_auxiliary(self.disk, self.time)
+        disk = self.get_disk()
+        self.particles.get_auxiliary(disk, self.time)
 
         self.minitDisk = sum(self.particles.mtotL)
 
@@ -399,7 +399,8 @@ class System(object):
         return dum
 
 
-    def get_disk (self, time=None):
+    def get_disk (self, time=None, loc=None):
+        #TBD: generalize this..
 
         if time is None:
             time = self.time
@@ -407,12 +408,17 @@ class System(object):
         else: 
             mcp = dp.Mcp_t(time)
 
+        if loc is None:
+            loc = self.particles.locL
+
 
         #we need these 2 things to initalize the class object
-        out = self.gas.get_key_disk_properties (self.particles.locL, time)
+        out = self.gas.get_key_disk_properties (loc, time)
 
-        self.disk = physics.DISK (*out, self.particles.locL, time, mcp) #pro
-        self.disk.add_auxiliary ()
+        disk = physics.DISK (*out, loc, time, mcp) #pro
+        disk.add_auxiliary ()
+
+        return disk
 
 
     def update_particles (self, timestepn=3, **kwargs):
@@ -448,29 +454,31 @@ class System(object):
 
         elif pars.dtimesteppars['itgmethod']=='RK4':
             k1 = self.particles.dY2d_dt(Y0,t0)
-            Y1 = Y0 +k1*self.deltaT 
+            Y1 = Y0 +k1*self.deltaT/2 
             self.particles.locL = Y1[0]
             self.particles.massL = Y1[1]
 
-            t2 = t0+self.deltaT/2 
+            tmid = t0+self.deltaT/2 
+            self.get_auxiliary(tmid)
 
-            self.get_auxiliary(t2)
-            k2 = self.particles.dY2d_dt(Y0+self.deltaT*k1/2, t2)
-            Y2 = Y0 + k2*self.deltaT 
+            k2 = self.particles.dY2d_dt(Y1, tmid)
+            Y2 = Y0 + k2*self.deltaT/2
             self.particles.locL = Y2[0]
             self.particles.massL = Y2[1]
 
-            self.get_auxiliary(t2)
-            k3 = self.particles.dY2d_dt(Y0+self.deltaT*k2/2, t2)
+            self.get_auxiliary(tmid)
+            k3 = self.particles.dY2d_dt(Y2, tmid)
             Y3 = Y0 + k3*self.deltaT 
             self.particles.locL = Y3[0]
             self.particles.massL = Y3[1]
             
             self.get_auxiliary(tn)
-            k4 = self.particles.dY2d_dt(Y0+self.deltaT*k3,   tn)
+            k4 = self.particles.dY2d_dt(Y3,   tn)
             Y4 = Y0 + k4*self.deltaT
+
+            Yn = Y0 +1/6 *(k1 +2*k2 +2*k3 +k4) *self.deltaT
             
-            Yn = 1/6*(Y1+2*Y2+2*Y3+Y4)
+            #Yn = 1/6*(Y1+2*Y2+2*Y3+Y4)
 
         else:
             print('[core-update_particles]: the {} is not a valid integration method, please check'.format(pars.dtimesteppars))
@@ -543,8 +551,17 @@ class System(object):
 
     def post_process (self):
         """
-        returns indices of particles that cross boundaries 
-        (which needs to be removed or added)
+        system elements (particles, planets, icelines...) have been evolved to the next state
+
+        Look for following changes:
+
+        - adding and removing of particles that crossed border
+            * first indicate which (daction dict)
+            * remove/add them
+        - resample particle distribution (Nplevel or splitmerge algorithms)
+        - make new particle state vector
+        - remove planets
+        - update central mass
         """
 
         self.daction = {}
@@ -673,18 +690,16 @@ class System(object):
         
         #get the Y2d needed to be used next step
         self.particles.make_Y2d()
-        #Ncrit = 100
-        #N<90: mtot *= 0.9 && (wait some time?)
-
-        # remove the planet if the planet location is too small, not sure if it should be here
-        self.remove_planet()
-        self.mcp = dp.Mcp_t(self.time)
-        self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
 
         # get the property list to remove/add particles and select_single
         self.particles.propL = [attr for attr in dir(self.particles) if not attr.startswith('__') and isinstance(getattr(self.particles, attr), list) or isinstance(getattr(self.particles, attr), np.ndarray)]   
         self.particles.propSol = [attr for attr in dir(self.particles) if not attr.startswith('__') and isinstance(getattr(self.particles, attr), float)]
         
+        # remove the planet if the planet location is too small, not sure if it should be here
+        self.remove_planet()
+        self.mcp = dp.Mcp_t(self.time)
+        self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
+
         # split and merge particles here
         # don't do this now! super complex
         #self.particles.split_particles(self.rinn,dp.rout)
@@ -780,7 +795,7 @@ class System(object):
             #oldstate needs to have the same shape (otherwise not the same planet)
             PlocaTscale[i] = np.float64(planet.loc)/abs(planet.dlocdt)                
 
-            #resonance approaching T.
+            #TBD (maybe): merge the res.trapping stuff to post_process (?)
             if pars.doResonance:
 
                 if i>0 and iold>0:
@@ -853,7 +868,7 @@ class System(object):
             #fit the planet growth by pebble accretion
             #[24.07.26]cwo: numbers like these cannot just be hard-coded deep in the program
             #               make a model parameters?
-            thre_jump_max = 1e-3  #threshold when getting the max jumpT
+            #thre_jump_max = 1e-3  #threshold when getting the max jumpT
 
             #store mass data first
             if iold>=0 and self.oldstate.planetL[i].mass != planet.mass:
@@ -964,11 +979,11 @@ class System(object):
                 #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
                 
                 #jump time is limited by uncertainty in the fit
-                denom = (planet.dmdt_err - planet.dmdt*thre_jump_max)
+                denom = (planet.dmdt_err - planet.dmdt*pars.jumpfracD['thre_jump_max'])
                 if denom<0:
                     planet.max_jumpT = np.inf
                 else:
-                    planet.max_jumpT = thre_jump_max*planet.mass /denom
+                    planet.max_jumpT = pars.jumpfracD['thre_jump_max']*planet.mass /denom
                     #print(f'{self.ntime} {i} {Nfit} {Npts} {planet.max_jumpT/cgs.yr:10.3e}')
                 #TBD: other conditions (migrate into icelines or no gas region...)
             elif planet.accretion == False:
@@ -1820,6 +1835,7 @@ class Superparticles (object):
         return Y2ddt
     
 
+    #TBD: can be removed!
     def update (self,t0,tn,disk,nstep=10):
         """
         this integrate the particles until tn
@@ -1966,6 +1982,12 @@ class PLANET ():
         wi = np.exp(-tlba/tast)     #weights
         mdot = np.sum(mdotarr *wi)  #mass flux through iceline
         return mdot
+
+
+# TBD: make a class for the properties of the central object
+#class CentralBody (object):
+
+
 
 class ICELINE(object):
     def __init__(self,species,temp):
