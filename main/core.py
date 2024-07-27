@@ -820,7 +820,6 @@ class System(object):
                         haspect = Hg/planet.loc
                         tPer = 2*np.pi/physics.Omega_K(planet.loc, self.mcp)
                         getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
-                        getTrapped = True #[24.07.26]why always true?
                         
                         if getTrapped:
                             planet.resS = 'R'
