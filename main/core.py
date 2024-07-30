@@ -340,7 +340,7 @@ class System(object):
             planetE.resS = -1    #-1: not yet in resonance
 
     def init_centralbody(self):
-        self.centralbody = CentralBody(self.time, dp.Mcp0, cgs.rhoRJ)
+        self.centralbody = CentralBody(self.time, dp.Mcp_t(0.0), cgs.rhoRJ)
 
     def init_particles (self, dparticleprops={}):
         """
@@ -868,7 +868,7 @@ class System(object):
             #[24.07.26]cwo: number "0.03" seems arbitrary. Also, why does this need to be stated
             #               here. It seems more like smth for post_process 
             # if the planet cross the inner edge, then the accretion is False
-            if planet.loc< self.rinn*(1-0.03):
+            if planet.loc< self.rinn*(1-1e-4):
                 planet.accretion =False
 
             #then try to fit the mass to a curve
@@ -876,7 +876,6 @@ class System(object):
             Nfit = 10
             #consider the data is not large enough to make the fit
 
-            #TBD:consider putting this long text in a function or method of PLANET class (?)
             #TBD:if particles evaporate before reaching the planet
             #if planet.loc < max(location_most_inner_iceline, cavity_radius):
             #    planet.dmdt = 0.0
@@ -1317,7 +1316,8 @@ def advance_planets (system):
                         break
 
                 #add/update milestone
-                key = np.float64((planet.loc-system.rinn))/abs(loc_t)
+                #LZX: [24.07.30] add a pre-fractor here to prevent the overshooting 
+                key = 0.9*np.float64((planet.loc-system.rinn))/abs(loc_t)
                 system.milestones[key + system.time] = msg
 
                 #update planet properties from rates supplied by user
@@ -1702,8 +1702,6 @@ class Superparticles (object):
         #TBD: so they can be incorporated in userfun.dm_dt directly (right?)
         
         #provide the composition as an argument (in general way)
-        if len(delv) != len(self.fcomp):
-            import pdb;pdb.set_trace()
         dmdt = userfun.dm_dt (self.Rd, delv, Hd, self.sfd, self.fcomp)
 
         Y2ddt = np.zeros_like(Y2d)
@@ -1929,9 +1927,12 @@ class CentralBody (object):
     """
     def __init__(self, time, mcp0, rho=cgs.rhoRJ):
         self.m = mcp0 
+        #TBD: Getting radius should be user-defined, in the userfun.py.
+        #If it's missing in the userfun, the radius should be None
         self.rho = rho 
         self.r = physics.mass_to_radius(mcp0,rho)
         self.time = time 
+        #not general here TBD
         self.Mt = dp.Mcp_t
 
     def get_mass (self, time =None):
