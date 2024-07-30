@@ -13,7 +13,7 @@ dparticleprops = {'Rdi':0.01,  #initial size pf particles
                 'initrule':'equallogspace'}  #initial number of particles
 
 #[24.01.08]LZX: don't know whether this is a good idea
-dtimesteppars = {'itgmethod': 'RK4',
+dtimesteppars = {'itgmethod': 'Heun',
                  'deltaTfraction': 0.2,
                  'timestepn': 1, 
                  } #belong to integrator

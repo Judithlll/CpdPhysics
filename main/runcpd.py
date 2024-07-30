@@ -104,6 +104,7 @@ while doEvo:
         system.system_jump(djump) #changes system.time
         system.time += djump['jumpT']
         #system.deltaT = system.jumpT
+        system.get_auxiliary(system.time)
         
         #import pdb;pdb.set_trace()
         system.new_timestep(pars.tmax, afterjump = True, jumpfracD = pars.jumpfracD, **pars.dtimesteppars)

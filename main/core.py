@@ -822,12 +822,9 @@ class System(object):
                         #               aspect ratio at the planet's location through interpolation
                         #               ... very ugly. There's no other way to do this?
 
-                        #we can use the interpolation with particles Hg
-                        try:
-                            f_Hg = interp1d(self.particles.locL, self.particles.Hg, kind = 'linear', fill_value="extrapolate")
-                        except:
-                            import pdb;pdb.set_trace()
-                        Hg = f_Hg (planet.loc)
+                        disk = self.get_disk(loc = planet.loc)
+                        Hg = disk.Hg
+                        #Hg = f_Hg (planet.loc)
                         #plt.plot(self.particles.locL, self.particles.Hg)
                         #plt.scatter(planet.loc, f_Hg(planet.loc), )
                         haspect = Hg/planet.loc
@@ -1151,7 +1148,7 @@ class System(object):
         #initial relaxation time
         #[24.06.10]LZX: consider the iceline effect, the outflux should be larger 
         #than the total silicate mass
-        con3 = self.Moutflux>self.particles.fcompini[0]*self.minitDisk
+        con3 = self.Moutflux>self.particles.fcompini[0]*self.minitDisk *0.7
 
         #if self.ntime%1000==0: 
         #    print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
@@ -1812,6 +1809,8 @@ class Superparticles (object):
         #TBD: so they can be incorporated in userfun.dm_dt directly (right?)
         
         #provide the composition as an argument (in general way)
+        if len(delv) != len(self.fcomp):
+            import pdb;pdb.set_trace()
         dmdt = userfun.dm_dt (self.Rd, delv, Hd, self.sfd, self.fcomp)
 
         Y2ddt = np.zeros_like(Y2d)
