@@ -112,6 +112,7 @@ class System(object):
         self.timeL = []
         # define a disk class
         self.gas = self.init_gas ()
+        self.init_centralbody()
 
         #the amount of solid mass that has crossed into the domain
         self.dotMg = dp.dot_Mg(self.time)
@@ -119,7 +120,6 @@ class System(object):
         self.Minflux_step = 0
 
         self.Moutflux = 0.
-        #self.Mcp=self.disk.Mcp_t(self.time)
 
         #initiallize the old state
         self.oldstate=None
@@ -138,9 +138,6 @@ class System(object):
         self.res_setL = []
 
         self.nplanet = 0 #start with 0 planets (??)
-        
-        self.mcp = dp.Mcp_t(self.time)
-        self.rcp = (self.mcp/(4/3*np.pi*cgs.rhoRJ))**(1/3)
         
         #TBD:-later: make this more general
         #   like: r_crit={'cavity':...}
@@ -277,12 +274,11 @@ class System(object):
     def get_rinn(self):
         """
         get the rinn from the disk_properties or the central object's radius
-
         """
         try:
             rinn = dp.rinn
         except:
-            rinn = self.rcp
+            rinn = self.centralbody.r
 
         return rinn
 
@@ -343,7 +339,8 @@ class System(object):
             planetE.inxt = inxt  #next upcoming res.
             planetE.resS = -1    #-1: not yet in resonance
 
-
+    def init_centralbody(self):
+        self.centralbody = CentralBody(self.time, dp.Mcp0, cgs.rhoRJ)
 
     def init_particles (self, dparticleprops={}):
         """
@@ -404,9 +401,9 @@ class System(object):
 
         if time is None:
             time = self.time
-            mcp = self.mcp 
+            mcp = self.centralbody.m 
         else: 
-            mcp = dp.Mcp_t(time)
+            mcp = self.centralbody.get_mass(time)
 
         if loc is None:
             loc = self.particles.locL
@@ -500,7 +497,7 @@ class System(object):
         """
         copies present state to "old" 
         """
-        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg', 'deltaT','mcp']
+        copy_list = ['time', 'particles', 'planetL', 'nplanet', 'icelineL', 'Minflux_step', 'dotMg', 'deltaT','centralbody']
         self.oldstate = COPY (self, copy_list)
 
     def remove_planet(self):
@@ -511,7 +508,7 @@ class System(object):
         """
 
         for num, pl in self.planetD.items():
-            if pl.loc <= self.rcp:
+            if pl.loc <= self.centralbody.r:
                 #let's test what if we change the resonance state first
                 remove_setL = []
                 for ss in self.res_setL:
@@ -697,8 +694,7 @@ class System(object):
         
         # remove the planet if the planet location is too small, not sure if it should be here
         self.remove_planet()
-        self.mcp = dp.Mcp_t(self.time)
-        self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
+        self.centralbody.update(self.time)
 
 
 
@@ -752,7 +748,7 @@ class System(object):
 
         McTscale = np.inf
         if self.time > 0:
-            McTscale = self.mcp/ np.abs(self.mcp - self.oldstate.mcp) *self.deltaT
+            McTscale = self.centralbody.m/ np.abs(self.centralbody.m - self.oldstate.centralbody.m) *self.deltaT
             mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
 
@@ -816,7 +812,7 @@ class System(object):
                     elif pdel <= 0.0: #a little arbitrary now
                         
                         ta = PlocaTscale[i]
-                        qinn = self.planetD[uname- 1].mass/ self.mcp
+                        qinn = self.planetD[uname- 1].mass/ self.centralbody.m
 
                         #[24.07.26]cwo: it seems you use the particles properties to get the
                         #               aspect ratio at the planet's location through interpolation
@@ -828,7 +824,7 @@ class System(object):
                         #plt.plot(self.particles.locL, self.particles.Hg)
                         #plt.scatter(planet.loc, f_Hg(planet.loc), )
                         haspect = Hg/planet.loc
-                        tPer = 2*np.pi/physics.Omega_K(planet.loc, self.mcp)
+                        tPer = 2*np.pi/physics.Omega_K(planet.loc, self.centralbody.m)
                         getTrapped = physics.crossedResonance (ta, jres, qinn, haspect, tPer)
                         
                         if getTrapped:
@@ -1927,9 +1923,27 @@ class PLANET ():
 
 
 # TBD: make a class for the properties of the central object
-#class CentralBody (object):
+class CentralBody (object):
+    """
+    Get properties of central body, star for PPD or planet for CPD
+    """
+    def __init__(self, time, mcp0, rho=cgs.rhoRJ):
+        self.m = mcp0 
+        self.rho = rho 
+        self.r = physics.mass_to_radius(mcp0,rho)
+        self.time = time 
+        self.Mt = dp.Mcp_t
 
+    def get_mass (self, time =None):
+        if time is None:
+            time = self.time 
 
+        return self.Mt(time)
+
+    def update (self, time):
+        self.m = self.Mt(time)
+        self.r = physics.mass_to_radius(self.m, self.rho)
+        self.time = time
 
 class ICELINE(object):
     def __init__(self,species,temp):
