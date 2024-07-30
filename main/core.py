@@ -700,9 +700,7 @@ class System(object):
         self.mcp = dp.Mcp_t(self.time)
         self.rcp = physics.mass_to_radius(self.mcp,self.rhoPlanet)
 
-        # split and merge particles here
-        # don't do this now! super complex
-        #self.particles.split_particles(self.rinn,dp.rout)
+
 
 
     def new_timestep (self, tEnd, deltaTfraction=0.2, afterjump = False, jumpfracD={},**kwargs):
@@ -1833,61 +1831,6 @@ class Superparticles (object):
         #else:
         #    return Y2ddt  
         return Y2ddt
-    
-
-    #TBD: can be removed!
-    def update (self,t0,tn,disk,nstep=10):
-        """
-        this integrate the particles until tn
-        disk: disk object
-        """
-
-        Y0 = np.copy(self.Y2d)
-        delt = tn -t0
-
-        if pars.dtimesteppars['itgmethod']=='Euler':
-            Yn = Y0 +self.dY2d_dt(Y0,t0) *delt
-
-            self.locL = Yn[0]
-            self.massL = Yn[1]
-
-        elif pars.dtimesteppars['itgmethod']=='Heun':
-            Y1 = Y0 +self.dY2d_dt (Y0, t0) *delt #predictor
-
-            #cwo: not entirely sure if all properties in self are automatically updated...
-            #       get_auxiliary needs to be called
-            Y2 = Y0 +self.dY2d_dt (Y1, tn) *delt #corrector
-            Yn = 0.5*(Y1+Y2)
-
-            self.locL = Yn[0]
-            self.massL = Yn[1]
-
-        #[24.07.21]cwo: there's smth wrong with this...
-        elif pars.dtimesteppars['itgmethod']=='RK4':
-
-            tSpan=np.array([t0,tn])
-            tstep=(tn-t0)/nstep
-            #self.get_auxiliary(disk) 
-
-            #integrates system to tn
-            Yn = ode.ode(self.dY2d_dt,Y0,tSpan,tstep,'RK4')
-
-            # self.mtotL=Yt[-1,2,:] #no longer updated
-            self.locL = Yn[-1,0,:]
-            self.massL =Yn[-1,1,:]
-
-        #[24.01.05]CWO
-        #after the integration, extract the particle properties
-        #for future use
-        #dum, daux = self.dY2d_dt (Yt[-1], tSpan[-1], disk, returnMore=True)
-
-        #for key, val in daux.items():
-        #    setattr(self, key, val)
-
-        #elif restrictby == 'fragmentation':
-            
-        return Yn
-
     
     def remove_particles (self,remove_idx):
         
