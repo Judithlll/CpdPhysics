@@ -862,14 +862,12 @@ class System(object):
 
             #fit the planet growth by pebble accretion
             #[24.07.26]cwo: numbers like these cannot just be hard-coded deep in the program
-            #               make a model parameters?
             #thre_jump_max = 1e-3  #threshold when getting the max jumpT
 
             #store mass data first
             if iold>=0 and self.oldstate.planetL[i].mass != planet.mass:
                 # self.masstime=
                 planet.planetMassData.append([self.time , planet.mass])
-            Npts = len(planet.planetMassData)
 
             #[24.07.26]cwo: number "0.03" seems arbitrary. Also, why does this need to be stated
             #               here. It seems more like smth for post_process 
@@ -877,15 +875,8 @@ class System(object):
             if planet.loc< self.rinn*(1-0.03):
                 planet.accretion =False
 
-            #the interval time of accretion, if the inteval time is too long, then we can say the planet will no longer accrets
-            #if Npts >=1:
-            #    t_inteval = self.time - planet.planetMassData[-1][0]
-            #    if t_inteval > 10*cgs.yr:
-            #        planet.accretion = False
-            #print(planet.accretion)
-            #if planet.accretion == False:
-            #    import pdb;pdb.set_trace()
             #then try to fit the mass to a curve
+            Npts = len(planet.planetMassData)
             Nfit = 10
             #consider the data is not large enough to make the fit
 
@@ -894,139 +885,45 @@ class System(object):
             #if planet.loc < max(location_most_inner_iceline, cavity_radius):
             #    planet.dmdt = 0.0
             #    #max_jumpT = np.inf
-            if Npts >= Nfit and planet.accretion:
-                #better way to do
-                timedots, massdots = np.log(np.array(planet.planetMassData).T)
-                #timedots = np.log10([planet.planetMassData[j][0] for j in range(len(planet.planetMassData))])
-                def mass_fit(logt,p,b):
-                    logm = p*logt+b
-                    return logm 
-                def jac_mass_fit (logt,p,b):
-                    jac = np.array([logt, np.ones_like(logt)]).T
-                    return jac
-
-                #massdots = np.log10([planet.planetMassData[j][1] for j in range(len(planet.planetMassData))])
-
-                relp = np.inf #relative error/uncertainty in pwl index
-                #popt = planet.oldp0#np.array([1,1]) #initial guess (p0)
-                #mdots = massdots[-Nfit:]
-                #tdots = timedots[-Nfit:]
-                #k = (mdots[-1]-mdots[0])/(tdots[-1]-tdots[0])
-                #b = mdots[-1]-k*tdots[-1]
-                popt = np.array([0.,0.]) #initial guess (p0)
-                
-                while Nfit<=Npts:
-                    ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
-
-                    mdots = massdots[-Nfit:]
-                    tdots = timedots[-Nfit:]
-                    mmean = np.mean(mdots)
-                    tmean = np.mean(tdots)
-
-                    #popt[0] = (np.sum((mdots*tdots))-Nfit*mmean*tmean)/(np.sum(tdots**2)-Nfit*tmean**2)
-                    den = np.sum((tdots-tmean)**2) #ensures it's positive
-                    nom = np.sum((mdots-mmean)*(tdots-tmean))
-                    popt[0] = nom/den
-                    popt[1] = mmean - popt[0]*tmean
-                    
-
-                    #Then we get the error of the 1st fit parameter
-                    sse = np.sum((mdots-(popt[0]*tdots+popt[1]))**2)
-                    kcov = np.sqrt(sse/((Nfit-2)*np.sum((tdots-tmean)**2)))
-                    #import pdb;pdb.set_trace()
-
-                    #try:
-                    #    popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt)
-                    #except:
-                    #    import pdb;pdb.set_trace()
-                    #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
-
-                    #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
-                    #print(line)
-                    #[15.05.2024]cwo: sometimes pcov is seen to evaluate to infinity due to bad initial popt.
-                    #                 so retry
-                    if kcov==np.inf or popt[0] ==np.inf:
-                        import pdb;pdb.set_trace()
-                        #the assumption/hope is that popt is OK
-                    elif np.sqrt(kcov)/np.abs(popt[0])<relp:
-                        pidx = popt[0]
-                        psig = np.sqrt(kcov)
-                        relp = psig/np.abs(pidx)
-                        Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
-                    else:
-                        break
-
-
-                planet.relp_mass = relp
-                planet.oldp0 = popt
-                #if Npts>=10 and self.ntime>1000:
-                #    import pdb; pdb.set_trace()
-                #plt.scatter(timedots, massdots)
-                #t_list=np.linspace(timedots[0], timedots[-1], 30)
-                #plt.plot(t_list, mass_fit(t_list, *popt))
-                #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
-                #print(planet.dmdt/3e23) 
-                planet.dmdt = pidx *planet.mass/(self.time) 
-
-                planet.dmdt_err = abs(psig *planet.mass/self.time) ##LZX: please check expressions
-                #PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - planet.starttime)
-                PmassTscale[i] = planet.mass/planet.dmdt
-                #planet.tmass_err = abs(psig/popt[0] *PmassTscale[i])
-                
-                #jump time is limited by uncertainty in the fit
-                denom = (planet.dmdt_err - planet.dmdt*pars.jumpfracD['thre_jump_max'])
-                if denom<0:
-                    planet.max_jumpT = np.inf
-                else:
-                    planet.max_jumpT = pars.jumpfracD['thre_jump_max']*planet.mass /denom
-                    #print(f'{self.ntime} {i} {Nfit} {Npts} {planet.max_jumpT/cgs.yr:10.3e}')
-                #TBD: other conditions (migrate into icelines or no gas region...)
-            elif planet.accretion == False:
-                planet.dmdt = 0
-                planet.relp_mass = np.inf
-                planet.max_jumpT = np.inf
-            else:
-                planet.dmdt = 0
-                planet.relp_mass = np.inf 
-                planet.max_jumpT = 0.0 #np.nan
-            
             # if the planet mmigrates into cavity, ths max_jumpT should be infinity
             #if planet.loc < self.rinn:
             #    planet.dmdt = 0
             #    planet.relp_mass = np.inf
             #    planet.max_jumpT = np.inf
+            planet.get_maxJumpT(Npts, Nfit)
+            PmassTscale[i] = planet.massTscale
 
-                #get the planet composition change time scale
-                if False:
-                    if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
-                        planet.compData.append([self.time, planet.fcomp[0]])
+            #get the planet composition change time scale
+            if False:
+                if self.oldstate.planetL[i].fcomp[0] != planet.fcomp[0]:
+                    planet.compData.append([self.time, planet.fcomp[0]])
+                
+                if len(planet.compData) >10:
+                    timedots, compdots = np.array(planet.compData).T
+                    timedots = np.log(timedots)
+                    def comp_fit(t,a,b):
+                        c = a*t+b
+                        return c
                     
-                    if len(planet.compData) >10:
-                        timedots, compdots = np.array(planet.compData).T
-                        timedots = np.log(timedots)
-                        def comp_fit(t,a,b):
-                            c = a*t+b
-                            return c
-                        
-                        relp = np.inf
-                        while Nfit<=Npts:
-                            popt, pcov = curve_fit(mass_fit, timedots[-Nfit:], compdots[-Nfit:])
-                            #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
-                            #print(line)
-                            if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
-                                pidx = popt[0]
-                                psig = np.sqrt(pcov[0,0])
-                                relp = psig/np.abs(pidx)
-                            else:
-                                break
-                            Nfit = int(Nfit*1.2) +1
-                        planet.relp_comp = relp
-                        
-                        PcompTscale[i] = (np.exp(timedots[-1])-planet.starttime)* compdots[-1]/abs(popt[0]) 
-                        planet.comp_tc = PcompTscale[i]
+                    relp = np.inf
+                    while Nfit<=Npts:
+                        popt, pcov = curve_fit(mass_fit, timedots[-Nfit:], compdots[-Nfit:])
+                        #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
+                        #print(line)
+                        if np.sqrt(pcov[0,0])/np.abs(popt[0])<relp:
+                            pidx = popt[0]
+                            psig = np.sqrt(pcov[0,0])
+                            relp = psig/np.abs(pidx)
+                        else:
+                            break
+                        Nfit = int(Nfit*1.2) +1
+                    planet.relp_comp = relp
+                    
+                    PcompTscale[i] = (np.exp(timedots[-1])-planet.starttime)* compdots[-1]/abs(popt[0]) 
+                    planet.comp_tc = PcompTscale[i]
 
-                    else:
-                        planet.relp_comp = np.nan
+                else:
+                    planet.relp_comp = np.nan
         
         if pars.doPlanets and self.nplanet >0:                        
             mintimeL.append({'name': 'planetsMigration', 'tmin': min(PlocaTscale)})
@@ -1924,6 +1821,109 @@ class PLANET ():
         wi = np.exp(-tlba/tast)     #weights
         mdot = np.sum(mdotarr *wi)  #mass flux through iceline
         return mdot
+
+    def get_maxJumpT(self, Npts, Nfit):
+        if Npts >= Nfit and self.accretion:
+            #better way to do
+            timedots, massdots = np.log(np.array(self.planetMassData).T)
+            #timedots = np.log10([self.selfMassData[j][0] for j in range(len(self.selfMassData))])
+            def mass_fit(logt,p,b):
+                logm = p*logt+b
+                return logm 
+            def jac_mass_fit (logt,p,b):
+                jac = np.array([logt, np.ones_like(logt)]).T
+                return jac
+
+            #massdots = np.log10([self.selfMassData[j][1] for j in range(len(self.selfMassData))])
+
+            relp = np.inf #relative error/uncertainty in pwl index
+            #popt = self.oldp0#np.array([1,1]) #initial guess (p0)
+            #mdots = massdots[-Nfit:]
+            #tdots = timedots[-Nfit:]
+            #k = (mdots[-1]-mdots[0])/(tdots[-1]-tdots[0])
+            #b = mdots[-1]-k*tdots[-1]
+            popt = np.array([0.,0.]) #initial guess (p0)
+            
+            while Nfit<=Npts:
+                ##[24.01.20]CWO: this may help a bit, but can still be much faster b/c of linear square root
+
+                mdots = massdots[-Nfit:]
+                tdots = timedots[-Nfit:]
+                mmean = np.mean(mdots)
+                tmean = np.mean(tdots)
+
+                #popt[0] = (np.sum((mdots*tdots))-Nfit*mmean*tmean)/(np.sum(tdots**2)-Nfit*tmean**2)
+                den = np.sum((tdots-tmean)**2) #ensures it's positive
+                nom = np.sum((mdots-mmean)*(tdots-tmean))
+                popt[0] = nom/den
+                popt[1] = mmean - popt[0]*tmean
+                
+
+                #Then we get the error of the 1st fit parameter
+                sse = np.sum((mdots-(popt[0]*tdots+popt[1]))**2)
+                kcov = np.sqrt(sse/((Nfit-2)*np.sum((tdots-tmean)**2)))
+                #import pdb;pdb.set_trace()
+
+                #try:
+                #    popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt)
+                #except:
+                #    import pdb;pdb.set_trace()
+                #popt, pcov = sciop.curve_fit(mass_fit, timedots[-Nfit:], massdots[-Nfit:], p0=popt, jac=jac_mass_fit)
+
+                #line = '{:7.4f} {:10.3e} {:10.3e} {:6d}'.format(popt[0], np.sqrt(pcov[0,0]), np.sqrt(pcov[0,0])/popt[0], Nfit)
+                #print(line)
+                #[15.05.2024]cwo: sometimes pcov is seen to evaluate to infinity due to bad initial popt.
+                #                 so retry
+                if kcov==np.inf or popt[0] ==np.inf:
+                    import pdb;pdb.set_trace()
+                    #the assumption/hope is that popt is OK
+                elif np.sqrt(kcov)/np.abs(popt[0])<relp:
+                    pidx = popt[0]
+                    psig = np.sqrt(kcov)
+                    relp = psig/np.abs(pidx)
+                    Nfit = int(Nfit*1.5) +1 #[24.02.01]cwo increased to 1.5 to prevent noise
+                else:
+                    break
+
+
+            self.relp_mass = relp
+            self.oldp0 = popt
+            #if Npts>=10 and self.ntime>1000:
+            #    import pdb; pdb.set_trace()
+            #plt.scatter(timedots, massdots)
+            #t_list=np.linspace(timedots[0], timedots[-1], 30)
+            #plt.plot(t_list, mass_fit(t_list, *popt))
+            #plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/test.jpg')
+            #print(self.dmdt/3e23) 
+            self.dmdt = pidx *self.mass/(self.time) 
+
+            self.dmdt_err = abs(psig *self.mass/self.time) ##LZX: please check expressions
+            #PmassTscale[i] = 1/abs(pidx)*(np.exp(timedots[-1]) - self.starttime)
+            self.massTscale = self.mass/self.dmdt
+            #self.tmass_err = abs(psig/popt[0] *PmassTscale[i])
+            
+            #jump time is limited by uncertainty in the fit
+            denom = (self.dmdt_err - self.dmdt*pars.jumpfracD['thre_jump_max'])
+            if denom<0:
+                self.max_jumpT = np.inf
+            else:
+                self.max_jumpT = pars.jumpfracD['thre_jump_max']*self.mass /denom
+                #print(f'{self.ntime} {i} {Nfit} {Npts} {self.max_jumpT/cgs.yr:10.3e}')
+            #TBD: other conditions (migrate into icelines or no gas region...)
+        elif self.accretion == False:
+            self.dmdt = 0
+            self.relp_mass = np.inf
+            self.max_jumpT = np.inf
+            self.massTscale = np.inf
+        else:
+            self.dmdt = 0
+            self.relp_mass = np.inf 
+            self.max_jumpT = 0.0 #np.nan
+            self.massTscale = np.inf
+
+
+        return self.max_jumpT
+            
 
 
 # TBD: make a class for the properties of the central object
