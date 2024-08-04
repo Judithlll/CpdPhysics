@@ -87,12 +87,20 @@ def H_d (St, disk):
     return physics.H_d(disk.Hg, St, disk.alpha) 
     
 
-def dm_dt(Rd, delv, Hd, sigD, fcomp):
+def dm_dt(particles):
     """
     the time derivetive of particles's mass, determine how particles grow
     if icy fraction == 0, then come to fragmentation (some assumption here)
     """
     #TBD: make a smoother function to do this 
+    
+    Rd = particles.Rd 
+    sigD = particles.sfd
+    St = particles.St 
+    fcomp = particles.fcomp
+    delv = del_v(St, particles)
+    Hd = H_d(St, particles)
+
     vc = pars.vc['silicates']*fcomp[:,0]+ pars.vc['icy']*fcomp[:,1]
     Fcomp = np.ones_like(Rd)
     Fcomp = np.where(delv/vc>1, -1, 1) 

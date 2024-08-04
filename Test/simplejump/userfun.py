@@ -45,7 +45,7 @@ def H_d (St, disk):
     return physics.H_d(disk.Hg, St, disk.alpha) 
     
 
-def dm_dt(Rd, delv, Hd, sigD, fcomp):
+def dm_dt(*args):
     #don't consider the growth of particles
     return 0.0 
 

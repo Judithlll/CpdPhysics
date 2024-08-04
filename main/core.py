@@ -816,9 +816,6 @@ class System(object):
                         ta = PlocaTscale[i]
                         qinn = self.planetD[uname- 1].mass/ self.centralbody.m
 
-                        #[24.07.26]cwo: it seems you use the particles properties to get the
-                        #               aspect ratio at the planet's location through interpolation
-                        #               ... very ugly. There's no other way to do this?
 
                         disk = self.get_disk(loc = planet.loc)
                         Hg = disk.Hg
@@ -862,16 +859,13 @@ class System(object):
 
 
             #fit the planet growth by pebble accretion
-            #[24.07.26]cwo: numbers like these cannot just be hard-coded deep in the program
-            #thre_jump_max = 1e-3  #threshold when getting the max jumpT
 
             #store mass data first
             if iold>=0 and self.oldstate.planetL[i].mass != planet.mass:
                 # self.masstime=
                 planet.planetMassData.append([self.time , planet.mass])
 
-            #[24.07.26]cwo: number "0.03" seems arbitrary. Also, why does this need to be stated
-            #               here. It seems more like smth for post_process 
+            #[24.08.04] It seems more like smth for post_process 
             # if the planet cross the inner edge, then the accretion is False
             if planet.loc< self.rinn*(1-1e-4):
                 planet.accretion =False
@@ -1048,8 +1042,6 @@ class System(object):
         #than the total silicate mass
         con3 = self.Moutflux>self.particles.fcompini[0]*self.minitDisk
 
-        if self.ntime > 10000:
-            import pdb;pdb.set_trace()
 
         #if self.ntime%1000==0: 
         #    print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
@@ -1622,8 +1614,8 @@ class Superparticles (object):
             v_r = -2*St *disk.eta *disk.vK
             
         else:#default
-            #[24.07.21]cwo: what is done with the internal density of the particles (self.rhoint)?
             #obtain Stokes number by iterating on drag law
+            #LZX [24.08.04]: insert the rhoint calculated from particles here
             St, v_r = ff.St_iterate (disk.eta,
                                      disk.vK,
                                      disk.vth,
@@ -1689,8 +1681,6 @@ class Superparticles (object):
         #v_dd = np.abs(v_r)/2    
 
 
-        #[24.02.02]cwo moved this physics->userfun, where the user can of course invoke physics
-        Hd = userfun.H_d(self.St, self)     
 
         drdt = self.v_r
         #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
@@ -1708,14 +1698,12 @@ class Superparticles (object):
         #plt.plot(sigD)
         #plt.show()
 
-        #relative velocity may depend on: alpha, cs, St, rhod/rhog, ..
-        delv = userfun.del_v (self.St, self)
 
         #[24.07.21]cwo: it seems that Hd and delv are only used in dmdt below
         #TBD: so they can be incorporated in userfun.dm_dt directly (right?)
         
         #provide the composition as an argument (in general way)
-        dmdt = userfun.dm_dt (self.Rd, delv, Hd, self.sfd, self.fcomp)
+        dmdt = userfun.dm_dt (self)
 
         Y2ddt = np.zeros_like(Y2d)
         Y2ddt[0] = drdt

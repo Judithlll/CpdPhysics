@@ -119,22 +119,6 @@ def load_composdata (calldir, composL):
                 print('[init.py]:aborting')
                 sys.exit()
 
-        #[24.07.21]cwo: can this be removed?!
-        if False:
-            #(initial) position of iceline
-            if dcompos['iceline'] == True:
-                if 'iceline_init' in dcompos:
-                    rice = dcompos['iceline_init']
-                else:
-                    #rice = {calculate iceline}?
-                    pass
-            elif dcompos['iceline'] == 'None': #all vapor
-                rice = np.inf
-            elif dcompos['iceline'] == False: #all refractory
-                rice = 0.0
-
-            dcompos['mask_icl'] = construct_mask_icl (rice)
-
         dcomposL.append(dcompos)
 
     return dcomposL
