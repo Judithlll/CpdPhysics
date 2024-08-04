@@ -20,11 +20,11 @@ def do_stuff(system, init=False, final = False):
         #fileio.store_class(data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
     else:
         #here we print something about planet and their resonance 
-        tkeyL = system.minTimes.nameL
-        tminarr = system.minTimes.tminarr
+        #tkeyL = system.minTimes.nameL
+        #tminarr = system.minTimes.tminarr
 
         #partices drift/growth/rel.motion
-        imin = system.minTimes.dpart['imin']
+        #imin = system.minTimes.dpart['imin']
 
         #planet and resonance 
         jres = [system.planetL[i].inxt+1 for i in range(1,system.nplanet)]

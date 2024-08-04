@@ -1041,11 +1041,15 @@ class System(object):
             con2 = (jumpT>self.time-self.timeL[-100])
         else:
             con2 = (jumpT>(self.time-self.timeL[0])*100/len(self.timeL))
+
         
         #initial relaxation time
         #[24.06.10]LZX: consider the iceline effect, the outflux should be larger 
         #than the total silicate mass
-        con3 = self.Moutflux>self.particles.fcompini[0]*self.minitDisk *0.7
+        con3 = self.Moutflux>self.particles.fcompini[0]*self.minitDisk
+
+        if self.ntime > 10000:
+            import pdb;pdb.set_trace()
 
         #if self.ntime%1000==0: 
         #    print(con0, con1, min(Tscale_ratio), jumpT, np.argmin(tjumparr))
@@ -1111,10 +1115,13 @@ class System(object):
                 #    import pdb;pdb.set_trace()
 
                 #NOTE:change the composition jump now more resonable but not general
-                if planet.loc <self.icelineL[0].loc:
-                    fcomp=np.array([1,0])
-                else:
-                    fcomp = np.array([0.5,0.5])
+                if pars.doIcelines:
+                    if planet.loc <self.icelineL[0].loc:
+                        fcomp=np.array([1,0])
+                    else:
+                        fcomp = np.array([0.5,0.5])
+                else: 
+                    fcomp = np.array([1,0])
 
                 planet.fcomp = (fcomp*jumpmass +planet.mass*planet.fcomp)/(planet.mass+jumpmass)
                 planet.mass += jumpmass
