@@ -32,7 +32,7 @@ if len(sys.argv)>=2:
     testnameL = sys.argv[1:]
 else:
     #add stuff here...
-    testnameL = ['simple', 'YoudinShu']
+    testnameL = ['simple', 'YoudinShu', 'simplesatellites']
 
 testdir = os.getcwd()
 runNLcom = testdir+'/../main/runcpd.py'

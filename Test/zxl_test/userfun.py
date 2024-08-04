@@ -104,7 +104,8 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     # v_mig=vt1+vd
 
     #if planetMass > 5e26: import pdb; pdb.set_trace()
-
+    if vt1< -0.04:
+        import pdb;pdb.set_trace()
     return vt1 # v_mig
 
 def del_v (St, disk):

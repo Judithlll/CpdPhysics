@@ -324,6 +324,7 @@ class System(object):
         locL = [self.planetL[i].loc for i in range(self.nplanet)]
         iloc = locL.index(locpl)#provides the new sorted location of the added planet
 
+        #LZX [24.08.04]: seems we defaultly think that the period ratio between planets will decrease, is that right?
         #there is an interior planet
         if iloc>0:
             prat = (locpl/self.planetL[iloc-1].loc)**1.5
@@ -793,6 +794,7 @@ class System(object):
             if pars.doResonance:
 
                 if i>0 and iold>0:
+                    #print(self.planetL[1].inxt,(self.planetL[1].loc/self.planetL[0].loc)**(3/2))
                     jres = planet.inxt +1#for 3:2 reson, inxt=1, and j=2 (j+1:j)
                     prat = (planet.loc/self.planetL[i-1].loc)**(3/2)
                     pratold = (self.oldstate.planetL[iold].loc/self.oldstate.planetL[iold-1].loc)**(3/2) #please check...
@@ -831,6 +833,8 @@ class System(object):
                             planet.resS = 'R'
                             # make sure every planet in the rasonance chain will be taken into consider when getting the migration rate
                             self.planetL[uname-1].resS = 'R'
+
+                            print('[core.new_timestep]: planet {} and planet {} has been trapped in {}:{} resonance'.format(uname, uname-1, planet.inxt+2, planet.inxt+1))
                             
                             # make the resonance pairs into set list
                             res_set = {self.planetL[i-1].number, uname}
@@ -838,6 +842,7 @@ class System(object):
                                 self.res_setL.append(res_set)
                         #trapping fails
                         else:
+                            print ('[core.new_timestep]: failed trapping planet {} and planet {} into {}:{} resonance'.format(uname, uname-1, planet.inxt+2, planet.inxt+1))
                             planet.inxt += 1
                             # and need the pratTscale immediately to avoid to be jumped over
                             jres = planet.inxt +1
@@ -1619,6 +1624,7 @@ class Superparticles (object):
                                      disk.rhog,
                                      disk.OmegaK,
                                      Rd,
+                                     rhoint=self.rhoint,
                                      Sto=self.stokesOld)
 
         if pars.sfdmode=='simple':
