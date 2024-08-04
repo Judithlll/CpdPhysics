@@ -29,6 +29,7 @@ def Stokes_number(delv, Rd, vth, lmfp, OmegaK, rhog, rhoint = 1.4):
     St=8/3/CD*rhoint*Rd/rhog/v_dg*OmegaK
     return St
 
+#LZX [24.08.04]: not used now, but put it here for preperation
 def St_fragment(alpha, cs, eta, loc, Omega_K, v_crit, icelineloc):
     #following Shibaike 2019 eq14
     sil_part = np.argwhere(np.ndarray.flatten(loc<icelineloc))
@@ -39,13 +40,6 @@ def St_fragment(alpha, cs, eta, loc, Omega_K, v_crit, icelineloc):
     
     St = (-3*alpha*cs**2+sq_part)/(2*eta**2*loc**2*Omega_K**2)
     return St
-
-# seems very complex...
-def St2Rd(St,v_r,v_th, lmfp, Omega_K, rho_g, rhoint=1.4):
-    v_dg = np.abs(v_r)
-    Rep=4*R_d*v_dg/v_th/lmfp
-    CD=24/Rep*(1+0.27*Rep)**0.43+0.47*(1-np.exp(-0.04*Rep**0.38))
-    return St*rho_g*v_dg*Omega_K*CD*3/8/rhoint
 
 def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     #aerodynamic drag migration
@@ -58,25 +52,6 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     disk.add_uservar (dp.user_add_var())    #variables
     disk.add_userfun (dp.user_add_fun())
     disk.add_user_eval (dp.user_add_eval())
-    #disk = core.DISK (*out, planetLoc, time)
-    #disk.add_auxiliary ()
-    #disk.user_difined ()
-
-    # eta=disk.eta
-    # v_K=disk.vK
-    # v_th=disk.vth
-    # lmfp=disk.lmfp
-    # rho_g=disk.rhog
-    # Omega_K=disk.OmegaK
-    # dotMg=disk.dotMg
-    # Mcp=disk.Mcp
-    # mg=disk.mu*cgs.mp
-    # Sigmag=disk.sigmaG
-    # cs=disk.cs
-    
-    # Rpl=(planetMass/(4/3*np.pi*rhopl))**(1/3)
-
-    # Stpl,vd=f.St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rpl)
 
     try:
         rinn = disk.rinn
@@ -86,9 +61,6 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     if planetLoc < rinn:
         vt1 = 0.0
     else:
-    #Type I migration
-        
-        #qr=-0.14493*disk.dot_Mg(disk.time)*cgs.gC*disk.mcp*(-0.206349*planetLoc**(5.5)+planetLoc**4.5*disk.rout)/disk.alpha/planetLoc**(8.5)/disk.rout/np.sqrt(cgs.kB*(disk.dot_Mg(time)*cgs.gC*disk.mcp/planetLoc**3/cgs.sigmaSB)**(1/4)/disk.mg) #pressure gradient
         
         #kley-nelson 2011 eq14
         torq0 = (planetMass/mcp)**2 *(disk.Hg/planetLoc)**(-2)*disk.sigmaG *planetLoc**4*disk.OmegaK**2
@@ -96,9 +68,6 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
         
         torq_tot = -(1.36-0.62*disk.beta_sigG(planetLoc)- 0.43*disk.beta_T) *torq0
         vt1 = 2*planetLoc*torq_tot/p_phi
-        #CI=0.1
-        #bt1=CI*(2.7+1.1*qr)   #a constant Ogihara 2014
-        #vt1o=bt1*(planetMass/disk.mcp)*(disk.sigmaG*planetLoc**2/disk.mcp)*(disk.vK/disk.cs)**2*disk.vK
         if vt1 >0:
             import pdb;pdb.set_trace()
     # v_mig=vt1+vd
@@ -109,7 +78,6 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     return vt1 # v_mig
 
 def del_v (St, disk):
-    #vr = 2*disk.eta *disk.vK *St/(1+St**2)
 
     #take half of the velocity...
     return np.abs(disk.v_r)/2
@@ -432,64 +400,6 @@ class Data(object):
         self.icelineslocL = np.array(list(self.icelinesloc.values()))
 
 
-    def data_store (self,path=os.getcwd()):
-        
-        self.get_plot_list()
-
-        #store particles data
-        df_rad = pd.DataFrame(self.radL)
-        df_mass = pd.DataFrame(self.mL)
-        df_mtot = pd.DataFrame(self.mtotL)
-        df_fcomp = pd.DataFrame(self.fcompL)
-        
-        df_rad.index = self.timeL
-        df_mass.index = self.timeL
-        df_mtot.index = self.timeL
-        df_fcomp.index = self.timeL
-
-        ## write CSV
-        import pdb; pdb.set_trace()
-        writer = pd.ExcelWriter('particles_data.xlsx', engine='xlsxwriter')
-        df_rad.to_excel (writer, sheet_name= 'location data')
-        df_mass.to_excel (writer, sheet_name= 'mass data')
-        df_mtot.to_excel (writer, sheet_name= 'total mass data')
-        df_fcomp.to_excel (writer, sheet_name= 'composition data')
-        writer.close()
-
-        #store planets data
-        df_plmass = pd.DataFrame(self.planetsmassL)
-        df_plloc = pd.DataFrame(self.planetslocL)
-        df_plmass.index = self.timeL
-        df_plloc.index = self.timeL
-
-        writer = pd.ExcelWriter('planets_data.xlsx', engine='xlsxwriter')
-        df_plmass.to_excel (writer, sheet_name= 'mass data')
-        df_plloc.to_excel (writer, sheet_name= 'location data')     
-        
-        writer.close()
-
-        #store iceline data
-        df_illoc = pd.DataFrame(self.icelineslocL)
-        df_illoc.index = self.timeL
-
-        writer = pd.ExcelWriter('icelines_data.xlsx', engine='xlsxwriter')
-        df_illoc.to_excel (writer, sheet_name= 'location data')     
-        
-        writer.close()
-
-
-
-        #with open(path+str(datetime.datetime.now())+'data_particles.csv', 'w', newline='') as csvfile:
-        #    writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
-        #    writer.writeheader()
-        #    writer.writerows([self.radD,self.mD,self.mtotD])
-
-        # with open(str(datetime.datetime.now())+'data_mass.csv', 'w', newline='') as csvfile:
-        #     writer=csv.DictWriter(csvfile,fieldnames=self.timeL)
-        #     writer.writeheader()
-        #     writer.writerows(self.mD)       
-
-    
     def plot_stuff(self):
         
         #[time,loc]=np.meshgrid(self.timeL,np.linspace(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ,len(self.timeL)))
@@ -1120,37 +1030,6 @@ class Data(object):
         #    im = imageio.imread(path+"/"+pic)
         #    pic_list.append(im)
         #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
-
-def load_data(path=os.getcwd()):
-    #TBD: load data from excel
-    
-    #load particles data
-    filename = '/particles_data.xlsx'
-    df_rad = pd.read_excel (path + filename, sheet_name = 'location data', engine = 'openpyxl')
-    df_mass = pd.read_excel (path + filename, sheet_name = 'mass data', engine = 'openpyxl')
-    df_mtot = pd.read_excel (path + filename, sheet_name = 'total mass data', engine = 'openpyxl')
-    df_fcomp = pd.read_excel (path + filename, sheet_name = 'composition data', engine = 'openpyxl')
-
-    #load planets data
-    filename = '/planets_data.xlsx'
-    df_plloc = pd.read_excel (path + filename, sheet_name = 'location data', engine = 'openpyxl')
-    df_plmass = pd.read_excel (path + filename, sheet_name = 'mass data', engine = 'openpyxl')
-
-    #load icelines data
-    filename = '/icelines_data.xlsx'
-    df_illoc = pd.read_excel (path + filename, sheet_name = 'location data', engine = 'openpyxl')
-    
-    loaddata = Data()
-    loaddata.radL = df_rad.iloc[:,1:]
-    loaddata.mL=df_mass.iloc[:,1:]
-    loaddata.mtotL = df_mtot.iloc[:,1:]
-    loaddata.fcomL = df_fcomp.iloc[:,1:]
-    loaddata.planetsmass = df_plmass.iloc[:,1:]
-    loaddata.planetsloc = df_plloc.iloc[:,1:]
-    loaddata.icelinesloc = df_illoc.iloc[:,1:]
-    loaddata.timeL = df_illoc.iloc[:,0]
-
-    return loaddata
 
 
 data = Data() #sets it up
