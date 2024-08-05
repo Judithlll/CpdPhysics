@@ -710,7 +710,7 @@ class System(object):
         - the relative motions among the particles (tcol -- this involves deltaTfraction)
         - the change in the planet's mass/location/composition (PxxxTscale)
         - the growth rate of the central mass object (McTscale]
-        - TBD (mdotTgscale) [what's that?]
+        - The changing timescale of mass inflow rate (mdotgTscale)
         - the timescale on which resonances are approach (pratTscale)
 
         """
