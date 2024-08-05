@@ -1,23 +1,13 @@
 import numpy as np
 import subprocess as sp
-import shutil
-import cv2
-import random
 import fileio
 import matplotlib.pyplot as plt
 import cgs
-import datetime
-import csv
 import copy
 import parameters as pars     
-#import imageio.v2 as imageio
-import os
-import pandas as pd
 import parameters as pars
 import disk_properties as dp
 import physics
-from scipy.optimize import curve_fit
-from matplotlib.colors import LinearSegmentedColormap
 
 def PIM():
     #make this a smaller value, to stop the accretion and allow the jump
@@ -93,6 +83,8 @@ def do_stuff (system, init=False, final= False):
         #store system components as pickles
         fileio.store_class(system, 'system')
         fileio.store_class(data, 'data')
+
+        data.plot_jumpT()
     else:
         data.data_process(system)
         sp.run('tail -n1 log/system_evol.log', shell=True)
@@ -288,6 +280,28 @@ class Data(object):
         self.planetsdmdtL = np.array(pdmdtL)
 
         self.icelineslocL = np.array(list(self.icelinesloc.values()))
+
+    def plot_jumpT(self):
+        plt.figure()
+        plt.xlabel('System time [yr]')
+        plt.ylabel('Jump time [yr]')
+        plt.yscale('log')
+        plt.xscale('log')
+        for jump in self.jumpstuff:
+            #plt.axvspan((jump['jumptime'])/cgs.yr, 
+            #           (jump['jumptime']+jump['jumpT'])/cgs.yr, alpha = 0.3,color = 'gray')
+            plt.axvline((jump['jumptime']+jump['jumpT'])/cgs.yr, color = 'black', alpha =0.5, linewidth = 0.3, linestyle='dotted')
+
+        sttime = np.array(init_planets()[0])/cgs.yr
+        for i, st in enumerate(sttime):
+            plt.axvline(st, color='black', linestyle='dashed', label = 'Seed'+str(i+1), linewidth=2)
+        jumpTlist = [f['jumpT']/cgs.yr for f in self.jumpstuff]
+        timelist = [f['jumptime']/cgs.yr for f in self.jumpstuff]
+        plt.plot(timelist, jumpTlist, '.-',label='jump time', color = 'blue')
+        #plt.scatter(timelist, jumpTlist)
+        plt.legend()
+        plt.savefig('jumpT.jpg')
+        plt.close()
 
 
 

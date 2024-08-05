@@ -1698,11 +1698,9 @@ class Superparticles (object):
         #plt.plot(sigD)
         #plt.show()
 
-
-        #[24.07.21]cwo: it seems that Hd and delv are only used in dmdt below
-        #TBD: so they can be incorporated in userfun.dm_dt directly (right?)
         
         #provide the composition as an argument (in general way)
+        #[24.08.05]LZX: the Hd and delv have been integrated into dm_dt
         dmdt = userfun.dm_dt (self)
 
         Y2ddt = np.zeros_like(Y2d)
