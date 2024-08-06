@@ -1525,7 +1525,6 @@ class Superparticles (object):
 
         #[23.12.30]NEW:add composition data (fcomp)
         #[23.12.30]this looks a bit ugly...
-        #[24.01.09]LZX:the initial fcomp also need to consider the iceline location, TBD
         self.fcomp = np.empty((nini,len(pars.composL)))
         for k,rad in enumerate(radL):
             Zcomp = []
@@ -1944,6 +1943,14 @@ class CentralBody (object):
         self.m = self.Mt(time)
         self.r = physics.mass_to_radius(self.m, self.rho)
         self.time = time
+
+    def magneto_radius (self, B_mag, dotMg):
+        """
+        Calculate the magneto radius of central body. 
+        from Shibaika. 2019
+        """
+        r_cav = (B_mag**4 *self.r**(12)/4/cgs.gC/self.m/dotMg**2)**(1/7)
+        return r_cav
 
 class ICELINE(object):
     def __init__(self,species,temp):
