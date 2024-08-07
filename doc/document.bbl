@@ -1,0 +1,15 @@
+\begin{thebibliography}{3}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{{Adachi} {et~al.}(1976){Adachi}, {Hayashi}, \&
+  {Nakazawa}}]{AdachiEtal1976}
+{Adachi}, I., {Hayashi}, C., \& {Nakazawa}, K. 1976, Progress of Theoretical
+  Physics, 56, 1756
+
+\bibitem[{{Weidenschilling}(1980)}]{Weidenschilling1980}
+{Weidenschilling}, S.~J. 1980, \icarus, 44, 172
+
+\bibitem[{{Whipple}(1972)}]{Whipple1972}
+{Whipple}, F.~L. 1972, in From Plasma to Planet, ed. A.~{Elvius}, 211
+
+\end{thebibliography}

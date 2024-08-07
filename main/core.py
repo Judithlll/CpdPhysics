@@ -366,15 +366,14 @@ class System(object):
         #loc = self.particles.locL
         #sigG, *dum = self.gas.get_key_disk_properties(loc,0.0)
 
+        ##LZX[24.08.06] uncommented for now, but maybe used later
         #sigP = sigG *0.01
-
         #mtot = self.particles.mtotL
         #boundaries = np.sqrt(loc[1:]*loc[:-1])
         #boundaries = np.append(dp.rinn,boundaries)
         #boundaries = np.append(boundaries,dp.rout)
         #warr = np.diff(boundaries)
         #sigma = mtot /(2*np.pi*loc*warr)
-
         #import pdb; pdb.set_trace()
         
 
@@ -560,6 +559,8 @@ class System(object):
         - make new particle state vector
         - remove planets
         - update central mass
+
+        LZX[24.08.06]: put add_planet here
         """
 
         self.daction = {}
@@ -724,11 +725,10 @@ class System(object):
         Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time)
 
         #timescale for the particles
-        #I dont think there's need to use np.nanmin
         tpart = np.abs(self.particles.Y2d/Y2dp)
 
         #get the collision timescale of particles 
-        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *0.5/deltaTfraction)
+        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) /deltaTfraction)
 
         tpart = np.concatenate((tpart,tcol[np.newaxis,:]))
 
@@ -1949,6 +1949,11 @@ class CentralBody (object):
         Calculate the magneto radius of central body. 
         from Shibaika. 2019
         """
+        #TBD:[24.08.06] should be a user function 
+        #only the fully ionized disk will have cavity, tempearture
+
+        #
+        
         r_cav = (B_mag**4 *self.r**(12)/4/cgs.gC/self.m/dotMg**2)**(1/7)
         return r_cav
 

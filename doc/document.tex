@@ -1,0 +1,324 @@
+\documentclass[12pt]{article}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{authblk}
+\usepackage{natbib}
+\usepackage{natbibspacing}
+\usepackage[left=2cm, right=2cm]{geometry}
+\usepackage{subfigure}
+\usepackage{indentfirst}
+\usepackage{minted}
+\setlength{\parindent}{2em}
+\usemintedstyle{default}
+
+\newcommand{\icarus}{Icarus}
+
+\title{\textbf{DOCUMENTATION}}
+\author{Zhixuan Li}
+\date{\today}
+
+\begin{document}
+\maketitle 
+
+\section{INTRODUCTION}
+The Lagrangian code for planet formation code (Lag-PFS) is an open-source simulation 
+code for simulating the disk systems, such as the evolution of disk and  
+planets or satellites formation process in the protoplanetary disk (PPD) or 
+circumplanetary disk (CPD) with Lagrangian method. This code is open-source on 
+\href{https://github.com/Judithlll/CpdPhysics}{github}
+
+This code is developed generally for every kinds of disk system, which allows 
+users to implement the mechanisms they want, like the initial distribution 
+of gas in disk, how the particles grow and drift, how the embryos 
+migrate and accrete materials in disk and so on. And \textbf{NOTE} that because 
+we firstly apply this code to simulate the satellites formation in CPDs, the 
+discription in this documentation will use the 'planet' as the central body, while 
+the satellites as orbital bodies in the system. 
+
+The basic elements of disk system include the gas, solid particles, the central 
+body, the objects in disk and also maybe icelines, gaps and so on.
+The frame of this code is under the \textbf{main} folder, which contains 
+how to conbine the elements of disk and run the system. And under 
+\textbf{Test} folder, there are some sub-folders named by the users, which 
+allow users to discribe the physical processes in there own ways. Under 
+\textbf{Test/simple}, there's a simpliest example. Users can enter the 
+test folder created by themselves:
+\begin{listing}[h]
+    \label{code:a}
+    \begin{minted}{python3}
+        cd ~/CpdPhysics/Test/zxl_test
+    \end{minted}
+\end{listing}
+
+\noindent and then run:
+\begin{listing}[htb]
+    \label{code:b}
+    \begin{minted}{python3}
+        python3 ../../main/runcpd.py 
+    \end{minted}
+\end{listing}
+
+\noindent If you see: 
+\begin{listing}[htb]
+    \label{code:c}
+    \begin{minted}{shell}
+        [runcpd]: Congrats!! You finished a sucessful run which consume 1.17 seconds
+        [runcpd]:finished
+    \end{minted}
+\end{listing}
+
+\noindent in your terminal, you have sucessfully finished running your test. 
+
+We will present the content and stucture in detail 
+(sec. \ref{sec:a}), 
+the acceleration of code: jump (sec. \ref{sec:b}).
+
+\section{Content and Structure}
+\label{sec:a}
+We developed this code by python programming language and by object-oriented 
+programming. We put all the relavant properties of one part in disk in a 
+conrresponding class, so in the code you will see several classes below:
+\begin{enumerate}
+    \item Main classes:
+        \begin{enumerate}
+            \item core.Superparticles: the aggerates of lots of solid particles. 
+            \item core.PLANET: include the properties of single orbital object in disk.
+            \item core.ICELINE: include the properties of single iceline.
+            \item gas.GAS: include the preperties distribution of gas.
+            \item core.System: integrate every parts of disk, and discribe the interaction between them.
+        \end{enumerate}
+    \item Functional classes: some other classes like Single-SP, minTimes, and so on 
+        are functional classes used in some medium steps, which have detailed 
+        comments below them.
+\end{enumerate}
+
+Then, we will present you the structure of this code in the order of running, which 
+is shown in \textbf{main/runcpd.py}, during which we will intraoduce you where and 
+how to insert your own mechanisms. The overview of running process is shown in 
+figure \ref{fig:cpdcode}
+\begin{figure}[ht]
+    \label{fig:cpdcode}
+    \includegraphics* [width=\textwidth] {cpdcode.jpg}
+    \caption{The process of running}
+\end{figure}
+
+\subsection {INITIALIZE}
+Firstly, we initialize the system. The initialization is mainly done by the function 
+\textbf{sim$\_$init} in \textbf{main/init.py}. 
+
+Firstly, the init has two options. One is running from scratch, the other is from 
+the time point that last run ends, which need two pickle files under 
+\textbf{/Test/user/pickles/}. Running from pickle files can be done by adding an 
+arguement:
+\begin{listing}[h]
+    \label{code:b}
+    \begin{minted}{python3}
+        python3 ../../main/runcpd.py fromfile
+    \end{minted}
+\end{listing}
+
+Let's now discuss the running from scratch. 
+In the \textbf{sim$\_$init}, we firstly initialize an empty frame (system object), 
+then we get the composition from .txt files under \textbf{config/(comps).txt}, from which 
+we can initialize the gas. And then the orbital objects and icelines in order. (In the 
+code, the orbital objects are called 'planet'). Then, we initialize the particles.
+The particles from \textbf{Superparticles} objects is initially logrithmically 
+distributed with the same physical sizes, and the total mass of particles is euqal to
+the total solid mass get from initial gas surface density and dust-to-gas ratio. The 
+object for particles are called 'Superparticles' because the particles in code 
+are aggerates of many real particles, respectively, which help us dramatically 
+save the computational power, also that the difference between Lagrangian code 
+and N-body code.
+After getting all the parts of system, we calculate the time 
+step from \textbf{core.new$\_$timestep}, which we will introduce in detail later. 
+
+
+\subsection{RUNNING}
+After the initialization, it comes normal running. The running steps are 
+shown in the dotted frame of figure \ref{fig:cpdcode}. The order is critical for running,
+let's see them in detail.
+
+\begin{enumerate}
+    \item \textbf{Add planet (orbital objects)}. This step is done by \textbf{add$\_$planet} function 
+        under \textbf{System} object.
+        You can choose adding objects at a certain time and certain location or 
+        add them from certain planetesimal forming mechanism (TBD). 
+    \item \textbf{Update particles}. The particles is from \textbf{Superparticles} object, which 
+        includes all the 'superparticles' in the disk. The main properties of particles 
+        include location, physical mass and total mass. The 'total mass' is the sum 
+        of the masses of all particles the 'superparticle' represents. 
+
+        The updating is done by \textbf{update$\_$particles} under Syetem object, for 
+        which the users need to supply how the particles grows in the 
+        \textbf{dm$\_$dt} function under \textbf{userfun.py}. The drift of particles is 
+        done by function \textbf{radial$\_$v} in \text{main/physics.py} as 
+        \citep{Whipple1972,AdachiEtal1976,Weidenschilling1980}:
+        \begin{align}
+            v_r = -\frac{St}{1+St^2} \eta v_K 
+        \end{align}
+        in which the $St$ is stokes number, representing the areodynamical size of particles, 
+        the $\eta$ is the ratio between the gas pressure gradient and gravity in disk, and 
+        $v_K$ represents Kepler velocity. 
+
+        The composition of particles are also considered, but in our code, the change of 
+        composition happens only when cross the conrresponding iceline. 
+
+        Also you will see the superparticles have many other properties like stokes number, 
+        scale height, surface density and so on, which are auxiliary properties get from 
+        disk object, and need to be used at certain points.
+    \item \textbf{Advance iceline and planet}. 
+        This step discribe the interaction between particles 
+        and icelines/planets (orbital objects) when particles drift across the location of 
+        icelines/planets. 
+
+        The planets accretes materials from superparticles, decreasing 
+        the total mass of superparticles, and increasing the mass of planets, also this 
+        mass will change the planets' composition. Users can supply the analitical accretion 
+        efficiency algorithm to function \textbf{epsilon$\_$PA} in \textbf{userfun.py}. And 
+        also planets may migrates in disk, which is discribed by function \textbf{planet
+        $\_$migration}. For iceline, the iceline will also move, because the change of 
+        midplane temperature, which is discribed by function \textbf{$get\_iceline\_location$} 
+        under ICELINE object. The \textbf{advance$\_$iceline} also has the task to 
+        change the composition of particles because of evaporation. 
+    \item \textbf{Post process}. After update the properties of every part, the \textbf{post$\_$process}
+        will do some making up things. There's brief introduction aboout what is done under 
+        this function (also a comment in the code):
+        \begin{enumerate}
+            \item add and remove particles which cross the inner edge and enter from 
+                outer edge. 
+            \item resample particle distribution to keep the number of superparticles 
+                stable, which 
+                has two algorithms can be chosen in \textbf{Test/users/parameters.py} by change 
+                the value of 'resampleMode'. The two algorithms are 
+                'Nplevel' and 'splitmerge', the former one stablize the number by adjust 
+                the total mass of superparticles, while the later by spilt and merge 
+                superparticles.
+            \item update the particle state vector
+            \item remove planets which are engulted by central body. 
+            \item update mass of central body.
+        \end{enumerate}
+    \item \textbf{Query jumps}. 
+        The step judge whether the jumps can happen, the jump and how to 
+        judge jumps will be introduced by sec. \ref{sec:b}. If the jumps were judged 
+        can happen, then forward the system by jump, otherwise by just adding the 
+        time step into system's time. 
+
+    \item \textbf{Get new time step}. Whether we do the jump or not, we need to get the time step 
+        for next step. The \textbf{new$\_$timestep} is a complex function, inwhich we 
+        compare several timescales and let the shortest one to be next time step. 
+        And here we also get some 'milestones' for restricting the jump step. 
+
+    \item \textbf{Back up data}. Back up the properties of current state for calculating the 
+        timescales. 
+
+    \item \textbf{Print and update log}. 
+        Print some things to the terminal and update the log file under  
+        \textbf{/Test/user/log/}
+        This step is done by the \textbf{do$\_$stuff} in \textbf{userfun.py}, which 
+        needs to be supplied by users. 
+
+    \item Finally, all of these steps are in a while loop, when the time of system 
+        is smaller then \textbf{tmax} parameter in \textbf{parameters.py}. 
+\end{enumerate}
+
+        
+\subsection{FINAL}
+When the \textbf{system.time} larger equal than the tmax in \textbf{parameters.py}, 
+the 'final' parameter will be 'True', then the while loop 
+will be stopped, and the system class will be stored as .pickle file. 
+
+Under the \textbf{/Test/zxl$\_$test/userfun}, there's a 'data' class, which can 
+store and process the data to plot some figures.
+
+
+\section{JUMP}
+\label{sec:b}
+The jump is a typical programing method aiming at accelerating simulation. Under the 
+princple that the evolution of system will enter into a quasi-static state, during which 
+we can regard the rate of evolution of system properties as fixed values. For example, 
+when the distribution of solid particles in the circumplanetary disk has a very long 
+timescale, the accretion rate of satellites in this disk will not change significantly, 
+then we don't need to calculate the accretion rate every step, which can be in other 
+words 'jumped'. Of course implementing the 'jump' thing need to be cautious and well 
+thought out. So Let's present you how we do the jump in detail.
+
+To get how long we can jump over, 
+we consider several characteristic timescales, including those related to satellite 
+mass increase, satellite migration, iceline position changes, and mass inflow (specifically 
+for CPDs). These 
+timescales can be expressed as follows:
+\begin{align}
+    \tau_{P} = \frac{P_{new}}{(|P_{old}-P_{new}|)}\Delta t,
+\end{align}
+in which $P$ represents the kinds of properties of system, which in our CPD case are 
+the location of icelines and the mass inflow rate. 
+
+Also for some special preperties like mass growth of objects in disk, which is not 
+continuous, cannot be calculated like that. For these kinds of properties, we 
+logrithmically fit the points on which mass change, and get the evolving timescale 
+from the slope. For these kinds of properties, we can get how the errors grow  
+when we prelong the jump time, and we artifically supply a paramteter serving as 
+the maximum error can be tolerated in jump, from which we can futher restrict the
+jump time. The maximum jump time can be derived as:
+\begin{align}
+    t_{jump,max} = \frac{\eta m}{\sigma_{dm/dt} - \sigma_{max} dm/dt}
+\end{align}
+in which the $\sigma_{max}$ is the maximum error we artifically defined in 
+\textbf{paramteters.py} under every user directory.
+
+Then we can choose the minimum time between these timescales and maximum jump 
+time, and restrict it futher by just simply multipling a pre-fractor that is 
+samller than 1 in front 
+of this time, finally we get the jump time: $t_{jump}$. Also, there are some 
+points that cannot be jumpt over, which are called 'milestones', like the time 
+we inserting the objects. Comparing $t_{jump}$ and the time to milestones, 
+we finally get the time we can jump over. 
+
+After we get how long we can jump over, we also need to know whether we can jump, 
+which is critical because if we do the jump very frequently, we can imagine the 
+error will be large. So we consider the conditions below:
+\begin{enumerate}
+    \item The jump step size must be significantly larger than the evolution step size to 
+        ensure its significance.
+    \item The jump step size must be greater than 100 times average steps.
+    \item Jumps cannot occur continuously; there must be sufficient time between jumps to 
+        update various physical processes’ evolution rates. For instance, we currently 
+        require at least 100 steps of regular evolution between jumps.
+    \item Jumps happen only after the system enter into the quasi-static state. We 
+        do this by letting all the initially distributed particles are accreted 
+        by the central body in our CPD cases. (NOT SUITABLE FOR PPD)
+\end{enumerate}
+
+Only when all these conditions are met can a jump occur. Figure \ref{fig:jumpT} 
+illustrates the jump durations in a simulation with $10^7$ years, in which 
+we can found:
+\begin{enumerate}
+    \item Throughout the simulation, significant jumps occur, greatly reducing the required computation time.
+    \item The time spent on regular equation solving and other steps between jumps is minimal.
+    \item Jumps halt when satellites enter the system.
+    \item Sharp decreases in jump duration correspond to satellite capture into resonances, 
+        as expected. Since we cannot precisely predict when satellites will enter resonances, 
+        we reduce jump time near resonance points to avoid skipping them.
+\end{enumerate}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics *[width=0.8\textwidth]{figure/jumpT.jpg}
+    \caption{The jump steps through the simulation. The blue line with dots represents 
+    the length of jump steps. The black dashed line represents the time points 
+    where the satellites enter into the system. The slim dotted lines represents the 
+    ends of every times, which is almost overlap with the beginning of 
+    next jump.}
+    \label{fig:jumpT}
+\end{figure}
+
+
+\bibliography{ads}
+\bibliographystyle{aa}
+
+\end{document}
