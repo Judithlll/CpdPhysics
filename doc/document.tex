@@ -48,31 +48,24 @@ how to conbine the elements of disk and run the system. And under
 allow users to discribe the physical processes in there own ways. Under 
 \textbf{Test/simple}, there's a simpliest example. Users can enter the 
 test folder created by themselves:
-\begin{listing}[h]
-    \label{code:a}
-    \begin{minted}{python3}
+\begin{verbatim}
+
         cd ~/CpdPhysics/Test/zxl_test
-    \end{minted}
-\end{listing}
 
-\noindent and then run:
-\begin{listing}[htb]
-    \label{code:b}
-    \begin{minted}{python3}
+\end{verbatim}
+and then run:
+\begin{verbatim}
+
         python3 ../../main/runcpd.py 
-    \end{minted}
-\end{listing}
 
-\noindent If you see: 
-\begin{listing}[htb]
-    \label{code:c}
-    \begin{minted}{shell}
+\end{verbatim}
+
+If you see: 
+\begin{verbatim}
         [runcpd]: Congrats!! You finished a sucessful run which consume 1.17 seconds
         [runcpd]:finished
-    \end{minted}
-\end{listing}
-
-\noindent in your terminal, you have sucessfully finished running your test. 
+\end{verbatim}
+in your terminal, you have sucessfully finished running your test. 
 
 We will present the content and stucture in detail 
 (sec. \ref{sec:a}), 
@@ -111,7 +104,7 @@ figure \ref{fig:cpdcode}
 Firstly, we initialize the system. The initialization is mainly done by the function 
 \textbf{sim$\_$init} in \textbf{main/init.py}. 
 
-Firstly, the init has two options. One is running from scratch, the other is from 
+The init has two options. One is running from scratch, the other is from 
 the time point that last run ends, which need two pickle files under 
 \textbf{/Test/user/pickles/}. Running from pickle files can be done by adding an 
 arguement:

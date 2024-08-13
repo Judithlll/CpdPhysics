@@ -54,7 +54,7 @@ while doEvo:
         # if system.time > system.planetL[0].time:
     #     import pdb; pdb.set_trace()
                         
-    #[24.008.06]LZX: put the add_planet() into userfun
+    #[24.08.06]LZX: put the add_planet() into userfun
     if len(system.planet_candidate)>0:
         for planet in system.planet_candidate:
             if planet.starttime <= system.time:
