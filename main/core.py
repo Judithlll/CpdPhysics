@@ -1918,7 +1918,7 @@ class PLANET ():
             
 
 
-# TBD: make a class for the properties of the central object
+#class for the properties of the central object
 class CentralBody (object):
     """
     Get properties of central body, star for PPD or planet for CPD
@@ -1944,17 +1944,17 @@ class CentralBody (object):
         self.r = physics.mass_to_radius(self.m, self.rho)
         self.time = time
 
-    def magneto_radius (self, B_mag, dotMg):
+    def magneto_radius (self, dotMg, gas, B_mag=None):
         """
-        Calculate the magneto radius of central body. 
-        from Shibaika. 2019
-        """
-        #TBD:[24.08.06] should be a user function 
-        #only the fully ionized disk will have cavity, tempearture
-
-        #
+        Get the radius of magneto sphere, 
+        only the fully ionized disk will have cavity. 
         
-        r_cav = (B_mag**4 *self.r**(12)/4/cgs.gC/self.m/dotMg**2)**(1/7)
+        Input parameters:
+        B_mag: the magnetic field of central body, can be default 
+        dotMg: the gas mass inflow rate. 
+        gas: gas object
+        """
+        r_cav = userfun.magneto_radius(B_mag, self.rho, dotMg, gas, self.r, self.m, self.time)
         return r_cav
 
 class ICELINE(object):

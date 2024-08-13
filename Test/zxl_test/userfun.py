@@ -29,6 +29,35 @@ def Stokes_number(delv, Rd, vth, lmfp, OmegaK, rhog, rhoint = 1.4):
     St=8/3/CD*rhoint*Rd/rhog/v_dg*OmegaK
     return St
 
+def magneto_radius (B_mag, rho, dotMg, gas, r, m, t=0.0):
+    """
+    Calculate the magneto radius of central body. 
+
+    Input parameters:
+    B_mag: The magnetic field strength of central body. 
+    rho: density of central body. 
+    dotMg: the gas mass inflow of disk. 
+    gas: The gas object used for getting the temperature. 
+    r: the radius of central body. 
+    m: the mass of central body.
+    t: the time of system evolution.
+
+    Output:
+    If the temperature is larger than the ionization temperature, the 
+    there exists the cavity, otherwise there's not.
+    """
+    T_crit = 1e5 #Temporarily use the ionization Temperature of H 
+    r_cav = (B_mag**4 *r**(12)/4/cgs.gC/m/dotMg**2)**(1/7)
+
+    Tinn = gas.get_key_disk_properties(r_cav, t)[1]
+
+    if Tinn <= T_crit:
+        r_cav = r 
+        print('''The inner disk is not hot enough, the r_cav is now set to 
+              radius of central body ''')
+
+    return r_cav 
+
 #LZX [24.08.04]: not used now, but put it here for preperation
 def St_fragment(alpha, cs, eta, loc, Omega_K, v_crit, icelineloc):
     #following Shibaike 2019 eq14
