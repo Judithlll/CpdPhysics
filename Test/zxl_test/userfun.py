@@ -70,6 +70,29 @@ def St_fragment(alpha, cs, eta, loc, Omega_K, v_crit, icelineloc):
     St = (-3*alpha*cs**2+sq_part)/(2*eta**2*loc**2*Omega_K**2)
     return St
 
+def add_planet(system):
+    """
+    The add planet here should have some options, but both of them can
+    apply the add_planet under System, which add planet from a candidate 
+    list, so here we should modify the candidate list.
+
+    The options are:
+    1. given: the add from the given information
+    2. random: the add from the planetesimal generating rate
+    """
+    #First modify the candidate 
+
+    #Then add the planet to the planet list
+    if len(system.planet_candidate)>0:
+        for planet in system.planet_candidate:
+            if planet.starttime <= system.time:
+                system.add_planet(planet)
+                system.planet_candidate.remove(planet)
+
+    #Finally we should sort the planets according to the location.
+
+    return system
+
 def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     #aerodynamic drag migration
     out = gas.get_key_disk_properties (planetLoc, time)
@@ -102,8 +125,8 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
     # v_mig=vt1+vd
 
     #if planetMass > 5e26: import pdb; pdb.set_trace()
-    if vt1< -0.04:
-        import pdb;pdb.set_trace()
+    #if vt1< -0.04:
+    #    import pdb;pdb.set_trace()
     return vt1 # v_mig
 
 def del_v (St, disk):

@@ -23,6 +23,21 @@ def do_stuff (system, init=False, final=False):
 
         #if len(system.messages.msgL)>0: import pdb; pdb.set_trace()
 
+def add_planet(system):
+
+    #First modify the candidate 
+
+    #Then add the planet to the planet list
+    if len(system.planet_candidate)>0:
+        for planet in system.planet_candidate:
+            if planet.starttime <= system.time:
+                system.add_planet(planet)
+                system.planet_candidate.remove(planet)
+
+    #Finally we should sort the planets according to the location.
+
+    return system
+
 
 def del_v (St, disk):
     return 0.0

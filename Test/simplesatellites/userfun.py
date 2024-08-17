@@ -40,6 +40,20 @@ def do_stuff(system, init=False, final = False):
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
         print(line)
 
+def add_planet(system):
+    #First modify the candidate 
+
+    #Then add the planet to the planet list
+    if len(system.planet_candidate)>0:
+        for planet in system.planet_candidate:
+            if planet.starttime <= system.time:
+                system.add_planet(planet)
+                system.planet_candidate.remove(planet)
+
+    #Finally we should sort the planets according to the location.
+
+    return system
+
 def H_d (St, disk):
     return physics.H_d(disk.Hg,St,disk.alpha)
 

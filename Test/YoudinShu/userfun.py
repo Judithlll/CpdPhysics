@@ -21,6 +21,8 @@ def init_compos_Z (material):
 
     return f_compos
 
+def add_planet(system):
+    return system
 
 def init_compos (compos):
     dcompos = {}

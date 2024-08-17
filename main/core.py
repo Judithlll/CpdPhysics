@@ -728,9 +728,10 @@ class System(object):
         tpart = np.abs(self.particles.Y2d/Y2dp)
 
         #get the collision timescale of particles 
-        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) /deltaTfraction)
+        #[2024.08.15]LZX: If the 0.5 here is absent, the particles crossing will happen
+        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *0.5/deltaTfraction)
 
-        tpart = np.concatenate((tpart,tcol[np.newaxis,:]))
+        tpart = np.concatenate((tpart, tcol[np.newaxis,:]))
 
         mintimeL.append({'name':'particles', 'tmin': tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
