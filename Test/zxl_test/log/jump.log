@@ -65,9 +65,9 @@
         64           1229089.55             22025.70              planet-growth-fit
         65           1251133.19             27966.40              planet-growth-fit
         66           1279117.57             30667.58              planet-growth-fit
-        67           1309803.19             24234.83              planet-growth-fit
+        67           1309803.20             24234.83              planet-growth-fit
         68           1334056.13             40144.44              planet-growth-fit
-        69           1374218.67             33821.93              planet-growth-fit
+        69           1374218.68             33821.93              planet-growth-fit
         70           1408058.73             23826.24              planet-growth-fit
         71           1431903.19             26225.03              planet-growth-fit
         72           1458146.52             25649.65              planet-growth-fit
@@ -102,7 +102,7 @@
        101           1871722.21              1777.11                    system-evol
        102           1873522.76               908.08                    system-evol
        103           1874454.25               450.54                    system-evol
-       104           1874929.64               214.86                    system-evol
+       104           1874929.63               214.86                    system-evol
        105           1875170.45             15831.19              planet-growth-fit
        106           1891020.79              8979.21       milestones-insert_planet
        107           1900076.45             12410.08              planet-growth-fit
@@ -110,9 +110,9 @@
        109           1933663.28             23064.79              planet-growth-fit
        110           1956790.34             22378.85              planet-growth-fit
        111           1979220.60             19707.78              planet-growth-fit
-       112           1998969.12             22224.22              planet-growth-fit
+       112           1998969.13             22224.22              planet-growth-fit
        113           2021239.96             18438.82              planet-growth-fit
-       114           2039710.06             11648.91                    system-evol
+       114           2039710.07             11648.91                    system-evol
        115           2051393.82              6304.18                    system-evol
        116           2057722.92              3344.36                    system-evol
        117           2061093.84              1729.62                    system-evol
@@ -125,10 +125,10 @@
        124           2077688.92              1062.45                    system-evol
        125           2078778.33               526.59                    system-evol
        126           2079331.57               252.13                    system-evol
-       127           2079607.87             18318.13              planet-growth-fit
+       127           2079607.88             18318.13              planet-growth-fit
        128           2097950.65             16834.98              planet-growth-fit
        129           2114806.63             19745.76              planet-growth-fit
-       130           2134572.02             27155.11              planet-growth-fit
+       130           2134572.02             27155.12              planet-growth-fit
        131           2161746.86             18959.35              planet-growth-fit
        132           2180725.99             15177.47              planet-growth-fit
        133           2195923.20             15270.41              planet-growth-fit
@@ -153,8 +153,8 @@
        152           2290673.73               228.80                    system-evol
        153           2290922.56             37603.92              planet-growth-fit
        154           2328546.65             34361.65              planet-growth-fit
-       155           2362928.55             23758.67              planet-growth-fit
-       156           2386707.52             28797.55              planet-growth-fit
+       155           2362928.54             23758.67              planet-growth-fit
+       156           2386707.51             28797.55              planet-growth-fit
        157           2415525.47             24139.08              planet-growth-fit
        158           2439684.88             39257.58              planet-growth-fit
        159           2478962.90             33585.05              planet-growth-fit
@@ -165,24 +165,114 @@
        164           2628680.17             13115.96              planet-growth-fit
        165           2641817.02             29393.66              planet-growth-fit
        166           2671231.55             38343.79              planet-growth-fit
-       167           2709596.42             33215.26              planet-growth-fit
+       167           2709596.41             33215.26              planet-growth-fit
        168           2742832.76             30295.90              planet-growth-fit
        169           2773149.84             30469.91              planet-growth-fit
-       170           2803641.10             34027.50              planet-growth-fit
+       170           2803641.09             34027.50              planet-growth-fit
        171           2837689.96             38556.14              planet-growth-fit
-       172           2876267.61             35324.44              planet-growth-fit
-       173           2911613.63             40905.16              planet-growth-fit
-       174           2952540.46             34434.90              planet-growth-fit
-       175           2986997.11             15812.84              planet-growth-fit
+       172           2876267.60             35324.44              planet-growth-fit
+       173           2911613.62             40905.16              planet-growth-fit
+       174           2952540.45             34434.90              planet-growth-fit
+       175           2986997.10             15812.85              planet-growth-fit
        176           3002831.73             43297.34              planet-growth-fit
        177           3046151.10             42361.34              planet-growth-fit
-       178           3088534.58             29550.04              planet-growth-fit
-       179           3118106.73             15863.06              planet-growth-fit
-       180           3133992.08             16510.26              planet-growth-fit
-       181           3150524.56             28767.72              planet-growth-fit
-       182           3179314.61             26455.86              planet-growth-fit
-       183           3205792.87             28167.64              planet-growth-fit
-       184           3233982.93             32778.08              planet-growth-fit
-       185           3266783.47             18323.38              planet-growth-fit
-       186           3285129.42             31258.79              planet-growth-fit
-       187           3316410.79             14335.82              planet-growth-fit
+       178           3088534.57             29550.04              planet-growth-fit
+       179           3118106.72             15863.06              planet-growth-fit
+       180           3133992.07             16510.26              planet-growth-fit
+       181           3150524.55             28767.72              planet-growth-fit
+       182           3179314.60             26455.86              planet-growth-fit
+       183           3205792.86             28167.64              planet-growth-fit
+       184           3233982.92             32778.08              planet-growth-fit
+       185           3266783.46             18323.38              planet-growth-fit
+       186           3285129.41             31258.79              planet-growth-fit
+       187           3316410.78             14335.82              planet-growth-fit
+       188           3330769.05             13332.13              planet-growth-fit
+       189           3344123.64              9890.90              planet-growth-fit
+       190           3354036.97             38413.99              planet-growth-fit
+       191           3392473.39             31478.75              planet-growth-fit
+       192           3423974.42             16682.94              planet-growth-fit
+       193           3440679.56             19550.37              planet-growth-fit
+       194           3460252.16             31280.09              planet-growth-fit
+       195           3491554.49             23124.12              planet-growth-fit
+       196           3514700.96             34990.40              planet-growth-fit
+       197           3549713.70             30333.36              planet-growth-fit
+       198           3580069.51             38034.42              planet-growth-fit
+       199           3618126.47             46721.94              planet-growth-fit
+       200           3664871.08             46953.99              planet-growth-fit
+       201           3711847.84             49425.41              planet-growth-fit
+       202           3761296.18             50929.34              planet-growth-fit
+       203           3812248.60             48100.24              planet-growth-fit
+       204           3860372.05             42440.24              planet-growth-fit
+       205           3902835.62             48857.02              planet-growth-fit
+       206           3951716.09             50766.94              planet-growth-fit
+       207           4002506.73             49165.19              planet-growth-fit
+       208           4051695.78             48552.07              planet-growth-fit
+       209           4100271.71             43807.49              planet-growth-fit
+       210           4144103.15             56580.97              planet-growth-fit
+       211           4200708.42             65370.60              planet-growth-fit
+       212           4266103.45             36499.28              planet-growth-fit
+       213           4302627.24             58497.60              planet-growth-fit
+       214           4361149.64             62637.95              planet-growth-fit
+       215           4423812.61             32163.63              planet-growth-fit
+       216           4456001.35             59523.46              planet-growth-fit
+       217           4515550.26             63558.03              planet-growth-fit
+       218           4579133.80             52182.68              planet-growth-fit
+       219           4631342.22             66230.53              planet-growth-fit
+       220           4697598.61             73278.15              planet-growth-fit
+       221           4770902.86             53218.61              planet-growth-fit
+       222           4824147.83             71046.37              planet-growth-fit
+       223           4895220.79             60988.50              planet-growth-fit
+       224           4956236.07             87255.06              planet-growth-fit
+       225           5043518.17             71619.89              planet-growth-fit
+       226           5115165.38             81004.87              planet-growth-fit
+       227           5196197.89             73882.60              planet-growth-fit
+       228           5270108.42             86335.43              planet-growth-fit
+       229           5356472.16             85627.27              planet-growth-fit
+       230           5442127.99             82773.58              planet-growth-fit
+       231           5524930.48             76462.55              planet-growth-fit
+       232           5601422.23             79686.51              planet-growth-fit
+       233           5681138.23             90645.84              planet-growth-fit
+       234           5771814.01             42779.46              planet-growth-fit
+       235           5814623.66             75214.15              planet-growth-fit
+       236           5889868.29            100772.59              planet-growth-fit
+       237           5990671.74             84956.07              planet-growth-fit
+       238           6075659.05             48993.00              planet-growth-fit
+       239           6124683.44             88869.82              planet-growth-fit
+       240           6213585.10            110266.30              planet-growth-fit
+       241           6323883.69            105603.03              planet-growth-fit
+       242           6429519.42            110605.25              planet-growth-fit
+       243           6540158.14            115718.96              planet-growth-fit
+       244           6655910.99            109812.30              planet-growth-fit
+       245           6765757.55             49034.61              planet-growth-fit
+       246           6814826.77            107530.17              planet-growth-fit
+       247           6922391.98            116630.43              planet-growth-fit
+       248           7039058.05            136218.61              planet-growth-fit
+       249           7175312.87            129692.92              planet-growth-fit
+       250           7305042.55            114618.97              planet-growth-fit
+       251           7419698.89            112285.25              planet-growth-fit
+       252           7532022.14             72279.34              planet-growth-fit
+       253           7604340.11            142673.67              planet-growth-fit
+       254           7747053.10            103946.48              planet-growth-fit
+       255           7851039.54             67620.65              planet-growth-fit
+       256           7918700.85            102016.97              planet-growth-fit
+       257           8020758.96            137303.94              planet-growth-fit
+       258           8158104.85            131050.09              planet-growth-fit
+       259           8289197.59            114157.75              planet-growth-fit
+       260           8403398.76            123505.37              planet-growth-fit
+       261           8526948.39            138420.71              planet-growth-fit
+       262           8665414.26            135795.25              planet-growth-fit
+       263           8801255.56            153664.87              planet-growth-fit
+       264           8954967.49            129704.29              planet-growth-fit
+       265           9084719.80            160349.97              planet-growth-fit
+       266           9245118.90            119160.55              planet-growth-fit
+       267           9364329.61            132380.33              planet-growth-fit
+       268           9496761.40            138319.05              planet-growth-fit
+       269           9635132.87            119366.03              planet-growth-fit
+       270           9754552.69            137644.28              planet-growth-fit
+       271           9892251.81            135821.36              planet-growth-fit
+       272          10028129.37            133501.72              planet-growth-fit
+       273          10161688.67            202691.02              planet-growth-fit
+       274          10364439.18            185340.81              planet-growth-fit
+       275          10549841.44            208106.42              planet-growth-fit
+       276          10758011.48            130320.83              planet-growth-fit
+       277          10888398.00            111602.00         milestones-Ending_time

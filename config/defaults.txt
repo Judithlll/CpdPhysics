@@ -7,7 +7,8 @@ gasmodel = prescribed
 dragmodel = None
 initrule = equalmass
 
-dtimesteppars = {itgmethod:Euler}
+#[24.08.27]LZX:add the time fraction factor of collision time between particles
+dtimesteppars = {itgmethod:Euler;coltimefrac:0.8}
 
 ## jumpfrac dictionary
 jumpfracD = {general:0.2;PlanetsRes:0.5;thre_jump_max:0.001}

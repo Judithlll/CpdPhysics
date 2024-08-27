@@ -729,7 +729,7 @@ class System(object):
 
         #get the collision timescale of particles 
         #[2024.08.15]LZX: If the 0.5 here is absent, the particles crossing will happen
-        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *0.5/deltaTfraction)
+        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *pars.dtimesteppars['coltimefrac']/deltaTfraction)
 
         tpart = np.concatenate((tpart, tcol[np.newaxis,:]))
 

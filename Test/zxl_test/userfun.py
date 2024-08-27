@@ -81,7 +81,7 @@ def add_planet(system):
     2. random: the add from the planetesimal generating rate
     """
     #First modify the candidate 
-
+    ##LZX[24.08.27]:maybe check the planetesimal formation models
     #Then add the planet to the planet list
     if len(system.planet_candidate)>0:
         for planet in system.planet_candidate:
