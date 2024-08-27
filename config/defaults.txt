@@ -14,6 +14,7 @@ dtimesteppars = {itgmethod:Euler;coltimefrac:0.8}
 jumpfracD = {general:0.2;PlanetsRes:0.5;thre_jump_max:0.001}
 
 doPlanets = False
+planetaddmode = capture
 
 resampleMode = None
 dresample = {fdelS:0.04;fdelM:0.01}

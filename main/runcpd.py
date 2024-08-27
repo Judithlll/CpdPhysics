@@ -55,7 +55,8 @@ while doEvo:
     #     import pdb; pdb.set_trace()
                         
     #[24.08.06]LZX: put the add_planet() into userfun
-    system = userfun.add_planet(system)
+    if pars.doPlanets:
+        system = userfun.add_planet(system, pars.planetaddmode)
     
     #integrate the super particles
     Yt = system.update_particles (**pars.dtimesteppars)

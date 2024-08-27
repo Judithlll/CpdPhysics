@@ -51,5 +51,6 @@ resampleMode = 'splitmerge' #'Nplevel'
 dresample = {'fdelS':0.04,'fdelM':0.005}
 doJump = True
 doPlanets = True
+planetaddmode = 'capture'
 doIcelines = True
 doResonance = True

@@ -70,7 +70,7 @@ def St_fragment(alpha, cs, eta, loc, Omega_K, v_crit, icelineloc):
     St = (-3*alpha*cs**2+sq_part)/(2*eta**2*loc**2*Omega_K**2)
     return St
 
-def add_planet(system):
+def add_planet(system, mode):
     """
     The add planet here should have some options, but both of them can
     apply the add_planet under System, which add planet from a candidate 
@@ -82,12 +82,20 @@ def add_planet(system):
     """
     #First modify the candidate 
     ##LZX[24.08.27]:maybe check the planetesimal formation models
+    
     #Then add the planet to the planet list
-    if len(system.planet_candidate)>0:
-        for planet in system.planet_candidate:
-            if planet.starttime <= system.time:
-                system.add_planet(planet)
-                system.planet_candidate.remove(planet)
+    if mode == 'capture':
+        #maybe also some newly captured seeds
+        #pnew = core.PLANET(time, mcp0, rho)
+        #system.planet_candidate.append(pnew) 
+        
+        if len(system.planet_candidate)>0:
+            for planet in system.planet_candidate:
+                if planet.starttime <= system.time:
+                    system.add_planet(planet)
+                    system.planet_candidate.remove(planet)
+    elif mode == 'insitu':
+        pass
 
     #Finally we should sort the planets according to the location.
 
