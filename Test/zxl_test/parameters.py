@@ -15,6 +15,7 @@ dparticleprops = {'Rdi':0.01,  #initial size pf particles
 #[24.01.08]LZX: don't know whether this is a good idea
 dtimesteppars = {'itgmethod': 'Heun',
                  'deltaTfraction': 0.2,
+                 'coltimefrac':4.0,
                  'timestepn': 1, 
                  } #belong to integrator
 
@@ -39,14 +40,14 @@ dgasprop = {'alpha':5e-05,
             'tgap': 1.e6*cgs.yr
             }
 
-tmax = 347140156224193.44 
-
+#tmax = 347140156224193.44 
+tmax = 1e4*cgs.yr
 #critical velocity for fragmentation
 vc={'icy': 5.e3,
     'silicates': 5.e2, 
     }
 
-sfdmode = 'steady'
+sfdmode = 'simple'
 resampleMode = 'splitmerge' #'Nplevel'
 dresample = {'fdelS':0.04,'fdelM':0.005}
 doJump = True

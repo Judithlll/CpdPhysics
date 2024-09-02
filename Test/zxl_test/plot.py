@@ -18,9 +18,9 @@ else:
 print('[plot]: data.pickle has been loaded')
 system = fileio.load_class('./pickles/','system.pickle')
 
-
-data[0].plot_planet_evolution()
+data[0].make_animation('sfdevol.mp4','./sfdevol/')
 import pdb;pdb.set_trace()
+data[0].plot_planet_evolution()
 data[0].plot_peff_log()
 #data[0].plot_iceline()
 data[0].plot_growth_timescale()

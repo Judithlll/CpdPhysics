@@ -47,6 +47,10 @@ else:
     print('\033[32m[runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
+outflux =[]
+removenum = 0
+plotnum= 0
+
 while doEvo:
 
     #[24.01.01]:determines the timestep for this step
@@ -123,8 +127,15 @@ while doEvo:
 
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
-    
 
+    outflux.append(system.Moutflux)
+    if 'remove' in system.daction.keys():
+        removenum += len(system.daction['remove'])
+
+    #plot the surface density profile
+    if system.time/cgs.yr > plotnum*6.: #plot every 6 yr
+        userfun.data.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'])
+        plotnum += 1
     #[24.02.01]cwo: added stopping condition // we could add more
     final = system.time>=pars.tmax
 
@@ -145,6 +156,15 @@ while doEvo:
             print('[runcpd]: something wrong with deltaT')
             import pdb;pdb.set_trace()
 
+
+plt.figure()
+plt.xscale('log')
+plt.plot(system.timeL, outflux)
+plt.savefig('outflux_steady.png')
+plt.close()
+
+
+print('remove number:', removenum)
 print('[runcpd]:finished')
 
 

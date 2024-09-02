@@ -1,6 +1,6 @@
 from os import wait
 import numpy as np
-# from scipy.integrate import odeint
+from scipy.integrate import odeint
 import sys
 import cgs
 import ode
@@ -16,7 +16,6 @@ import time
 import scipy.optimize as sciop
 import physics
 import userfun
-from scipy.interpolate import interp1d
 import resample
 
 class COPY (object):
@@ -53,15 +52,15 @@ class Mintimes (object):
                     tevol.append( jumpfracD['general']*tmin)
         
         self.tminarr = np.array(tminL)
+
         self.nameL = nameL
+
         if len(tevol)>0:
             self.max_tevol = np.min(tevol)
 
         #first element is particles
         self.dpart = mintimeL[0]
 
-    def mintimelist(self,mintimeL):
-        self.tminarr = np.array([ddum['tmin'] for ddum in mintimeL])
 
 
 class Messages (object):
@@ -172,8 +171,12 @@ class System(object):
 
         if pars.resampleMode=='splitmerge':
 
-            # add a judgement: only if the particles is in order, then do the resample 
-            assert( np.all(np.diff(self.particles.locL)>0.) )
+            #the particles crossing is not physical
+            #try:
+            #    assert( np.all(np.diff(self.particles.locL)>0.) )
+            #except:
+            #    print('[core.re_sample]: Particles are crossing, please check')
+            #    import pdb;pdb.set_trace()
 
             newarr = resample.re_sample_splitmerge(self,self.particles,nsampleX=2,**pars.dresample)
             if newarr is not None:
@@ -208,11 +211,16 @@ class System(object):
         nameM = nameL[imin]
         tmin = tminarr[imin]
 
+        #give nameM more information
+        if nameM == 'particles':
+            #partpropL = ['drift','growth','collision']
+            nameM = nameM + '-' + str(self.minTimes.dpart['imin'])
+
         # get the lines will be written into files
         efmt = '{:10d} {:10.2f} {:20d} {:10.2e} {:20s}'       
         jfmt = '{:10d} {:20.2f} {:20.2f} {:30s}'
     
-        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num,self.deltaT, nameM.rjust(20))+''.join('{:7s}'.format(str(con).rjust(7)) for con in self.con_Jump)
+        line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.deltaT, nameM.rjust(20))+''.join('{:7s}'.format(str(con).rjust(7)) for con in self.con_Jump)
 
         #line_evol =efmt.format(self.ntime, self.time/cgs.yr, self.particles.num, self.Moutflux/self.minitDisk, nameM.rjust(20)) 
 
@@ -414,6 +422,11 @@ class System(object):
 
         disk = physics.DISK (*out, loc, time, mcp) #pro
         disk.add_auxiliary ()
+        userparL = disk.add_uservar (dp.user_add_var())    #variables
+        userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
+        userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
+
+        disk.userprops = userparL+userfuncL+userevalL
 
         return disk
 
@@ -729,13 +742,17 @@ class System(object):
 
         #get the collision timescale of particles 
         #[2024.08.15]LZX: If the 0.5 here is absent, the particles crossing will happen
-        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *pars.dtimesteppars['coltimefrac']/deltaTfraction)
+        tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])) *pars.dtimesteppars['coltimefrac'])
+        #tcol = np.append(np.inf, abs(np.diff(self.particles.locL)/np.diff(Y2dp[0])))
 
         tpart = np.concatenate((tpart, tcol[np.newaxis,:]))
 
+        #tmin = min([tpart[0].min(),tpart[1,2:].min(),tpart[2].min()])
         mintimeL.append({'name':'particles', 'tmin': tpart.min(), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
 
+        #if self.ntime ==760:
+        #    import pdb;pdb.set_trace()
         #after the jump, we only have particles drift timescale
         if afterjump:
             self.minTimes = Mintimes(mintimeL,jumpfracD)
@@ -958,7 +975,7 @@ class System(object):
 
         #limit increase of deltaT to (some number)
         if self.ntime>0:
-            deltaT = min(deltaT, self.oldstate.deltaT*1.01)
+            deltaT = min(deltaT, self.oldstate.deltaT*1.1)
 
             
         if self.time+deltaT>tEnd:
@@ -1042,6 +1059,7 @@ class System(object):
         #[24.06.10]LZX: consider the iceline effect, the outflux should be larger 
         #than the total silicate mass
         con3 = self.Moutflux>self.particles.fcompini[0]*self.minitDisk
+        print(self.Moutflux/self.minitDisk/0.5)
 
 
         #if self.ntime%1000==0: 
@@ -1541,11 +1559,42 @@ class Superparticles (object):
         
         self.get_rhoint()
         
-        self.massL = self.rhoint * 4/3*Rdi**3*np.pi
+        #LZX[24.08.28]:the initial mass list should be more real
+        ##maybe pre-solve the growth equation here and get the profile
+
+        compmask=np.array([])
+        for i in range(nini):
+            compmask = np.append(compmask,1-sum(self.fcompini[np.argwhere(self.fcomp[i]==0)]))
+        
+        self.massL = self.rhoint * 4/3*Rdi**3*np.pi        #self.massL *=log_mask*compmask
         self.mini = self.massL[-1]   #for adding particles
 
-        self.make_Y2d()   #get a Y2d used to integrate
         
+        def dm_dr(m,r):
+            Rd = physics.mass_to_radius(m,self.rhoint[-1])
+            out = gas.get_key_disk_properties(r, 0.0)
+
+            disk = physics.DISK(*out,r, time, dp.Mcp_t(0.0))
+            disk.add_auxiliary()
+
+            userparL = disk.add_uservar (dp.user_add_var())    #variables
+            userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
+            userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
+            
+            disk.userprops = userparL+userfuncL+userevalL
+
+            self.get_auxiliary(disk, 0.0, Rd, self.rhoint[-1], r, mode='individual')
+
+            Hd = userfun.H_d(self.St,disk)
+
+            dmdr = 2*np.sqrt(np.pi)*Rd**2*self.sfd/2/Hd  
+            return dmdr[-1]
+
+        massL = np.flip(odeint(dm_dr, self.mini, radL).T)*compmask
+        
+        #self.massL = massL[0]
+
+        self.make_Y2d()   #get a Y2d used to integrate
         for i in range(len(dcomposL)):
             del dcomposL[i]['Z_init']
             del dcomposL[i]['mask_icl']
@@ -1593,18 +1642,23 @@ class Superparticles (object):
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
 
 
-    def get_auxiliary (self, disk, time):
+    def get_auxiliary (self, disk, time, Rd = None, rhoint = None, loc = None, mode='group'):
         """
         Get the auxiliary properties of particles in disk, which 
         need disk properties in the particles's locations
         """
 
+        #LZX[24.08.29]:this add disk properties things are moved to 
+        ##             system.get_disk()
 
-        userparL = disk.add_uservar (dp.user_add_var())    #variables
-        userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
+        if Rd is None:
+            Rd = self.get_radius()
 
-        userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
-        Rd = self.get_radius()
+        if rhoint is None:
+            rhoint = self.rhoint
+
+        if loc is None:
+            loc = self.locL 
 
         if pars.dragmodel=='Epstein':
             St = physics.Stokes_Epstein (Rd, self.rhoint, disk.vth, disk.rhog, disk.OmegaK)
@@ -1623,22 +1677,26 @@ class Superparticles (object):
                                      disk.rhog,
                                      disk.OmegaK,
                                      Rd,
-                                     rhoint=self.rhoint,
+                                     rhoint,
                                      Sto=self.stokesOld)
 
-        if pars.sfdmode=='simple':
-            #adds the surface to the particles
-            sfd = ff.sfd_simple (self.mtotL, self.locL)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
-        elif pars.sfdmode=='steady':
-            sfd = disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
-            #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
-            #import pdb;pdb.set_trace()
-
+        if mode=='individual':
+            sfd = disk.dot_Md(time)/(-2*loc*np.pi*v_r)
         else:
-            sfd = None
+            if pars.sfdmode=='simple':
+                #adds the surface to the particles
+                sfd = ff.sfd_simple (self.mtotL, loc)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
+            elif pars.sfdmode=='steady':
+                sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
+                #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
+                #import pdb;pdb.set_trace()
+
+            else:
+                sfd = None
+                
 
         dauxi = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg, 'sfd':sfd} 
-        for key in userparL+userevalL+userfuncL:
+        for key in disk.userprops:
             dauxi[key] = getattr(disk, key)
 
         for key,val in dauxi.items():
@@ -1655,25 +1713,6 @@ class Superparticles (object):
 
         #unpack the state vector
         loc, mphy = Y2d
-
-        #get radii of the particles
-        #Rd = self.get_radius() 
-
-
-        #userparL = disk.add_uservar (dp.user_add_var())    #variables
-        #disk.add_userfun (dp.user_add_fun())    #functions only
-
-        #userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
-
-        #obtain Stokes number by iterating on drag law
-        #St, v_r = ff.St_iterate (disk.eta,
-        #                         disk.vK,
-        #                         disk.vth,
-        #                         disk.lmfp,
-        #                         disk.rhog,
-        #                         disk.OmegaK,
-        #                         Rd,
-        #                         Sto=self.stokesOld)
         self.stokesOld = self.St 
 
 
@@ -1683,21 +1722,6 @@ class Superparticles (object):
 
 
         drdt = self.v_r
-        #dR_ddt= v_dd*dot_M_d/4/pi**(3/2)/rho_int/H_d/r/v_r**2 *dr_dt
-
-        ## CWO: surface density should follow from position of the Lagrangian particles...
-        #get sigD from simulation itself
-        #sigD1 = physics.sigma_D(self.mtotL, loc, dp.rinn, dp.rout)
-        #loc_edge = np.array([dp.rinn]+
-        #                list(np.sqrt(self.locL[:-1]*self.locL[1:]))+
-        #                [dp.rout])
-        #occ_space = np.diff(loc_edge)
-        #sigD = self.mtotL/(2*np.pi*self.locL*occ_space)  
-        #sigD = self.dot_Md(time) /(-2*loc*np.pi*self.v_r) #v_r<0
-        #plt.plot(sigD1,'x-')
-        #plt.plot(sigD)
-        #plt.show()
-
         
         #provide the composition as an argument (in general way)
         #[24.08.05]LZX: the Hd and delv have been integrated into dm_dt

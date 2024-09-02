@@ -47,6 +47,8 @@ def magneto_radius (B_mag, rho, dotMg, gas, r, m, t=0.0):
     there exists the cavity, otherwise there's not.
     """
     T_crit = 1e5 #Temporarily use the ionization Temperature of H 
+
+    #standard Lamb ... cavity opening (assumes ionized)
     r_cav = (B_mag**4 *r**(12)/4/cgs.gC/m/dotMg**2)**(1/7)
 
     Tinn = gas.get_key_disk_properties(r_cav, t)[1]
@@ -618,6 +620,15 @@ class Data(object):
 
         plt.legend()
         plt.savefig('./plot/tgrowth.jpg')
+        plt.close()
+
+    def plot_sfd(self,locL,sfd,time,imin):
+        plt.figure(figsize=(12,6))
+        plt.xlim(0,100)
+        plt.ylim(0, 50)
+        plt.plot(locL/cgs.RJ, sfd, 'x-', label=str(imin))
+        plt.legend()
+        plt.savefig('./sfdevol/{:.2f}.png'.format(time))
         plt.close()
 
     def plot_planets_accretion(self,planet,system):
