@@ -24,16 +24,16 @@ class GAS ():
         self.oldkeyprop = None
 
 
-        if mode=='gridstatic':
+        if mode == 'prescribed':
+            pass
+        else:
             #need to initialize the grid
             self.loc = 10**np.linspace(np.log10(rinn),np.log10(rout), ngrid)
-            
-            #adds the key properties
-            #update_grid (self,time)
+            self.sigmaG, self.temp, self.mu = [[]*3]
 
-        else:
-            #no structure is made
-            pass
+            #adds the key properties
+
+            #update_grid (self,time)
 
 
     def get_inner_radius (self, time):
@@ -52,6 +52,7 @@ class GAS ():
 
         if self.mode=='prescribed':
             sigmaG, temp, muout = dp.key_disk_properties(loc, time, dold=self.oldkeyprop)
+            #[24.09.04]LZX: what this for?
             if type(temp)==np.ndarray:
                 self.oldkeyprop = {'sigmaG':sigmaG, 'temp':temp, 'muout':muout}
         else:
@@ -60,6 +61,7 @@ class GAS ():
                 self.advance_grid(time)
 
             elif self.mode=='gridstatic':
+                
                 self.update_grid(time)
 
 
@@ -83,14 +85,19 @@ class GAS ():
         this advances the key properties of the grid to the new time.
         we look for a disk function ...
         """
-        self.sigmaG, self.temp, self.mu =\
-                dp.key_disk_properties (self.loc, time)
+
+
+    def disk_function (self, time, alphanu, alphadw=0, dsfddw=0.):
+        """
+        The continuity equation for the gas surface density is:
+        """
+        pass 
+        
 
 
     def advance_grid (self, dt, mode='implicit', split=False, source_func=None, **kwargs):
         """
         grid-only // TBD
-
         advance grid by dt.  Save the state as newSigma (intermediat surfac density)
         """
 

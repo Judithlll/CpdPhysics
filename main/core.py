@@ -975,7 +975,7 @@ class System(object):
 
         #limit increase of deltaT to (some number)
         if self.ntime>0:
-            deltaT = min(deltaT, self.oldstate.deltaT*1.1)
+            deltaT = min(deltaT, self.oldstate.deltaT*1.01)
 
             
         if self.time+deltaT>tEnd:

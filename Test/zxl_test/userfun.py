@@ -626,6 +626,7 @@ class Data(object):
         plt.figure(figsize=(12,6))
         plt.xlim(0,100)
         plt.ylim(0, 50)
+        plt.title('Surface density profile at {:.2f}yr'.format(time/cgs.yr))
         plt.plot(locL/cgs.RJ, sfd, 'x-', label=str(imin))
         plt.legend()
         plt.savefig('./sfdevol/{:.2f}.png'.format(time))
