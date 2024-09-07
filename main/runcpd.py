@@ -128,14 +128,12 @@ while doEvo:
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
 
+    #LZX[24.09.06]:tbr when these are not needed
     outflux.append(system.Moutflux)
     if 'remove' in system.daction.keys():
         removenum += len(system.daction['remove'])
 
-    #plot the surface density profile
-    if system.time/cgs.yr > plotnum*6.: #plot every 6 yr
-        userfun.data.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'])
-        plotnum += 1
+
     #[24.02.01]cwo: added stopping condition // we could add more
     final = system.time>=pars.tmax
 
@@ -143,6 +141,12 @@ while doEvo:
     #[24.04.21]cwo:no absolute paths, please!
     system.update_log(djump = djump)
     userfun.do_stuff(system, final=final)
+
+    #tbr
+    #plot the surface density profile
+    if system.time/cgs.yr > plotnum: #plot every 1 yr
+        userfun.data.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT)
+        plotnum += 1
     
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
@@ -156,7 +160,7 @@ while doEvo:
             print('[runcpd]: something wrong with deltaT')
             import pdb;pdb.set_trace()
 
-
+#tbr[24.09.06]
 plt.figure()
 plt.xscale('log')
 plt.plot(system.timeL, outflux)

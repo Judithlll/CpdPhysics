@@ -622,13 +622,26 @@ class Data(object):
         plt.savefig('./plot/tgrowth.jpg')
         plt.close()
 
-    def plot_sfd(self,locL,sfd,time,imin):
-        plt.figure(figsize=(12,6))
+    def plot_sfd(self,locL,sfd,time,imin,deltaT):
+        plt.figure(figsize=(12,8))
+        plt.subplot(211)
         plt.xlim(0,100)
-        plt.ylim(0, 50)
+        plt.ylim(0.001, 50)
+        plt.yscale('log')
         plt.title('Surface density profile at {:.2f}yr'.format(time/cgs.yr))
-        plt.plot(locL/cgs.RJ, sfd, 'x-', label=str(imin))
-        plt.legend()
+        plt.plot(locL/cgs.RJ, sfd, 'x-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
+        plt.scatter(locL[imin[1]]/cgs.RJ, sfd[imin[1]], c= 'red')
+        plt.axvline(5.89, linestyle='dashed', color='black', linewidth = 1)
+        plt.legend(loc='lower right')
+
+        plt.subplot(212)
+        plt.xlim(time/cgs.yr-500,time/cgs.yr+500)
+        plt.xticks([time/cgs.yr], ['{:.2f}'.format(time/cgs.yr)])
+        plt.ylim(1,1e8)
+        plt.yscale('log')
+        plt.plot(np.array(self.timeL)/cgs.yr, np.append(np.diff(self.timeL), deltaT) )
+        plt.scatter(time/cgs.yr, deltaT, c='red')
+
         plt.savefig('./sfdevol/{:.2f}.png'.format(time))
         plt.close()
 
@@ -1088,28 +1101,28 @@ class Data(object):
         plt.close()
         
 
-    def make_animation(self, mp4name, path='./plot/satepart_splitmerge'):
-        pic_list = []
-        pics=os.listdir(path)
-        pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
-        frame = cv2.imread(os.path.join(path,pics_sorted[0]))
-        height, width, layers = frame.shape
-        video_name =  mp4name
-        fps=30
-        video_codec = cv2.VideoWriter_fourcc(*'mp4v')
-        video = cv2.VideoWriter(video_name, video_codec, fps, (width, height))
-        for pic in pics_sorted:
-            video.write(cv2.imread(os.path.join(path,pic)))
+def make_animation(mp4name, path='./plot/satepart_splitmerge'):
+    pic_list = []
+    pics=os.listdir(path)
+    pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
+    frame = cv2.imread(os.path.join(path,pics_sorted[0]))
+    height, width, layers = frame.shape
+    video_name =  mp4name
+    fps=10
+    video_codec = cv2.VideoWriter_fourcc(*'mp4v')
+    video = cv2.VideoWriter(video_name, video_codec, fps, (width, height))
+    for pic in pics_sorted:
+        video.write(cv2.imread(os.path.join(path,pic)))
 
-        cv2.destroyAllWindows()
-        video.release()
+    cv2.destroyAllWindows()
+    video.release()
 
-        #cv2.VideoWriter(video_name, video_codec, fps, (width,height))
-        # import pdb;pdb.set_trace()
-        #for pic in pics_sorted:
-        #    im = imageio.imread(path+"/"+pic)
-        #    pic_list.append(im)
-        #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
+    #cv2.VideoWriter(video_name, video_codec, fps, (width,height))
+    # import pdb;pdb.set_trace()
+    #for pic in pics_sorted:
+    #    im = imageio.imread(path+"/"+pic)
+    #    pic_list.append(im)
+    #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
 
 data = Data() #sets it up

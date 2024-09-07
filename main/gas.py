@@ -1,4 +1,5 @@
 import parameters as pars
+import matplotlib.pyplot as plt
 import disk_properties as dp
 import numpy as np
 import cgs
@@ -27,10 +28,10 @@ class GAS ():
         if mode == 'prescribed':
             pass
         else:
+            #not sure whether we should do it here or in disk object which has 
+            #more parameters
             #need to initialize the grid
-            self.loc = 10**np.linspace(np.log10(rinn),np.log10(rout), ngrid)
-            self.sigmaG, self.temp, self.mu = [[]*3]
-
+            self.ngrid = ngrid
             #adds the key properties
 
             #update_grid (self,time)
@@ -61,7 +62,7 @@ class GAS ():
                 self.advance_grid(time)
 
             elif self.mode=='gridstatic':
-                
+                sigmaG, temp, muout = dp.key_disk_properties(loc, time, dold = self.oldkeyprop)
                 self.update_grid(time)
 
 
@@ -85,12 +86,18 @@ class GAS ():
         this advances the key properties of the grid to the new time.
         we look for a disk function ...
         """
+        pass
 
 
     def disk_function (self, time, alphanu, alphadw=0, dsfddw=0.):
         """
         The continuity equation for the gas surface density is:
         """
+
+        cs = np.sqrt(cgs.kB*self.temp/self.mu/cgs.mp)
+        nume1 = self.loc**2*self.sigmaG*alphanu*cs**2 
+        dnume1dr = np.array([(nume1[i+1]-nume1[i])/(self.loc[i+1]-self.loc[i]) for i in range(self.ngrid-1)])
+
         pass 
         
 

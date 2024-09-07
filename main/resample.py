@@ -3,7 +3,7 @@ import parameters as pars
 import sys
 
 
-def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.001):
+def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
     """
     [22.04.10]: mmid picked through midpoints
     [22.07.28]: also added the "simple merge" (splitsimplemerge) algorithm
