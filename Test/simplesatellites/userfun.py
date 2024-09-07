@@ -40,7 +40,7 @@ def do_stuff(system, init=False, final = False):
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
         print(line)
 
-def add_planet(system):
+def add_planet(system, mode):
     #First modify the candidate 
 
     #Then add the planet to the planet list

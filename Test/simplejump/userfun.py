@@ -23,7 +23,7 @@ def M_critical (*args):
 
     return 0.0
 
-def add_planet(system):
+def add_planet(system, mode):
     #First modify the candidate 
 
     #Then add the planet to the planet list
