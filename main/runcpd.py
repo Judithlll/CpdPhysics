@@ -51,6 +51,7 @@ outflux =[]
 removenum = 0
 plotnum= 0
 
+
 while doEvo:
 
     #[24.01.01]:determines the timestep for this step

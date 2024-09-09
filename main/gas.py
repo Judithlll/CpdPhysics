@@ -31,6 +31,7 @@ class GAS ():
             #not sure whether we should do it here or in disk object which has 
             #more parameters
             #need to initialize the grid
+            self.locgrid = 10**np.linspace(np.log10(rinn), np.log10(rout), ngrid)
             self.ngrid = ngrid
             #adds the key properties
 
@@ -40,6 +41,11 @@ class GAS ():
     def get_inner_radius (self, time):
         if self.mode=='prescribed':
             return dp.get_rinn (time)
+
+    def update_oldkeyprop(self, time):
+        if type(self.temp)==np.ndarray:
+            self.oldkeyprop = {'sigmaG':self.sigmaG, 'temp':self.temp, 'muout':self.muout, 'time':time}
+
 
     def get_key_disk_properties (self, loc, time):
         """
@@ -52,17 +58,21 @@ class GAS ():
         """
 
         if self.mode=='prescribed':
-            sigmaG, temp, muout = dp.key_disk_properties(loc, time, dold=self.oldkeyprop)
-            #[24.09.04]LZX: what this for?
-            if type(temp)==np.ndarray:
-                self.oldkeyprop = {'sigmaG':sigmaG, 'temp':temp, 'muout':muout}
+            self.sigmaG, self.temp, self.muout = dp.key_disk_properties(loc, time, dold=self.oldkeyprop)
+            self.update_oldkeyprop(time)
         else:
 
             if self.mode=='gridevolve':
                 self.advance_grid(time)
 
             elif self.mode=='gridstatic':
-                sigmaG, temp, muout = dp.key_disk_properties(loc, time, dold = self.oldkeyprop)
+                sigmaG, temp, muout = dp.key_disk_properties(self.locgrid, time, dold = self.oldkeyprop)
+                self.sigmaG = sigmaG 
+                self.temp = temp
+                self.muout = muout 
+
+                self.update_oldkeyprop(time)
+                
                 self.update_grid(time)
 
 
@@ -72,9 +82,9 @@ class GAS ():
 
 
             #now intrapolate to the particle positions!
-            sigmaG = np.interp(loc, self.loc, self.sigmaG)
-            temp = np.interp(loc, self.loc, self.temp)
-            muout = np.interp(loc, self.loc, self.mu)
+            sigmaG = np.interp(loc, self.locgrid, self.sigmaG)
+            temp = np.interp(loc, self.locgrid, self.temp)
+            muout = np.interp(loc, self.locgrid, self.muout)
 
 
         ## return this (perhaps as a class instance??)
@@ -87,19 +97,6 @@ class GAS ():
         we look for a disk function ...
         """
         pass
-
-
-    def disk_function (self, time, alphanu, alphadw=0, dsfddw=0.):
-        """
-        The continuity equation for the gas surface density is:
-        """
-
-        cs = np.sqrt(cgs.kB*self.temp/self.mu/cgs.mp)
-        nume1 = self.loc**2*self.sigmaG*alphanu*cs**2 
-        dnume1dr = np.array([(nume1[i+1]-nume1[i])/(self.loc[i+1]-self.loc[i]) for i in range(self.ngrid-1)])
-
-        pass 
-        
 
 
     def advance_grid (self, dt, mode='implicit', split=False, source_func=None, **kwargs):

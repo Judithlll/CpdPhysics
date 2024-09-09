@@ -13,7 +13,7 @@ dparticleprops = {'Rdi':0.01,  #initial size pf particles
 dgasgrid = {'rinn':0.1*cgs.au,'rout':12*cgs.au}
 gasmodel = 'gridstatic'
 
-tmax = 1e6 *cgs.yr
+tmax = 3e6 *cgs.yr
 
 doPlanets = False 
 doIcelines = False 

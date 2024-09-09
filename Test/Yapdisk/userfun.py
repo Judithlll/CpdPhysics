@@ -29,6 +29,9 @@ def do_stuff (system, init=False, final=False):
 def dm_dt (*args):
     return 0 
 
+def H_d (St, disk):
+    return disk.Hg*(1+St/disk.alpha)**(-0.5)
+
 def Stokes_number (**kwargs):
     #here the stokes number should be very complex
-    pass  
+    return physics.Stokes_Epstein(**kwargs)

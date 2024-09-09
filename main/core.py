@@ -748,8 +748,9 @@ class System(object):
         tpart = np.concatenate((tpart, tcol[np.newaxis,:]))
 
         #tmin = min([tpart[0].min(),tpart[1,2:].min(),tpart[2].min()])
-        mintimeL.append({'name':'particles', 'tmin': tpart.min(), 
+        mintimeL.append({'name':'particles', 'tmin': np.nanmin(tpart), 
                                 'imin':np.unravel_index(tpart.argmin(),tpart.shape)})
+
 
         #if self.ntime ==760:
         #    import pdb;pdb.set_trace()
