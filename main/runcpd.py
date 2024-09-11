@@ -145,9 +145,9 @@ while doEvo:
 
     #tbr
     #plot the surface density profile
-    #if system.time/cgs.yr > plotnum: #plot every 1 yr
-    #    userfun.data.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT)
-    #    plotnum += 1
+    if system.time/cgs.yr > plotnum: #plot every 1 yr
+        userfun.data.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT)
+        plotnum += 1
     
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
@@ -165,7 +165,7 @@ while doEvo:
 plt.figure()
 plt.xscale('log')
 plt.plot(system.timeL, outflux)
-plt.savefig('outflux_steady.png')
+plt.savefig('outflux_'+pars.sfdmode+'.png')
 plt.close()
 
 

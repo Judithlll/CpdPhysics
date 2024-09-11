@@ -4,12 +4,13 @@ import numpy as np
 ## A very simple PPD...
 
 rinn = 0.1 *cgs.au
-rout = 800 *cgs.au
+#rout = 800 *cgs.au
 
 #this is necessary apparently...
 #sigmol=2e-15
 
-
+def rout (t):
+    return 800*cgs.au
 def Mcp_t (t):
     return cgs.Msun
 

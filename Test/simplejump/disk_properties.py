@@ -5,11 +5,13 @@ import parameters as pars
 ## A very simple PPD...
 
 rinn = pars.dgasgrid['rinn']
-rout = pars.dgasgrid['rout']
+#rout = pars.dgasgrid['rout']
 
 #this is necessary apparently...
 sigmol=2e-15
 
+def rout (t):
+    return pars.dgasgrid['rout']
 
 def Mcp_t (t):
     return cgs.Msun
@@ -35,7 +37,7 @@ def key_disk_properties (rad, t, dold=None):
     """
     simple power-law solutions
     """
-    sigma = 1700 *(rad/cgs.RJ)**-1.5 *np.exp(-rad/rout)
+    sigma = 1700 *(rad/cgs.RJ)**-1.5 *np.exp(-rad/rout(t))
     mgas = m_gas(rad)
     temp = 300 *(rad/cgs.RJ)**-0.5
 

@@ -58,7 +58,10 @@ class GAS ():
         """
 
         if self.mode=='prescribed':
-            self.sigmaG, self.temp, self.muout = dp.key_disk_properties(loc, time, dold=self.oldkeyprop)
+            sigmaG, temp, muout = dp.key_disk_properties(loc, time, dold=self.oldkeyprop)
+            self.sigmaG = sigmaG
+            self.temp = temp 
+            self.muout = muout
             self.update_oldkeyprop(time)
         else:
 

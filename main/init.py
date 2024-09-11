@@ -193,7 +193,7 @@ def sim_init (calldir, dsystempars={},*args):
     for dcompos in dcomposL:
         if dcompos['iceline']==True:
             iceline = core.ICELINE (dcompos['name'], dcompos['iceline_temp'])  
-            iceline.get_icelines_location(system.gas,system.time)      
+            iceline.get_icelines_location(system.gas,system.time, bounds=[system.rinn, system.rout])      
             icelineL.append(iceline)
            #(initial) position of iceline
             rice = iceline.loc

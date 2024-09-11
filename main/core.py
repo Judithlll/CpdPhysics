@@ -295,7 +295,7 @@ class System(object):
         get the rout from the disk_properties.py if it exists 
         """
         try:
-            rout = dp.rout 
+            rout = dp.rout(self.time)
         except:
             rout = None 
 
@@ -364,7 +364,7 @@ class System(object):
         #[24.07.21]CWO: not sure if we need dp.rout here...
         #               this self.rinn and dp.rout is weird...
 
-        self.particles = Superparticles(self.rinn,dp.rout,self.dcomposL,self.gas, **dparticleprops)
+        self.particles = Superparticles(self.rinn,self.rout,self.dcomposL,self.gas, **dparticleprops)
         disk = self.get_disk()
         self.particles.get_auxiliary(disk, self.time)
 
@@ -711,7 +711,12 @@ class System(object):
         self.remove_planet()
         self.centralbody.update(self.time)
 
-
+        #update the rinn and rout in case:
+        ## 1.rinn may change with radius of central mass. 
+        ## 2.rout may change b/c of viscous spreading.
+        self.get_rinn()
+        self.get_rout()
+        
 
 
     def new_timestep (self, tEnd, deltaTfraction=0.2, afterjump = False, jumpfracD={},**kwargs):
@@ -1224,7 +1229,7 @@ def advance_iceline (system):
 
         #renew the iceline location
         loc_pv = system.oldstate.icelineL[k].loc
-        iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
+        iceline.get_icelines_location(system.gas,system.time,bounds= (system.rinn, system.rout), guess=loc_pv)
 
 
         #idxD = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
@@ -1956,8 +1961,14 @@ class CentralBody (object):
         self.rho = rho 
         self.r = physics.mass_to_radius(mcp0,rho)
         self.time = time 
-        #not general here TBD
-        self.Mt = dp.Mcp_t
+
+        #make here a function to be more general
+        try:
+            self.Mt = dp.Mcp_t
+        except:
+            def constant_m(time):
+                return mcp0 
+            self.Mt = constant_m
 
     def get_mass (self, time =None):
         if time is None:
@@ -1983,6 +1994,8 @@ class CentralBody (object):
         r_cav = userfun.magneto_radius(B_mag, self.rho, dotMg, gas, self.r, self.m, self.time)
         return r_cav
 
+#make here a function to be more general
+
 class ICELINE(object):
     def __init__(self,species,temp):
         self.species=species
@@ -2005,8 +2018,6 @@ class ICELINE(object):
             self.loc = dsol.root
             return
 
-        if bounds==None:
-            bounds = (dp.rinn, dp.rout)
         #change the bounds to make it general
         #[23.01.08]LZX: if we change alpha larger,there exist possibility that can't find the iceline location
         #               so for now make a try-exception here, if can't find, then set it to np.nan
