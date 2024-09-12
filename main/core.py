@@ -1598,7 +1598,7 @@ class Superparticles (object):
 
         massL = np.flip(odeint(dm_dr, self.mini, radL).T)*compmask
         
-        #self.massL = massL[0]
+        self.massL = massL[0]
 
         self.make_Y2d()   #get a Y2d used to integrate
         for i in range(len(dcomposL)):

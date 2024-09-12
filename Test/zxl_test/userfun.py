@@ -228,10 +228,10 @@ def init_planets ():
 def init_compos (material):
     dcompos = {}
     if material=='silicates':
-        dcompos['Zinit'] = 0.001  #cwo made smaller by factor 10
+        dcompos['Zinit'] = 0.0008  #cwo made smaller by factor 10
     elif material=='H2O':
         dcompos['name'] = 'H2O'
-        dcompos['Zinit'] = 0.001
+        dcompos['Zinit'] = 0.0008
         dcompos['iceline'] = True
         dcompos['rhoint'] = 1.0
         dcompos['iceline_temp'] = 160
