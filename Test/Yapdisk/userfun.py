@@ -7,20 +7,19 @@ import matplotlib.pyplot as plt
 
 def do_stuff (system, init=False, final=False):
 
+    global fig,ax,tplot,iplot 
     if init:
-        plt.figure()
-        plt.title('Turbulence-Dominated')
-        plt.xlabel('Distance')
-        plt.ylabel(r'Surface Density $\Sigma (g/cm^2)$')
+        ax.set_xlabel('Distance')
+        ax.set_ylabel(r'Surface Density $\Sigma (g/cm^2)$')
         #plt.ylim(1e1, 1e4)
         #plt.xlim(1e-1, 4e1)
-        plt.yscale('log')
-        plt.xscale('log')
-        pass
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        ax.set_xlim(1e-1, 13)
+        ax.set_ylim(1e2, 1e4)
 
     elif final:
-        plt.legend()
-        plt.savefig('turbulence-dominated.png')
+        pass
     else:
         tkeyL = system.minTimes.nameL
         tminarr = system.minTimes.tminarr
@@ -32,11 +31,14 @@ def do_stuff (system, init=False, final=False):
         line = sfmt.format(system.ntime, len(system.particles.massL), system.deltaT, 
                                             tminarr.argmin(), imin[0],imin[1], system.time/cgs.yr)
         
-        if system.ntime%100 ==0:
-            plt.plot(system.gas.locgrid/cgs.au, system.gas.sigmaG, label = 't = {:.2e}'.format(system.time/cgs.yr)) 
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
         print(line)
 
+        if system.time/cgs.yr>= tplot[iplot]:
+            ax.plot(system.gas.locgrid/cgs.au, system.gas.sigmaG, label = 't = {:.2e}'.format(system.time/cgs.yr))
+            ax.legend()
+            fig.savefig('wind-dominated.png')
+            iplot += 1
         #if len(system.messages.msgL)>0: import pdb; pdb.set_trace()
 
 
@@ -50,3 +52,7 @@ def H_d (St, disk):
 def Stokes_number (**kwargs):
     #here the stokes number should be very complex
     return physics.Stokes_Epstein(**kwargs)
+
+fig, ax = plt.subplots()
+tplot = [3e2, 3e3,2.08e4, 3e4, 8e4, 3e5]
+iplot = 0

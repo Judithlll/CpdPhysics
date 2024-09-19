@@ -622,29 +622,6 @@ class Data(object):
         plt.savefig('./plot/tgrowth.jpg')
         plt.close()
 
-    def plot_sfd(self,locL,sfd,time,imin,deltaT):
-        plt.figure(figsize=(12,8))
-        plt.subplot(211)
-        plt.xlim(0,100)
-        plt.ylim(0.001, 50)
-        plt.yscale('log')
-        plt.title('Surface density profile at {:.2f}yr'.format(time/cgs.yr))
-        plt.plot(locL/cgs.RJ, sfd, 'x-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
-        plt.scatter(locL[imin[1]]/cgs.RJ, sfd[imin[1]], c= 'red')
-        plt.axvline(5.89, linestyle='dashed', color='black', linewidth = 1)
-        plt.legend(loc='lower right')
-
-        plt.subplot(212)
-        plt.xlim(time/cgs.yr-500,time/cgs.yr+500)
-        plt.xticks([time/cgs.yr], ['{:.2f}'.format(time/cgs.yr)])
-        plt.ylim(1,1e8)
-        plt.yscale('log')
-        plt.plot(np.array(self.timeL)/cgs.yr, np.append(np.diff(self.timeL), deltaT) )
-        plt.scatter(time/cgs.yr, deltaT, c='red')
-
-        plt.savefig('./sfdevol/{:.2f}.png'.format(time))
-        plt.close()
-
     def plot_planets_accretion(self,planet,system):
             
         keysL=list(self.radD.keys())
@@ -1115,7 +1092,6 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
         video.write(cv2.imread(os.path.join(path,pic)))
 
     cv2.destroyAllWindows()
-    video.release()
 
     #cv2.VideoWriter(video_name, video_codec, fps, (width,height))
     # import pdb;pdb.set_trace()
@@ -1123,6 +1099,29 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
     #    im = imageio.imread(path+"/"+pic)
     #    pic_list.append(im)
     #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
+
+def plot_sfd(locL,sfd,time,imin,deltaT,timeL):
+    plt.figure(figsize=(12,8))
+    plt.subplot(211)
+    plt.xlim(0,100)
+    plt.ylim(0.001, 50)
+    plt.yscale('log')
+    plt.title('Surface density profile at {:.2f}yr'.format(time/cgs.yr))
+    plt.plot(locL/cgs.RJ, sfd, 'x-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
+    plt.scatter(locL[imin[1]]/cgs.RJ, sfd[imin[1]], c= 'red')
+    plt.axvline(5.89, linestyle='dashed', color='black', linewidth = 1)
+    plt.legend(loc='lower right')
+
+    plt.subplot(212)
+    plt.xlim(time/cgs.yr-500,time/cgs.yr+500)
+    plt.xticks([time/cgs.yr], ['{:.2f}'.format(time/cgs.yr)])
+    plt.ylim(1,1e8)
+    plt.yscale('log')
+    plt.plot(np.array(timeL)/cgs.yr, np.append(np.diff(timeL), deltaT) )
+    plt.scatter(time/cgs.yr, deltaT, c='red')
+
+    plt.savefig('./sfdevol/{:.2f}.png'.format(time))
+    plt.close()
 
 
 data = Data() #sets it up

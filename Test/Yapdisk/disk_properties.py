@@ -1,4 +1,5 @@
 import cgs 
+from scipy.linalg import solve
 import matplotlib.pyplot as plt
 import numpy as np 
 import parameters as pars 
@@ -6,10 +7,10 @@ import parameters as pars
 rinn = pars.dgasgrid['rinn']
 #rout = pars.dgasgrid['rout']
 
-alphanu = 1e-3/1.1
-alphadw = 1e-3/11
-phi=alphadw/alphanu
-alpha = alphanu+alphadw
+alpha = 1e-3 
+phi = 10 
+alphanu = alpha/(1+phi)
+alphadw = alpha - alphanu
 sigmol = 2e-19
 gamma = 0.55 #from Yap.2024 or 0.69 for phi=10
 
@@ -70,26 +71,46 @@ def key_disk_properties(rad, t, dold=None):
         #use the continuity equation to update the grid
         #eq. 4 in Yap.2024
         cs = np.sqrt(cgs.kB*dold['temp']/dold['muout']/cgs.mp)
-        nome1 = rad**2 * alphanu* dold['sigmaG']*cs**2 
+        nome1 = rad**2 * alphanu*cs**2 
 
-        #so the boundary condition are:
-        #1) at the out edge, the surface density is zero
-        #2) at the inner edge, the dsigmadr is zero
-        #nome1 = np.append(nome1, 0.0) 
-        #rad = np.append(rad, rout(t))
-        dnome1dr = (nome1[1:]-nome1[:-1])/(rad[1:]-rad[:-1])
+        #equal in log space so get the del r like this
+        dellogr = np.log10(rad[1]/rad[0])
+        delr = (10**dellogr-1)*rad
+
+        x = np.sqrt(rad)
+        nu = alphanu*cs**2/OmegaK 
+        u = 3*nu/4/rad 
+
+        xout = x[-1]*np.sqrt(10**dellogr)
+        delx = np.diff(np.append(x,xout))
+
+        #build the matrix
+        A = np.zeros((len(rad), len(rad)))
+        np.fill_diagonal(A, -2*u/delx**2)
+        np.fill_diagonal(A[1:], u[:-1]/delx[1:]**2)
+        np.fill_diagonal(A[:,1:], u[1:]/delx[:-1]**2)
+
+        #then modify the boundary
+        A[0,0] = -u[0]/delx[0]**2 
+        A[0,1] = u[1]/delx[0]**2 
+
+        #the matrix of disk-wide term 
+        z = u*phi/x  
+        Adw = np.zeros((len(rad), len(rad)))
+        np.fill_diagonal(Adw, -z/delx)
+        np.fill_diagonal(Adw[:,1:], z[1:]/delx[:-1])
+        
+        #the mass loss term b/c of the disk wind.
+        #eq. 3 in Yap.2024
+        Aml = np.eye(len(rad))*u*phi/x**2
+
+        E = np.eye(len(rad))
+
+        afin = E - (t-dold['time'])*(A+Adw - Aml)
+
+        sigmaG = solve(afin, dold['sigmaG'])
 
 
-        nome2 = dnome1dr/rad[:-1]/OmegaK[:-1]
-        #nome2 = np.append(nome2[0],nome2)
-        #rad = np.append(rinn-0.0024*cgs.au, rad)
-
-        dnome2dr = (nome2[1:]-nome2[:-1])/(rad[2:]-rad[1:-1])
-       
-        sigmaG = dold['sigmaG'][1:-1] + (3/rad[1:-1]*dnome2dr)*(t-dold['time'])
-
-        sigmaG_boundary = np.interp([rinn,rout(t)],rad[1:-1],sigmaG)
-        sigmaG = np.pad(sigmaG, (1,1), 'constant', constant_values=sigmaG_boundary)
         temp = (27*fd*kappa_d*alphanu*cgs.kB*OmegaK*sigmaG**2/64/cgs.sigmaSB/mu/cgs.mp)**(1/3)
 
         try: 
@@ -98,9 +119,6 @@ def key_disk_properties(rad, t, dold=None):
             import pdb;pdb.set_trace()
         
     
-    
-
-
     return sigmaG, temp, mu
 
 

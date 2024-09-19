@@ -49,6 +49,7 @@ else:
 
 outflux =[]
 removenum = 0
+addnum = 0 
 plotnum= 0
 
 
@@ -133,6 +134,9 @@ while doEvo:
     outflux.append(system.Moutflux)
     if 'remove' in system.daction.keys():
         removenum += len(system.daction['remove'])
+    if 'add' in system.daction.keys():
+        addnum += system.daction['add']
+
 
 
     #[24.02.01]cwo: added stopping condition // we could add more
@@ -145,9 +149,9 @@ while doEvo:
 
     #tbr
     #plot the surface density profile
-    if system.time/cgs.yr > plotnum: #plot every 1 yr
-        userfun.data.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT)
-        plotnum += 1
+    #if system.time/cgs.yr > plotnum: #plot every 1 yr
+    #    userfun.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL)
+    #    plotnum += 1
     
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
@@ -170,6 +174,7 @@ plt.close()
 
 
 print('remove number:', removenum)
+print('add number:', addnum)
 print('[runcpd]:finished')
 
 

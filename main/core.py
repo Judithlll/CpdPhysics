@@ -620,12 +620,16 @@ class System(object):
                 Nadd += 1
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' and self.rout is not None:
-            dis = np.log(self.rout/self.particles.locL[-1])
-            if dis >= np.sqrt(pars.dresample['fdelS']*pars.dresample['fdelM']):
-                Nadd += 1 
-                #if add particles here, the total mass are always changed
-                self.particles.mtot1 = self.Minflux 
-                self.Minflux = 0.
+            mtot1 = self.particles.mtot1
+            while self.Minflux> mtot1:
+                Nadd += 1
+                self.Minflux -= mtot1
+            #dis = np.log(self.rout/self.particles.locL[-1])
+            #if dis >= np.sqrt(pars.dresample['fdelS']*pars.dresample['fdelM']):
+            #    Nadd += 1 
+            #    #if add particles here, the total mass are always changed
+            #    self.particles.mtot1 = self.Minflux 
+            #    self.Minflux = 0.
         elif pars.resampleMode==None:
                 self.Minflux = 0.
         else:
@@ -1598,7 +1602,7 @@ class Superparticles (object):
 
         massL = np.flip(odeint(dm_dr, self.mini, radL).T)*compmask
         
-        self.massL = massL[0]
+        #self.massL = massL[0]
 
         self.make_Y2d()   #get a Y2d used to integrate
         for i in range(len(dcomposL)):
