@@ -295,7 +295,7 @@ class System(object):
         get the rout from the disk_properties.py if it exists 
         """
         try:
-            rout = dp.rout(self.time)
+            rout = dp.r_out(self.time)
         except:
             rout = None 
 

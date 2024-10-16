@@ -7,6 +7,7 @@ import physics
 import pylab as pl
 import os 
 import cv2
+import disk_properties as dp
 
 def init_compos_Z (material):
     """
@@ -57,7 +58,7 @@ def sigma_rt (rad, vdr, time, gas, d=1.5):
 
 
 def do_stuff (system, init=False, final=False):
-    global iplot, tplot, fg, ax
+    global iplot, tplot, fg, ax, figname
 
     if init:
         pass
@@ -89,24 +90,15 @@ def do_stuff (system, init=False, final=False):
             ax.loglog(system.particles.locL/cgs.au, system.particles.sfd, 
                         ms=2, lw=0.5, c=colL[iplot])
 
-            sigana = sigma_rt (system.particles.locL, -system.particles.v_r, system.time, system.gas)
+            axst.loglog(system.particles.locL/cgs.au, system.particles.St, c = colL[iplot], lw=0.5)
+
+            #sigana = sigma_rt (system.particles.locL, -system.particles.v_r, system.time, system.gas)
 
             #ax.loglog(system.particles.locL/cgs.au, sigana, c='k', lw=0.5)
             #ax1.semilogx(system.particles.locL/cgs.au, system.particles.sfd/sigana-1, c=colL[iplot], lw=0.5)
             #ax2.semilogx(system.particles.locL/cgs.au, system.particles.sfd/sigana-1, c=colL[iplot], lw=0.5)
 
-            for aa in [ax]:
-                aa.set_xlim(0.4, 250)
-
-
-            ax.set_ylim(1e-3, 2e3)
-            #ax1.set_ylim(-0.1, 0.1)
-            #ax2.set_ylim(-0.01, 0.01)
-
-            ax.set_xlabel('distance')
-            ax.set_ylabel('surface density')
-
-            fg.savefig('testYS-plot.png', dpi=180)
+            fg.savefig(figname, dpi=180)
 
 
 
@@ -181,8 +173,25 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
     #    pic_list.append(im)
     #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
-tplot = np.array([0,1e4,2e4,2.5e4,3.0e4,4e4,5e4,1e5, 1e99]) *cgs.yr
+tplot = np.array([0,1e4,2e4,2.5e4,5e4,1e5,5e5,1e6, 1e99]) *cgs.yr
 iplot = 0
 
-fg, ax = pl.subplots(1,1, figsize=(4,3))
+fg, (ax,axst) = pl.subplots(2,1, figsize=(4,6), sharex=True, gridspec_kw={'height_ratios':[1,1]})
+
+for aa in [ax, axst]:
+    aa.set_xlim(0.4, 250)
+
+
+ax.set_ylim(1e-3, 2e3)
+#ax1.set_ylim(-0.1, 0.1)
+#ax2.set_ylim(-0.01, 0.01)
+
+axst.set_xlabel('distance')
+ax.set_ylabel('surface density')
+axst.set_ylabel('Stokes number')
+if dp.dot_Mg(0.0) == 0.0:
+    name1 = 'noimp'
+else:
+    name1 = 'imp'+'+'+str(dp.fraction)
+figname = name1+'+'+str(pars.dresample['fdelS'])+'+'+str(pars.dresample['fdelM'])+'+'+str(pars.dresample['fdelDM'])+'+'+str(pars.dparticleprops['Rdi'])+'.jpg'
 

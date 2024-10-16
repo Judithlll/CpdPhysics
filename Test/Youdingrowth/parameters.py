@@ -6,7 +6,7 @@ intrhoL = [3.0]
 
 #parameters fed into System
 dsystempars = {}
-dparticleprops = {'Rdi':0.001,  #initial size of particles in cm
+dparticleprops = {'Rdi':0.01,  #initial size of particles in cm
                 'nini':2000,  #initial number of particles
                 'initrule':'equallogspace'} #how particles are distributed
 dtimesteppars = {'deltaTfraction':0.5, 'itgmethod':'RK4'}
@@ -22,4 +22,4 @@ doPlanets = False
 doIcelines = False
 
 resampleMode = 'splitmerge'
-dresample = {'fdelS':1.04, 'fdelM':1e-7, 'fdelDM':1e-2}
+dresample = {'fdelS':1.04, 'fdelM':1e-7, 'fdelDM':3e-3}

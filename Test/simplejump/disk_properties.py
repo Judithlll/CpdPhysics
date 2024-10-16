@@ -10,7 +10,7 @@ rinn = pars.dgasgrid['rinn']
 #this is necessary apparently...
 sigmol=2e-15
 
-def rout (t):
+def r_out (t):
     return pars.dgasgrid['rout']
 
 def Mcp_t (t):
@@ -37,7 +37,7 @@ def key_disk_properties (rad, t, dold=None):
     """
     simple power-law solutions
     """
-    sigma = 1700 *(rad/cgs.RJ)**-1.5 *np.exp(-rad/rout(t))
+    sigma = 1700 *(rad/cgs.RJ)**-1.5 *np.exp(-rad/r_out(t))
     mgas = m_gas(rad)
     temp = 300 *(rad/cgs.RJ)**-0.5
 

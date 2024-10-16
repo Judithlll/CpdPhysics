@@ -10,7 +10,7 @@ class GAS ():
     [23.12.13]: copied the essentials from /Newlagrange
     """
 
-    def __init__(self, gasL, dcomposL, time=0, rinn=-1, rout=None, mode='prescribed', ngrid=200, 
+    def __init__(self, gasL, dcomposL, time=0, rinn=-1, rout=None, mode='prescribed', ngrid=1000, 
                     solmode='default', ttol=1e-4, dcompos={}, **kwargs):
         """
         initialize disk class. 

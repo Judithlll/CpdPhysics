@@ -6,17 +6,18 @@ import numpy as np
 rinn = 0.1 *cgs.au
 #rout = 800 *cgs.au
 
+fraction = 0.01 
 #this is necessary apparently...
 #sigmol=2e-15
 
-def rout (t):
+def r_out (t):
     return 800*cgs.au
 def Mcp_t (t):
     return cgs.Msun
 
 def dot_Mg (t, mode=None):
-    #return 1e-1*cgs.Msun/1e6/cgs.yr
-    return 0.0
+    return fraction*cgs.Msun/1e6/cgs.yr
+    #return 0.0
 
 
 def M_influx (t0, tEnd):
@@ -62,6 +63,5 @@ def H_d (Hg, St):
     return 1.0*np.ones_like(disk.loc)
 
 def dot_Md (time):
-    return 1.0
-    #return 0.01*dot_Mg(time)
+    return 1.0+0.01*dot_Mg(time)
 
