@@ -48,8 +48,8 @@ vc={'icy': 5.e3,
     }
 
 sfdmode = 'simple'
-resampleMode = 'splitmerge' #'Nplevel'
-dresample = {'fdelS':0.04,'fdelM':0.005}
+resampleMode = 'global_resample' #'Nplevel'
+dresample = {'fdelS':0.05,'fdelM':0.001,'fdelDM':1e-7}
 doJump = False
 doPlanets = True
 planetaddmode = 'capture'

@@ -1101,7 +1101,7 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
     #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
 def plot_sfd(locL,sfd,time,imin,deltaT,timeL):
-    plt.figure(figsize=(12,8))
+    plt.figure(figsize=(6,4))
     plt.subplot(211)
     plt.xlim(0,100)
     plt.ylim(0.001, 50)

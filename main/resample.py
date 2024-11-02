@@ -1,6 +1,7 @@
 import numpy as np
 import parameters as pars
 import sys
+import matplotlib.pyplot as plt
 
 
 def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
@@ -294,7 +295,7 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     #    import pdb;pdb.set_trace()
     return newarr
 
-def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
+def re_sample_dropmerge(sim, spN, fdelS=0.05, fdelM=0., fdelX=1, nsampleX=0, fdelDM = 0.0):
     """
     new algorithm: drop: 
     When the distance b/w too particles become too large, 
@@ -308,7 +309,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
     marr = spN.mtotL
 
     #determine no. particles involved in merging on each side
-    if pars.resampleMode=='splitsimplemerge':
+    if pars.resampleMode=='dropsimplemerge':
         nmerge = 1
     else:
         nmerge = 2
@@ -332,7 +333,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
     #take a finer sampling interval arround special locations
     fdelXarr = np.ones_like(xdel)
     for k in ixD:
-        fdelXarr[k:k+nsampleX] = fdelD
+        fdelXarr[k:k+nsampleX] = fdelS
 
     #special locations OTOH may never be resampled
     #[22.04.17] account for when planet is exterior to outer particle 
@@ -340,7 +341,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
     fdelXarr[imD[ii]] = np.inf
 
     #midpoint locations elligible for splitting (isL)
-    idL, = np.nonzero(xdel>fdelD *fdelXarr)
+    idL, = np.nonzero(xdel>fdelS *fdelXarr)
 
     #[22.10.25] determine the merging locations (imL)
     #freeze possible mergers of particles approaching special
@@ -397,19 +398,20 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
         #[22.04.12]
         #fraction of mass donated by upper/lower particles
         #and remaining mass fraction from existing particles
-        fnewu = xdelNu /wdel[idL+1]
-        fnewl = xdelNl /wdel[idL]
+        #[24.10.14]Artificially define the mass dropped from the inner particles is half of its mass 
+        fnewu = 0.0*np.ones(len(idL))
+        fnewl = 1/2*np.ones(len(idL))
         frem = np.ones_like(loc)
         frem[idL]   -= fnewl 
         frem[idL+1] -= fnewu
 
-        msup_split = fnewl*spN.mtotL[idL]   +fnewu*spN.mtotL[idL+1]
-        mphy_split = (fnewl*spN.massL[idL]  +fnewu*spN.massL[idL+1]) /(fnewl+fnewu)   #weighed
-        import pdb;pdb.set_trace()
+        msup_drop = fnewl*spN.mtotL[idL]   +fnewu*spN.mtotL[idL+1]
+        #[24.10.14]keep the physical mass being weighted from upper and lower mass 
+        mphy_drop = (fnewl*spN.massL[idL]  +fnewu*spN.massL[idL+1]) /(fnewl+fnewu)   #weighed
 
         #[22.03.29]changed since order has changed
-        fcom_split = fnewl[:,np.newaxis]*spN.fcomp[idL] +fnewu[:,np.newaxis]*spN.fcomp[idL+1] 
-        fcom_split /= (fnewl[:,np.newaxis] +fnewu[:,np.newaxis])
+        fcom_drop = fnewl[:,np.newaxis]*spN.fcomp[idL] +fnewu[:,np.newaxis]*spN.fcomp[idL+1] 
+        fcom_drop /= (fnewl[:,np.newaxis] +fnewu[:,np.newaxis])
 
         #... continue w/ mering
         loc_merge = np.sqrt(spN.locL[imL]*spN.locL[imL+1])
@@ -424,7 +426,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
 
         #algorithm (ii) -- donate according to surface density of the merged particles
         #[22.07.28]: doesnt happen in splitsimplemerge algorithm
-        if pars.resampleMode=='splitmerge':
+        if pars.resampleMode=='dropmerge':
             xdelNl = (np.log(loc_merge)  -np.log(loc[imL-1])) /2 
             xdelNr = (np.log(loc[imL+2]) -np.log(loc_merge) ) /2
             delm1 = (wdel[imL]   -xdelNl) /wdel[imL]   *marr[imL]   #mass transfer to (i-1)
@@ -436,7 +438,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
         #mass conservation: add i+i+1, subtract donors
         mass_merge = spN.mtotL[imL] +spN.mtotL[imL+1] -delm1 -delm2
 
-        if pars.resampleMode=='splitmerge':
+        if pars.resampleMode=='dropmerge':
             mass_merge1 = spN.mtotL[imL-1] +delm1 #particle i-1
             mass_merge2 = spN.mtotL[imL+2] +delm2 #particle i+2
 
@@ -450,7 +452,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
         #merging locations will be removed
         frem[imL]   = 0.0
         frem[imL+1] = 0.0
-        if pars.resampleMode=='splitmerge':
+        if pars.resampleMode=='dropmerge':
             frem[imL-1] = 0.0
             frem[imL+2] = 0.0
 
@@ -467,7 +469,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
         mphy_merge = ( spN.massL[imL] * (marr[imL]-delm1) +spN.massL[imL+1]  *(marr[imL+1]-delm2)) /mass_merge
         fcom_merge = ((spN.fcomp[imL].T*(marr[imL]-delm1) +spN.fcomp[imL+1].T*(marr[imL+1]-delm2)) /mass_merge).T
 
-        if pars.resampleMode=='splitmerge':
+        if pars.resampleMode=='dropmerge':
             mphy_merge1 = ( spN.massL[imL-1]*marr[imL-1] +spN.massL[imL]  *delm1) /mass_merge1
             mphy_merge2 = ( spN.massL[imL+2]*marr[imL+2] +spN.massL[imL+1]*delm2) /mass_merge2
 
@@ -481,18 +483,18 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
    ##only set up a new structure when splitting or merging has actually  happend
    #if len(imL)>0 or len(isL)>0:
 
-        if pars.resampleMode=='splitmerge':
-            dumiiL = [isL+1,imL,imL+1,imL+2]
-            dumloc = [loc_split,loc_merge1,loc_merge,loc_merge2]
-            dumsup = [msup_split,mass_merge1, mass_merge, mass_merge2]
-            dumphy = [mphy_split, mphy_merge1, mphy_merge, mphy_merge2]
-            dumcom = [fcom_split, fcom_merge1, fcom_merge, fcom_merge2]
+        if pars.resampleMode=='dropmerge':
+            dumiiL = [idL+1,imL,imL+1,imL+2]
+            dumloc = [loc_drop,loc_merge1,loc_merge,loc_merge2]
+            dumsup = [msup_drop,mass_merge1, mass_merge, mass_merge2]
+            dumphy = [mphy_drop, mphy_merge1, mphy_merge, mphy_merge2]
+            dumcom = [fcom_drop, fcom_merge1, fcom_merge, fcom_merge2]
         else:
-            dumiiL = [isL+1,imL]
-            dumloc = [loc_split, loc_merge]
-            dumsup = [msup_split, mass_merge]
-            dumphy = [mphy_split, mphy_merge]
-            dumcom = [fcom_split, fcom_merge]
+            dumiiL = [idL+1,imL]
+            dumloc = [loc_drop, loc_merge]
+            dumsup = [msup_drop, mass_merge]
+            dumphy = [mphy_drop, mphy_merge]
+            dumcom = [fcom_drop, fcom_merge]
 
         #new sp arrays
         locI =  np.insert(loc,      np.concatenate(dumiiL), np.concatenate(dumloc))
@@ -521,7 +523,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
         try:
             assert(np.abs(msupI.sum()/marr.sum()-1) <1e-10) #mass conservations
         except:
-            print('[resample.splitmerge]:mass conservation violated')
+            print('[resample.dropmerge]:mass conservation violated')
             import pdb; pdb.set_trace()
         newarr = (locI, msupI, mphyI, fcomI)
 
@@ -532,14 +534,15 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
         #search of "Direct Merging" (2 particles very close)
         #left index loc that potentially merge with right neigbor
         #(first 2, 2 right of special, 2 left of special, final 2)
-        ixL = [0] +ixS.tolist() +(imS-1).tolist() + [len(loc)-2]   
+        ixL = [0] +ixD.tolist() +(imD-1).tolist() + [len(loc)-2]   
 
         #remove the special locations (we cannot merge over them!)
         #[22.12.15]:also remove the final index in case any ixS is only interior to last one
-        ixL = list(set(ixL) -set(imS) -set([-1]) -set([len(loc)-1, len(loc)]))
+        ixL = list(set(ixL) -set(imD) -set([-1]) -set([len(loc)-1, len(loc)]))
 
         #check if any meet the direct merging condition
-        con_direct = xdel[ixL]<fdelDM
+        #[24.10.14]: dont consider direct merge now 
+        con_direct = xdel[ixL] < fdelDM
 
         if con_direct.any():
             #only 1 direct merge per timestep!
@@ -549,7 +552,7 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
             except:
                 import pdb;pdb.set_trace()
 
-            print('[resample.splitmerge]:direct merge particle no.', im)
+            print('[resample.dropmerge]:direct merge particle no.', im)
 
             loc_merge = np.sqrt(spN.locL[im]*spN.locL[im+1])
             mass_merge = spN.mtotL[im] +spN.mtotL[im+1]
@@ -570,4 +573,152 @@ def re_sample_dropmerge(sim, spN, fdelD=0.05, fdelM=0., fdelX=1, nsampleX=0):
     #if len(imL>0):
     #    import pdb;pdb.set_trace()
     return newarr
-    pass
+
+
+def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fspec= 0.002,**args):
+    """
+    Follow the Schoonenberg. 2018 Lagrangian model. 
+
+    Basic idea: resample all the particles to the initial configuration when conditions 
+    are met.
+
+    nspec: 
+        The number of particial bond with the special locations 
+
+    Conditions:
+        Currently I would like to follow the conditions above 
+
+    Resampling:
+        1. Firstly identify the special locations (e.g. iceline, planet location), the particles 
+            in these special locations will not be resampled.
+        2. Resample principle:
+            
+            Idea 1: 
+                1) firstly resample the particles according to the initial number and locations, 
+                check the mass conservation. 
+                2) then insert the particles in the special locations? (Hope that the properties will 
+                not change a lot)
+                3) the total mass: distribute the total mass to logrithmically locations.
+                4) how about the physical mass? interpolation?
+                5) how about the composition? 
+                6) maybe should all consider the Iceline
+            Idea 2: 
+                1)don't know how to better consider the "special locations"
+    """
+    loc = spN.locL 
+    marr = spN.mtotL
+    sfd = spN.sfd
+
+    #gather the special locations
+    locspecL = []
+    for k, line in enumerate(sim.icelineL+sim.planetL):
+        locspecL.append(line.loc)
+
+    xdel = np.diff(np.log(loc))
+
+
+    opL, = np.where(xdel<fdelM)
+    opL = np.append(opL, np.where(xdel>fdelS)[0])
+
+
+    if len(opL)>0:
+        #if the particles are too close or too far away, just resample 
+
+        #locations 
+        npar = pars.dparticleprops['nini']
+        locn = sim.rinn*(sim.rout/sim.rinn)**np.linspace(1/npar, 1, npar)
+
+        #find the special locations 
+        locspecL = [] 
+        for line in sim.icelineL+sim.planetL:
+            locspecL.append(line.loc)
+
+        #find the locations that close to the special locations 
+        specpar_idx = np.searchsorted(loc, locspecL) 
+        #insert the surrounding particles into locn 
+        #we also need to remove the locations that closer to the special locations in locn 
+
+        #LZX[24/11/2] not sure whether we should get the 'special particles' within two particles or within a 
+        #             certain location range.
+        for idx in specpar_idx:
+            #specL_par = np.array(loc[idx-nspec:idx+nspec]) 
+            #'special range'
+            speclim = [loc[idx]*(10**fspec-1)/10**fspec, (10**fspec-1)*loc[idx]]
+
+            #particles in special range 
+            specL_par = np.where((loc>speclim[0]) & (loc<speclim[1]))[0]
+
+            #locn = np.delete(locn, np.where((locn>specL_par.min()) & (locn<specL_par.max())))
+            locn = np.delete(locn, np.where((locn>speclim[0]) & (locn<speclim[1])))
+            locn = np.insert(locn, np.searchsorted(locn, specL_par), specL_par)
+            #check: if the difference of the locations are too small, 
+            #       just remove! 
+            locn = np.delete(locn, np.where(np.diff(locn)<fdelM))
+
+        #initialize the new property arrays 
+        locI = locn 
+        massI = np.array([])
+        mtotI = np.array([]) 
+        fcompI = np.zeros((len(locn), len(sim.particles.fcomp[0])))
+
+        #total mass
+        illocs = np.array([i.loc for i in sim.icelineL])
+        #get the slice of new locations 
+        slice_idxn = np.searchsorted(locn, illocs)
+        locn_slice = np.split(locn, slice_idxn)
+        slice_idxn = np.concatenate(([0], slice_idxn, [len(locn)]))
+
+        n_slice = illocs+1 # n icelines, n+1 slices 
+        
+        #get the slices of old properties 
+        slice_idx = np.searchsorted(loc, illocs)
+        slice_idx = np.concatenate(([0], slice_idx, [len(loc)]))
+
+        wdeln = np.concatenate(([np.log(locn[1]/locn[0])], 
+                               (np.log(locn[2:]) -np.log(locn[:-2]))/2,
+                               [np.log(locn[-1]/locn[-2])]))
+        #wdelo = np.concatenate(([np.log(loc[1]/loc[0])], 
+        #                       (np.log(loc[2:]) -np.log(loc[:-2]))/2,
+        #                       [np.log(loc[-1]/loc[-2])]))
+
+        for i,locl in enumerate(locn_slice):
+            #get the mass of the slice 
+            m_slice = marr[slice_idx[i]:slice_idx[i+1]]
+            sfd_slice = sfd[slice_idx[i]:slice_idx[i+1]]
+            summlice = m_slice.sum()
+
+            loco_slice = loc[slice_idx[i]:slice_idx[i+1]]
+
+            #get the physical mass of the slice 
+            mphy_slice = spN.massL[slice_idx[i]:slice_idx[i+1]]
+
+            #insert the slice into the new locations 
+            sfd_slicen = np.interp(locl, loco_slice, sfd_slice) 
+
+            #get the total mass of the slice
+            mn_slice = sfd_slicen*2*np.pi*locl**2*wdeln[slice_idxn[i]:slice_idxn[i+1]] #mass of the slice
+
+            #maybe normalized to the old total mass???
+
+            #check the mass conservation 
+            if np.abs(mn_slice.sum()/summlice-1)>2e-2:
+                print('mass conservation is violated') 
+                import pdb;pdb.set_trace()
+
+            mtotI = np.append(mtotI, mn_slice)
+
+            #get the physical mass of the slice 
+            mphy_slicen = np.interp(locl, loco_slice, mphy_slice)
+            massI = np.append(massI, mphy_slicen) 
+
+            #get the composition of the slice 
+            comp = sim.particles.fcomp[slice_idx[i]]
+            fcomp_slicen = np.zeros((len(locl), len(comp))) 
+            fcomp_slicen[:] = comp
+            fcompI[slice_idxn[i]:slice_idxn[i+1]] = fcomp_slicen
+        return locI, mtotI, massI, fcompI
+    
+    else:
+        return None
+
+

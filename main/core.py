@@ -179,21 +179,30 @@ class System(object):
             #    import pdb;pdb.set_trace()
 
             newarr = resample.re_sample_splitmerge(self,self.particles,nsampleX=2,**pars.dresample)
-            if newarr is not None:
-                if np.all(np.diff(newarr[0])>0.):
-                    #assign the key properties 
-                    self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
-                    self.particles.num = len(self.particles.locL)
-                    #also we need to get other properties of particles 
-                    #idea is make an function to get all these auxiliary
-                    disk = self.get_disk()
-                    self.particles.get_auxiliary(disk, self.time)
-                    self.particles.make_Y2d()
-                else:
-                    print('some crossing caused by resampling')
+        elif pars.resampleMode == 'dropmerge':
+            newarr = resample.re_sample_dropmerge(self,self.particles,nsampleX=2,**pars.dresample)
+        
+        elif pars.resampleMode == 'global_resample':
+            newarr = resample.global_resample(self, self.particles, **pars.dresample)
 
         else:
-            pass
+            newarr = None
+
+        if newarr is not None:
+            if np.all(np.diff(newarr[0])>0.):
+                #assign the key properties 
+                self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
+                self.particles.num = len(self.particles.locL)
+                #also we need to get other properties of particles 
+                #idea is make an function to get all these auxiliary
+                disk = self.get_disk()
+                self.particles.get_auxiliary(disk, self.time)
+                self.particles.make_Y2d()
+            else:
+                print('some crossing caused by resampling')
+
+
+
                 
 
     #ZL-TBD: put this stuff in fileio.py
@@ -438,8 +447,8 @@ class System(object):
         Evolving system to self.time
         """
         # prevent the large value 'eats' the small value
-        if self.deltaT/self.time <1e-15:
-            import pdb;pdb.set_trace()
+        #if self.deltaT/self.time <1e-15:
+        #    import pdb;pdb.set_trace()
 
 
         Y0 = np.copy(self.particles.Y2d)
@@ -619,7 +628,7 @@ class System(object):
             while self.Minflux> mtot1:
                 Nadd += 1
                 self.Minflux -= mtot1
-        elif pars.resampleMode=='splitmerge' and self.rout is not None:
+        elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge'  or pars.resampleMode == 'global_resample' and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
                 Nadd += 1
@@ -633,7 +642,7 @@ class System(object):
         elif pars.resampleMode==None:
                 self.Minflux = 0.
         else:
-            print('[core.py]:No valid resampleMode, choose from: [Nplevel,splitmerge,None]')
+            print('[core.py]:No valid resampleMode, choose from: [Nplevel,splitmerge,dropmerge,None]')
             sys.exit()
 
         
@@ -992,8 +1001,13 @@ class System(object):
             deltaT = tEnd - self.time
 
         self.deltaT = deltaT
-        if self.deltaT<=0:
-            print('[new_timestep]warning:deltaT<=0')
+
+        if self.time != tEnd:
+            if self.deltaT/self.time <1e-15:
+                print('[core.new_timestep]: warning: may lose precision b/c of small time step')
+                import pdb;pdb.set_trace()
+            if self.deltaT<=0:
+                print('[core.new_timestep]warning:deltaT<=0')
 
 
 
@@ -1695,7 +1709,8 @@ class Superparticles (object):
         else:
             if pars.sfdmode=='simple':
                 #adds the surface to the particles
-                sfd = ff.sfd_simple (self.mtotL, loc)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
+                #LZX[24.11.01] this fcomp thing should only be used in the steady mode 
+                sfd = ff.sfd_simple (self.mtotL, loc)#/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)

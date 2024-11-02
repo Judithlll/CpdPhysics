@@ -22,4 +22,4 @@ doPlanets = False
 doIcelines = False
 
 resampleMode = 'splitmerge'
-dresample = {'fdelS':1.04, 'fdelM':1e-7, 'fdelDM':3e-3}
+dresample = {'fdelS':0.01, 'fdelM':0.001, 'fdelDM':1e-7}

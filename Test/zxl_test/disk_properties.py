@@ -19,7 +19,7 @@ meanmol = pars.dgasprop['meanmol']
 
 tdep= pars.dgasprop['tdep']  #depletion tiescale of gas (constant: 3e6 yr)
 tgap= pars.dgasprop['tgap']  #time when the gap was built
-def rout(t=0.):
+def r_out(t=0.):
     return pars.dgasgrid['rout']
 
 def Mcp_t(t):
@@ -41,7 +41,7 @@ def user_add_var ():
     """
     a list of attributes to be added
     """
-    return {'alpha':alpha, 'rinn':rinn, 'rout':rout(), 'ratio':ratio, 'beta_T':beta_T, 'beta_nu':beta_nu, 'beta_cs':beta_cs}
+    return {'alpha':alpha, 'rinn':rinn, 'rout':r_out(), 'ratio':ratio, 'beta_T':beta_T, 'beta_nu':beta_nu, 'beta_cs':beta_cs}
 
 
 def user_add_eval ():
@@ -95,7 +95,7 @@ def Sigma_g(r,cs,OmegaK,dotMg):
     get the surface density at loc and time 
     """
     #Shibaike 2017 eq2
-    Sg = dotMg/2/np.pi/rout()*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*rout()*r**(-3/2))
+    Sg = dotMg/2/np.pi/r_out()*r**(3/2)/(alpha*cs**2/OmegaK)*(-2/9*r**(-1/2)+2/3*r_out()*r**(-3/2))
     #Sg = dotMg *OmegaK/3/np.pi/alpha/cs**2
     return Sg
 
@@ -207,7 +207,7 @@ beta_nu = beta_T+3/2
 beta_cs = beta_T/2
 def beta_sigG(loc):
     #from Shibaika.2017, just below the eq15
-    beta_sigG = -beta_nu + loc/(loc-3*rout())
+    beta_sigG = -beta_nu + loc/(loc-3*r_out())
     return beta_sigG
 
 def beta_P(loc):
@@ -274,7 +274,7 @@ def eta_old(r,Mcp,dotMg,mg):
     """
     v=(1-eta)vK
     """
-    e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*rout())/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*rout())*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
+    e=0.477577*cgs.kB*(r**5.5-4.84615*r**4.5*r_out())/cgs.gC/Mcp/mg/(r**4.5-3*r**3.5*r_out())*(cgs.gC*Mcp*dotMg/r**3/cgs.sigmaSB)**(1/4)
     return e
 
 def eta (disk):
