@@ -53,6 +53,9 @@ def Stokes_number (**kwargs):
     #here the stokes number should be very complex
     return physics.Stokes_Epstein(**kwargs)
 
+def plot_sfd(*args):
+    pass
+
 fig, ax = plt.subplots(figsize=(8,8))
-tplot = [3e2, 3e3,2.08e4, 3e4, 8e4, 3e5]
+tplot = [0., 1e2,2.08e2, 3e3, 8e3, 3e5]
 iplot = 0

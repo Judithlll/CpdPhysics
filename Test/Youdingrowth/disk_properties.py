@@ -6,7 +6,7 @@ import numpy as np
 rinn = 0.1 *cgs.au
 #rout = 800 *cgs.au
 
-fraction = 0.01 
+fraction = 0.0 
 #this is necessary apparently...
 #sigmol=2e-15
 

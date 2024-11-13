@@ -128,6 +128,8 @@ class System(object):
         self.njumptime = 0
         self.jumptime = 0.0
 
+        self.resam_time = np.array([])
+
         self.milestones = {}
 
         self.doJump = False
@@ -183,13 +185,42 @@ class System(object):
             newarr = resample.re_sample_dropmerge(self,self.particles,nsampleX=2,**pars.dresample)
         
         elif pars.resampleMode == 'global_resample':
+            #LZX [24.11.05]: this is not stable now
             newarr = resample.global_resample(self, self.particles, **pars.dresample)
 
         else:
             newarr = None
 
         if newarr is not None:
+            self.resam_time= np.append(self.resam_time, self.time)
+
             if np.all(np.diff(newarr[0])>0.):
+
+                #[24/11/11]let's compare the properties before and after the resampling here 
+                mtotn = newarr[1]
+                locn = newarr[0] 
+                sfdn = ff.sfd_simple(mtotn, locn)
+
+                # plt.figure()
+                # plt.xscale('log')
+                #
+                # plt.xlabel('location')
+                # plt.ylabel('sfd')
+                # plt.plot(locn/cgs.RJ, sfdn, '.-', c='r', label='after')
+                # plt.plot(self.particles.locL/cgs.RJ, self.particles.sfd, '.-', c ='b', label='before')
+                # plt.legend()
+                # plt.savefig('sfd_ba_resample.png')
+                # plt.close()
+                #
+                # plt.figure()
+                # plt.xlabel('location')
+                # plt.ylabel('cumsum')
+                # plt.loglog(locn/cgs.RJ, np.cumsum(mtotn), c='r', label='after')
+                # plt.loglog(self.particles.locL/cgs.RJ, np.cumsum(self.particles.mtotL), c ='b', label='before') 
+                # plt.legend()
+                # plt.savefig('cumsum_ba_resample.png')
+                # plt.close()
+                #
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
                 self.particles.num = len(self.particles.locL)
@@ -1720,7 +1751,7 @@ class Superparticles (object):
                 sfd = None
                 
 
-        dauxi = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg, 'sfd':sfd} 
+        dauxi = {'Rd':Rd, 'St':St, 'v_r':v_r, 'mcp':disk.mcp, 'Hg':disk.Hg, 'sfd':sfd, 'temp':disk.temp} 
         for key in disk.userprops:
             dauxi[key] = getattr(disk, key)
 

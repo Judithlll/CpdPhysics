@@ -9,6 +9,7 @@ dsystempars = {}
 dparticleprops = {'Rdi':0.01,  #initial size of particles in cm
                 'nini':2000,  #initial number of particles
                 'initrule':'equallogspace'} #how particles are distributed
+
 dtimesteppars = {'deltaTfraction':0.5, 'itgmethod':'RK4'}
 
 dgasgrid = {'rinn':0.1*cgs.au,'rout':800*cgs.au}
@@ -21,5 +22,5 @@ doJump = False
 doPlanets = False
 doIcelines = False
 
-resampleMode = 'splitmerge'
-dresample = {'fdelS':0.01, 'fdelM':0.001, 'fdelDM':1e-7}
+resampleMode = 'global_resample'
+dresample = {'fdelS':0.05, 'fdelM':1e-2, 'fdelDM':1e-7}

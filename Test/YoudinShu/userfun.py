@@ -110,6 +110,7 @@ def del_v (St, disk):
 
 
 def H_d (St, disk):
+    import pdb;pdb.set_trace()
     return disk.Hg
 
 

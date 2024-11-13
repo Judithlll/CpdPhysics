@@ -102,14 +102,13 @@ def do_stuff (system, init=False, final=False):
 
 
 
-def plot_sfd(locL,sfd,time,imin,deltaT,timeL):
-    plt.figure(figsize=(12,8))
+def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime):
+    plt.figure(figsize=(6,4))
     plt.subplot(211)
     plt.xlim(0,800)
     plt.ylim(1e-11, 1e3)
-    plt.yscale('log')
     plt.title('Surface density profile at {:.2f}yr'.format(time/cgs.yr))
-    plt.plot(locL/cgs.au, sfd, 'x-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
+    plt.loglog(locL/cgs.au, sfd, '.-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
     plt.scatter(locL[imin[1]]/cgs.au, sfd[imin[1]], c= 'red')
     plt.axvline(5.89, linestyle='dashed', color='black', linewidth = 1)
     plt.legend(loc='lower right')
@@ -117,9 +116,11 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL):
     plt.subplot(212)
     plt.xlim(time/cgs.yr-500,time/cgs.yr+500)
     plt.xticks([time/cgs.yr], ['{:.2f}'.format(time/cgs.yr)])
-    plt.ylim(1e5,1e10)
+    plt.ylim(1e2,1e9)
     plt.yscale('log')
     plt.plot(np.array(timeL)/cgs.yr, np.append(np.diff(timeL), deltaT) )
+    for t in restime: 
+        plt.axvline(t/cgs.yr, linestyle='dashed', color='black', linewidth = 1)
     plt.scatter(time/cgs.yr, deltaT, c='red')
 
     plt.savefig('./sfdevol/{:.2f}.png'.format(time))

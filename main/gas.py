@@ -10,7 +10,7 @@ class GAS ():
     [23.12.13]: copied the essentials from /Newlagrange
     """
 
-    def __init__(self, gasL, dcomposL, time=0, rinn=-1, rout=None, mode='prescribed', ngrid=1000, 
+    def __init__(self, gasL, dcomposL, time=0, rinn=-1, rout=None, mode='prescribed', ngrid=2000, 
                     solmode='default', ttol=1e-4, dcompos={}, **kwargs):
         """
         initialize disk class. 
@@ -31,7 +31,7 @@ class GAS ():
             #not sure whether we should do it here or in disk object which has 
             #more parameters
             #need to initialize the grid
-            self.locgrid = 10**np.linspace(np.log10(rinn), np.log10(rout), ngrid)
+            self.locgrid = np.exp(np.linspace(np.log(rinn), np.log(rout), ngrid))
             self.ngrid = ngrid
             #adds the key properties
 

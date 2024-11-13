@@ -593,17 +593,16 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             in these special locations will not be resampled.
         2. Resample principle:
             
-            Idea 1: 
-                1) firstly resample the particles according to the initial number and locations, 
-                check the mass conservation. 
-                2) then insert the particles in the special locations? (Hope that the properties will 
-                not change a lot)
-                3) the total mass: distribute the total mass to logrithmically locations.
-                4) how about the physical mass? interpolation?
-                5) how about the composition? 
-                6) maybe should all consider the Iceline
+            Idea 1 (rejected): 
+                1. first get the locations 
+                2. modify the locations: delete the locations that close to the special locations within 
+                    a certain range, and insert the surrounding particles into the locations.
+                3. we consider the interpolation according to the locations of icelines
+                4. for total mass and physical mass, interpolate the mass of the slice.
+                5. for composition, just use the composition of that region.
+
             Idea 2: 
-                1)don't know how to better consider the "special locations"
+                resample the total mass by the cumulative mass fraction of the particles.
     """
     loc = spN.locL 
     marr = spN.mtotL
@@ -620,7 +619,77 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
     opL, = np.where(xdel<fdelM)
     opL = np.append(opL, np.where(xdel>fdelS)[0])
 
+    npar = pars.dparticleprops['nini']
 
+    if len(opL)>0:
+        #get new locations
+        locn = sim.rinn*(sim.rout/sim.rinn)**np.linspace(1/npar, 1, npar)
+        import pdb;pdb.set_trace()
+        
+        #initialize the new property arrays
+        mtotn = np.array([]) 
+        massn = np.array([])
+        fcompn = np.zeros((len(locn), len(sim.particles.fcomp[0])))
+
+        #get the special locations 
+        locspecL = [] 
+        for line in sim.icelineL+sim.planetL:
+            locspecL.append(line.loc)
+
+        
+        #get the iceline locations and get the new properties according to them 
+        iceloc = [i.loc for i in sim.icelineL]
+        slice_idxo = np.searchsorted(loc, iceloc)
+        slice_idxo = np.concatenate(([0], slice_idxo, [len(loc)]))
+
+        slice_idxn = np.searchsorted(locn, iceloc) 
+        slice_idxn = np.concatenate(([0], slice_idxn, [len(locn)]))
+
+        for i in range(len(slice_idxo)-1): 
+            #get the slice of old properties 
+            mtot_sliceo = marr[slice_idxo[i]:slice_idxo[i+1]]
+
+            loc_sliceo = loc[slice_idxo[i]:slice_idxo[i+1]]
+            mass_sliceo = spN.massL[slice_idxo[i]:slice_idxo[i+1]]
+
+            #get the slice of new locations
+            loc_slicen = locn[slice_idxn[i]:slice_idxn[i+1]]
+
+            #insert the slice into the new locations 
+            cu_mtot_slice_o = np.cumsum(mtot_sliceo) 
+            cu_mtot_slice_n = np.interp(loc_slicen, loc_sliceo, cu_mtot_slice_o)  #cumulative total mass of the new locations 
+
+            #check the mass conservation every slices
+            merr = np.abs(cu_mtot_slice_o[-1]/cu_mtot_slice_n[-1]-1)
+            if merr>1e-10:
+                print('mass conservation is violated')
+                import pdb;pdb.set_trace()
+
+
+            mtot_slice_n = np.append(cu_mtot_slice_n[0], np.diff(cu_mtot_slice_n))
+
+            #get the physical mass of the slice 
+            mass_slice = np.interp(loc_slicen, loc_sliceo, mass_sliceo)
+
+            #get the composition of the slice 
+            fcompn[slice_idxn[i]:slice_idxn[i+1]] = sim.particles.fcomp[slice_idxo[i]]
+
+            #insert the slice into the new locations 
+            mtotn = np.append(mtotn, mtot_slice_n)
+            massn = np.append(massn, mass_slice)
+
+        return locn, mtotn, massn, fcompn
+    else:
+        return None
+
+
+    
+
+
+
+
+
+if False:
     if len(opL)>0:
         #if the particles are too close or too far away, just resample 
 
@@ -716,9 +785,9 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             fcomp_slicen = np.zeros((len(locl), len(comp))) 
             fcomp_slicen[:] = comp
             fcompI[slice_idxn[i]:slice_idxn[i+1]] = fcomp_slicen
-        return locI, mtotI, massI, fcompI
+        #return locI, mtotI, massI, fcompI
     
-    else:
-        return None
+    #else:
+#        return None
 
 

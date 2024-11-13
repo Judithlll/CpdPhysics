@@ -11,7 +11,7 @@ dparticleprops = {'Rdi':0.01,  #initial size pf particles
                  'initrule':'equallogspace'} #how particles are distributed
 
 dtimesteppars = {'deltaTfraction':0.001, 'itgmethod':'RK4'}
-dgasgrid = {'rinn':0.1*cgs.au,'rout':12*cgs.au}
+dgasgrid = {'rinn':0.1*cgs.au,'rout':15*cgs.au}
 gasmodel = 'gridstatic'
 
 tmax = 3e6 *cgs.yr
