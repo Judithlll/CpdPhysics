@@ -6,7 +6,7 @@ intrhoL = [3.0]
 
 #parameters fed into System
 dsystempars = {}
-dparticleprops = {'Rdi':0.0001,  #initial size of particles in cm
+dparticleprops = {'Rdi':0.000001,  #initial size of particles in cm
                 'nini':1000,  #initial number of particles
                 'initrule':'equallogspace'} #how particles are distributed
 

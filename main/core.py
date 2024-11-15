@@ -220,7 +220,8 @@ class System(object):
                 # plt.legend()
                 # plt.savefig('cumsum_ba_resample.png')
                 # plt.close()
-                #
+                # import pdb;pdb.set_trace()
+
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
                 self.particles.num = len(self.particles.locL)

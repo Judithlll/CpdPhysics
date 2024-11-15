@@ -2,6 +2,7 @@ import numpy as np
 import parameters as pars
 import sys
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
 
 def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
@@ -624,7 +625,6 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
     if len(opL)>0:
         #get new locations
         locn = sim.rinn*(sim.rout/sim.rinn)**np.linspace(1/npar, 1, npar)
-        import pdb;pdb.set_trace()
         
         #initialize the new property arrays
         mtotn = np.array([]) 
@@ -657,6 +657,14 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
 
             #insert the slice into the new locations 
             cu_mtot_slice_o = np.cumsum(mtot_sliceo) 
+            #[24/11/15]maybe we can try add a 0 in the beginning of the first slice 
+            if i==0: 
+                cu_mtot_slice_o = np.append(0, cu_mtot_slice_o)
+                loc_sliceo = np.append(sim.rinn, loc_sliceo)
+            else:
+                cu_mtot_slice_o = np.append(marr[slice_idxo[i]-1], cu_mtot_slice_o)
+                loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
+
             cu_mtot_slice_n = np.interp(loc_slicen, loc_sliceo, cu_mtot_slice_o)  #cumulative total mass of the new locations 
 
             #check the mass conservation every slices
@@ -669,7 +677,7 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             mtot_slice_n = np.append(cu_mtot_slice_n[0], np.diff(cu_mtot_slice_n))
 
             #get the physical mass of the slice 
-            mass_slice = np.interp(loc_slicen, loc_sliceo, mass_sliceo)
+            mass_slice = np.interp(loc_slicen, loc_sliceo[1:], mass_sliceo)
 
             #get the composition of the slice 
             fcompn[slice_idxn[i]:slice_idxn[i+1]] = sim.particles.fcomp[slice_idxo[i]]
@@ -677,6 +685,12 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             #insert the slice into the new locations 
             mtotn = np.append(mtotn, mtot_slice_n)
             massn = np.append(massn, mass_slice)
+
+            # import cgs 
+            # plt.loglog(loc_sliceo/cgs.RJ, cu_mtot_slice_o, 'o') 
+            # plt.loglog(loc_slicen/cgs.RJ, cu_mtot_slice_n, 'x')
+            # plt.show()
+            # import pdb;pdb.set_trace()
 
         return locn, mtotn, massn, fcompn
     else:

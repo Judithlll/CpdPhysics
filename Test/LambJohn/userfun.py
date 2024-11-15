@@ -136,9 +136,9 @@ def dm_dt(particles):
     delv = del_v(St, particles)
     Hd = H_d(St, particles)
 
-    sigmacol = 4*np.pi*Rd**2 
+    sigmacol = 4*np.pi*Rd**2
 
-    return sigD/(np.sqrt(2*np.pi)*Hd) *delv*sigmacol/12
+    return sigD/(np.sqrt(2*np.pi)*Hd) *delv*sigmacol/4
 
 
 def make_animation(mp4name, path='./plot/satepart_splitmerge'):
