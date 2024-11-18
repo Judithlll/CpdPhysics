@@ -658,23 +658,35 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             #insert the slice into the new locations 
             cu_mtot_slice_o = np.cumsum(mtot_sliceo) 
             #[24/11/15]maybe we can try add a 0 in the beginning of the first slice 
-            if i==0: 
-                cu_mtot_slice_o = np.append(0, cu_mtot_slice_o)
-                loc_sliceo = np.append(sim.rinn, loc_sliceo)
-            else:
-                cu_mtot_slice_o = np.append(marr[slice_idxo[i]-1], cu_mtot_slice_o)
-                loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
+            # if i==0: 
+            #     cu_mtot_slice_o = np.append(0, cu_mtot_slice_o)
+            #     loc_sliceo = np.append(sim.rinn, loc_sliceo)
+            # else:
+            #     cu_mtot_slice_o = np.append(marr[slice_idxo[i]-1], cu_mtot_slice_o)
+            #     loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
 
-            cu_mtot_slice_n = np.interp(loc_slicen, loc_sliceo, cu_mtot_slice_o)  #cumulative total mass of the new locations 
+            # f = interp1d(loc_sliceo, cu_mtot_slice_o, kind='quadratic', fill_value='extrapolate')
+            # cu_mtot_slice_n = f(loc_slicen)
+            cu_mtot_slice_n = np.interp(loc_slicen, loc_sliceo, cu_mtot_slice_o )  #cumulative total mass of the new locations 
+
+            mtot_slice_n = np.append(cu_mtot_slice_n[0], np.diff(cu_mtot_slice_n))
 
             #check the mass conservation every slices
             merr = np.abs(cu_mtot_slice_o[-1]/cu_mtot_slice_n[-1]-1)
             if merr>1e-10:
                 print('mass conservation is violated')
+                #here plot the cumulative mass and mass distribution to check what happens 
+                fig, (axcu, axm) = plt.subplots(1,2, figsize=(10,5)) 
+                axcu.loglog(loc_sliceo[1:], cu_mtot_slice_o, '.-', label='old') 
+                axcu.loglog(loc_slicen, cu_mtot_slice_n, 'x-', label='new')
+                axm.loglog(loc_sliceo, mass_sliceo, '.-', label='old')
+                axm.loglog(loc_slicen, mtot_slice_n, 'x-', label='new')
+                axcu.legend() 
+                axm.legend()
+                plt.show()
                 import pdb;pdb.set_trace()
 
 
-            mtot_slice_n = np.append(cu_mtot_slice_n[0], np.diff(cu_mtot_slice_n))
 
             #get the physical mass of the slice 
             mass_slice = np.interp(loc_slicen, loc_sliceo[1:], mass_sliceo)

@@ -73,7 +73,7 @@ def M_influx(t0,tEnd):
     """
     gas inflow into the CJD
     """
-    Minflux=quad(dot_Mg,t0,tEnd)[0]
+    Minflux=0 #quad(dot_Mg,t0,tEnd)[0]
     # Minflux=ratio*dotMg_gap()*tdep*(np.exp(tgap/tdep) -np.exp(-(t-tgap)/tdep))
     return Minflux
 
