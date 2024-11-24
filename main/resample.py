@@ -607,12 +607,6 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
     """
     loc = spN.locL 
     marr = spN.mtotL
-    sfd = spN.sfd
-
-    #gather the special locations
-    locspecL = []
-    for k, line in enumerate(sim.icelineL+sim.planetL):
-        locspecL.append(line.loc)
 
     xdel = np.diff(np.log(loc))
 
@@ -626,15 +620,41 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
         #get new locations
         locn = sim.rinn*(sim.rout/sim.rinn)**np.linspace(1/npar, 1, npar)
         
+
+        #get the special locations 
+        #[24/11/18] b/c we have consider the iceline location later, so here maybe we can consider the 
+        #           planet location only.
+        locspecL = [] 
+        for line in sim.planetL+sim.icelineL:
+            locspecL.append(line.loc)
+
+        #consider the special locations like I did before. Just first add the 1 surrounding particles 
+                #find the locations that close to the special locations 
+        specpar_idx = np.searchsorted(loc, locspecL) 
+        #insert the surrounding particles into locn 
+        #we also need to remove the locations that closer to the special locations in locn 
+
+        #LZX[24/11/2] not sure whether we should get the 'special particles' within two particles or within a 
+        #             certain location range.
+        for idx in specpar_idx:
+            specL_par = np.array(loc[idx-nspec:idx+nspec]) 
+            #'special range'
+            #speclim = [lpecpar_c[idx]*(10**fspec-1)/10**fspec, (10**fspec-1)*loc[idx]]
+
+            #particles in special range 
+            #specL_par = np.where((loc>speclim[0]) & (loc<speclim[1]))[0]
+
+            locn = np.delete(locn, np.where((locn>specL_par.min()) & (locn<specL_par.max())))
+            #locn = np.delete(locn, np.where((locn>speclim[0]) & (locn<speclim[1])))
+            locn = np.insert(locn, np.searchsorted(locn, specL_par), specL_par)
+            #check: if the difference of the locations are too small, 
+            #       just remove! 
+            locn = np.delete(locn, np.where(np.diff(np.log(locn))<fdelM))
+
         #initialize the new property arrays
         mtotn = np.array([]) 
         massn = np.array([])
         fcompn = np.zeros((len(locn), len(sim.particles.fcomp[0])))
-
-        #get the special locations 
-        locspecL = [] 
-        for line in sim.icelineL+sim.planetL:
-            locspecL.append(line.loc)
 
         
         #get the iceline locations and get the new properties according to them 
@@ -655,18 +675,23 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             #get the slice of new locations
             loc_slicen = locn[slice_idxn[i]:slice_idxn[i+1]]
 
-            #insert the slice into the new locations 
-            cu_mtot_slice_o = np.cumsum(mtot_sliceo) 
             #[24/11/15]maybe we can try add a 0 in the beginning of the first slice 
-            # if i==0: 
-            #     cu_mtot_slice_o = np.append(0, cu_mtot_slice_o)
-            #     loc_sliceo = np.append(sim.rinn, loc_sliceo)
-            # else:
-            #     cu_mtot_slice_o = np.append(marr[slice_idxo[i]-1], cu_mtot_slice_o)
-            #     loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
+            #[24/11/18]what values to add need to be discussed.
+            # if loc_sliceo[0]>loc_slicen[0]:
+            #     if i==0: 
+            #         mtot_sliceo = np.append(0, mtot_sliceo)
+            #         loc_sliceo = np.append(sim.rinn, loc_sliceo)
+            #         mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
+            #     else:
+            #         mtot_sliceo = np.append(marr[slice_idxo[i]-1], mtot_sliceo)
+            #         loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
+            #         mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
 
             # f = interp1d(loc_sliceo, cu_mtot_slice_o, kind='quadratic', fill_value='extrapolate')
             # cu_mtot_slice_n = f(loc_slicen)
+            #insert the slice into the new locations 
+            cu_mtot_slice_o = np.cumsum(mtot_sliceo) 
+
             cu_mtot_slice_n = np.interp(loc_slicen, loc_sliceo, cu_mtot_slice_o )  #cumulative total mass of the new locations 
 
             mtot_slice_n = np.append(cu_mtot_slice_n[0], np.diff(cu_mtot_slice_n))
@@ -676,11 +701,14 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             if merr>1e-10:
                 print('mass conservation is violated')
                 #here plot the cumulative mass and mass distribution to check what happens 
+                import cgs
                 fig, (axcu, axm) = plt.subplots(1,2, figsize=(10,5)) 
-                axcu.loglog(loc_sliceo[1:], cu_mtot_slice_o, '.-', label='old') 
-                axcu.loglog(loc_slicen, cu_mtot_slice_n, 'x-', label='new')
-                axm.loglog(loc_sliceo, mass_sliceo, '.-', label='old')
-                axm.loglog(loc_slicen, mtot_slice_n, 'x-', label='new')
+                axcu.loglog(loc_sliceo/cgs.RJ, cu_mtot_slice_o, '.-', label='old') 
+                axcu.loglog(loc_slicen/cgs.RJ, cu_mtot_slice_n, 'x-', label='new')
+                axm.loglog(loc_sliceo/cgs.RJ, mtot_sliceo, '.-', label='old')
+                axm.loglog(loc_slicen/cgs.RJ, mtot_slice_n, 'x-', label='new')
+                axcu.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
+                axm.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
                 axcu.legend() 
                 axm.legend()
                 plt.show()
@@ -689,7 +717,7 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
 
 
             #get the physical mass of the slice 
-            mass_slice = np.interp(loc_slicen, loc_sliceo[1:], mass_sliceo)
+            mass_slice = np.interp(loc_slicen, loc_sliceo, mass_sliceo)
 
             #get the composition of the slice 
             fcompn[slice_idxn[i]:slice_idxn[i+1]] = sim.particles.fcomp[slice_idxo[i]]

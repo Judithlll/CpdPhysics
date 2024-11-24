@@ -197,10 +197,10 @@ class System(object):
             if np.all(np.diff(newarr[0])>0.):
 
                 #[24/11/11]let's compare the properties before and after the resampling here 
-                mtotn = newarr[1]
-                locn = newarr[0] 
-                sfdn = ff.sfd_simple(mtotn, locn)
-
+                # mtotn = newarr[1]
+                # locn = newarr[0] 
+                # sfdn = ff.sfd_simple(mtotn, locn)
+                #
                 # plt.figure()
                 # plt.xscale('log')
                 #

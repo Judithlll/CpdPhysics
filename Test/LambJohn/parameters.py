@@ -12,7 +12,7 @@ dparticleprops = {'Rdi':0.000001,  #initial size of particles in cm
 
 dtimesteppars = {'deltaTfraction':0.8, 'itgmethod':'Euler'}
 
-dgasgrid = {'rinn':0.1*cgs.au,'rout':1e3*cgs.au}
+dgasgrid = {'rinn':0.1*cgs.au,'rout':2e3*cgs.au}
 gasmodel = 'prescribed'
 dragmodel = 'Epstein'
 
