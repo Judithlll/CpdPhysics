@@ -215,12 +215,11 @@ class System(object):
                 # plt.figure()
                 # plt.xlabel('location')
                 # plt.ylabel('cumsum')
-                # plt.loglog(locn/cgs.RJ, np.cumsum(mtotn), c='r', label='after')
-                # plt.loglog(self.particles.locL/cgs.RJ, np.cumsum(self.particles.mtotL), c ='b', label='before') 
+                # plt.loglog(locn/cgs.RJ, np.cumsum(mtotn), '.-', c='r', label='after')
+                # plt.loglog(self.particles.locL/cgs.RJ, np.cumsum(self.particles.mtotL), '.-', c ='b', label='before') 
                 # plt.legend()
                 # plt.savefig('cumsum_ba_resample.png')
                 # plt.close()
-                # import pdb;pdb.set_trace()
 
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
@@ -674,7 +673,7 @@ class System(object):
         elif pars.resampleMode==None:
                 self.Minflux = 0.
         else:
-            print('[core.py]:No valid resampleMode, choose from: [Nplevel,splitmerge,dropmerge,None]')
+            print('[core.py]:No valid resampleMode, choose from: [Nplevel,splitmerge,dropmerge,global_resample,None]')
             sys.exit()
 
         

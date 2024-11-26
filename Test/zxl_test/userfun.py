@@ -254,7 +254,7 @@ def do_stuff (system, init=False, final= False):
         fileio.store_class(data, 'data')##CWO: this and all stuff below does not seem to be general. Move to do_stuff perhaps
 
     else:
-        data.data_process(system)
+        #data.data_process(system)
         sp.run('tail -n1 log/system_evol.log', shell=True)
         #data object should be available...
         #tminarr = system.minTimes.tminarr 

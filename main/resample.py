@@ -658,7 +658,7 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
 
         
         #get the iceline locations and get the new properties according to them 
-        iceloc = [i.loc for i in sim.icelineL]
+        iceloc = [] #[i.loc for i in sim.icelineL]
         slice_idxo = np.searchsorted(loc, iceloc)
         slice_idxo = np.concatenate(([0], slice_idxo, [len(loc)]))
 
@@ -677,15 +677,15 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
 
             #[24/11/15]maybe we can try add a 0 in the beginning of the first slice 
             #[24/11/18]what values to add need to be discussed.
-            # if loc_sliceo[0]>loc_slicen[0]:
-            #     if i==0: 
-            #         mtot_sliceo = np.append(0, mtot_sliceo)
-            #         loc_sliceo = np.append(sim.rinn, loc_sliceo)
-            #         mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
-            #     else:
-            #         mtot_sliceo = np.append(marr[slice_idxo[i]-1], mtot_sliceo)
-            #         loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
-            #         mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
+            if loc_sliceo[0]>loc_slicen[0]:
+                if i==0: 
+                    mtot_sliceo = np.append(0, mtot_sliceo)
+                    loc_sliceo = np.append(sim.rinn, loc_sliceo)
+                    mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
+                else:
+                    mtot_sliceo = np.append(marr[slice_idxo[i]-1], mtot_sliceo)
+                    loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
+                    mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
 
             # f = interp1d(loc_sliceo, cu_mtot_slice_o, kind='quadratic', fill_value='extrapolate')
             # cu_mtot_slice_n = f(loc_slicen)

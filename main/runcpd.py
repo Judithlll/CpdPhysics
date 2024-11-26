@@ -147,10 +147,10 @@ while doEvo:
     userfun.do_stuff(system, final=final)
 
     #tbr
-    #plot the surface density profile
-    # if system.time/cgs.yr > plotnum: #plot every 1 yr
-    #     userfun.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time)
-    #     plotnum += 1
+    # plot the surface density profile
+    if system.time/cgs.yr > plotnum: #plot every 1 yr
+        userfun.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time)
+        plotnum += 1
         
     # print ([p.dlocdt for p in system.planetL], [p.loc/cgs.RJ for p in system.planetL], system.time/cgs.yr)
     if final: 
