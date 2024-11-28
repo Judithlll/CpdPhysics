@@ -192,34 +192,40 @@ class System(object):
             newarr = None
 
         if newarr is not None:
+            #the global resample will sometimes have some mass loss so the Moutflux should be updated here 
+            if pars.resampleMode == 'global_resample':
+                self.Moutflux += np.sum(self.particles.mtotL) - np.sum(newarr[1])
+
             self.resam_time= np.append(self.resam_time, self.time)
 
             if np.all(np.diff(newarr[0])>0.):
 
-                #[24/11/11]let's compare the properties before and after the resampling here 
-                # mtotn = newarr[1]
-                # locn = newarr[0] 
-                # sfdn = ff.sfd_simple(mtotn, locn)
+                # if self.time>17*cgs.yr: 
+                # #[24/11/11]let's compare the properties before and after the resampling here 
+                #     mtotn = newarr[1]
+                #     locn = newarr[0] 
+                #     sfdn = ff.sfd_simple(mtotn, locn)
                 #
-                # plt.figure()
-                # plt.xscale('log')
+                #     plt.figure()
+                #     plt.xscale('log')
                 #
-                # plt.xlabel('location')
-                # plt.ylabel('sfd')
-                # plt.plot(locn/cgs.RJ, sfdn, '.-', c='r', label='after')
-                # plt.plot(self.particles.locL/cgs.RJ, self.particles.sfd, '.-', c ='b', label='before')
-                # plt.legend()
-                # plt.savefig('sfd_ba_resample.png')
-                # plt.close()
+                #     plt.xlabel('location')
+                #     plt.ylabel('sfd')
+                #     plt.plot(locn/cgs.RJ, sfdn, '.-', c='r', label='after')
+                #     plt.plot(self.particles.locL/cgs.RJ, self.particles.sfd, '.-', c ='b', label='before')
+                #     plt.legend()
+                #     plt.savefig('sfd_ba_resample.png')
+                #     plt.close()
                 #
-                # plt.figure()
-                # plt.xlabel('location')
-                # plt.ylabel('cumsum')
-                # plt.loglog(locn/cgs.RJ, np.cumsum(mtotn), '.-', c='r', label='after')
-                # plt.loglog(self.particles.locL/cgs.RJ, np.cumsum(self.particles.mtotL), '.-', c ='b', label='before') 
-                # plt.legend()
-                # plt.savefig('cumsum_ba_resample.png')
-                # plt.close()
+                #     plt.figure()
+                #     plt.xlabel('location')
+                #     plt.ylabel('cumsum')
+                #     plt.loglog(locn/cgs.RJ, np.cumsum(mtotn), '.-', c='r', label='after')
+                #     plt.loglog(self.particles.locL/cgs.RJ, np.cumsum(self.particles.mtotL), '.-', c ='b', label='before') 
+                #     plt.legend()
+                #     plt.savefig('cumsum_ba_resample.png')
+                #     plt.close()
+                #     import pdb;pdb.set_trace()
 
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr

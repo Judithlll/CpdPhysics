@@ -1112,13 +1112,15 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime):
     plt.legend(loc='lower right')
 
     plt.subplot(212)
-    plt.xlim(time/cgs.yr-500,time/cgs.yr+500)
-    plt.xticks([time/cgs.yr], ['{:.2f}'.format(time/cgs.yr)])
+    plt.xlim(time/cgs.yr-10,time/cgs.yr+10)
+    t_ticknum = np.linspace(time/cgs.yr-10,time/cgs.yr+10, 5)
+    t_tick = ['{:.2f}'.format(t) for t in t_ticknum]
+    plt.xticks(t_ticknum, t_tick)
     plt.ylim(1e2,1e9)
     plt.yscale('log')
     plt.plot(np.array(timeL)/cgs.yr, np.append(np.diff(timeL), deltaT) )
-    for t in restime: 
-        plt.axvline(t/cgs.yr, linestyle='dashed', color='black', linewidth = 1)
+    for t in restime[-100:]: 
+        plt.axvline(t/cgs.yr, linestyle='dashed', color='gray', alpha=0.5, linewidth = 0.1)
     plt.scatter(time/cgs.yr, deltaT, c='red')
 
     plt.savefig('./sfdevol/{:.2f}.png'.format(time))

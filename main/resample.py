@@ -620,7 +620,6 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
         #get new locations
         locn = sim.rinn*(sim.rout/sim.rinn)**np.linspace(1/npar, 1, npar)
         
-
         #get the special locations 
         #[24/11/18] b/c we have consider the iceline location later, so here maybe we can consider the 
         #           planet location only.
@@ -636,10 +635,17 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
 
         #LZX[24/11/2] not sure whether we should get the 'special particles' within two particles or within a 
         #             certain location range.
-        for idx in specpar_idx:
+        for i, idx in enumerate(specpar_idx):
+            #maybe we should combine the two methods together. [24/11/27]
+            #first get the special particles, and also special range, choose the minimal range to implement
+            #inside of special range, we regard the particles as 'effective particles for special locations'
             specL_par = np.array(loc[idx-nspec:idx+nspec]) 
-            #'special range'
-            #speclim = [lpecpar_c[idx]*(10**fspec-1)/10**fspec, (10**fspec-1)*loc[idx]]
+
+            #'special range' 
+            speclim = [locspecL[i]/10**fspec, locspecL[i]*10**fspec]
+
+            #'crop' the specL_par 
+            specL_par = specL_par[np.where((specL_par>speclim[0]) & (specL_par<speclim[1]))[0]]
 
             #particles in special range 
             #specL_par = np.where((loc>speclim[0]) & (loc<speclim[1]))[0]
@@ -651,94 +657,86 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             #       just remove! 
             locn = np.delete(locn, np.where(np.diff(np.log(locn))<fdelM))
 
+        #get the iceline locations and get the new properties according to them 
+        # iceloc = [] #[i.loc for i in sim.icelineL]
+        # slice_idxo = np.searchsorted(loc, iceloc)
+        # slice_idxo = np.concatenate(([0], slice_idxo, [len(loc)]))
+        #
+        # slice_idxn = np.searchsorted(locn, iceloc) 
+        # slice_idxn = np.concatenate(([0], slice_idxn, [len(locn)]))
+
+        mphyo = spN.massL 
+
+        #[24/11/27]: 
+        #if the innermost particle is inside of the rinn+deltar/2 
+        #we add the rinn and rinn-deltar/2  to the beginning of the locn 
+        #and add the rinn-deltar/2 to the beginning of the loc 
+
+        add_virtual = loc[0]<locn[0]
+
+        if add_virtual:
+            r0 = sim.rinn/(locn[1]/locn[0])
+
+            locn = np.append(sim.rinn, locn) 
+            locn = np.append(r0, locn)
+
+            loc = np.append(r0, loc) 
+            marr = np.append(0, marr) 
+            mphyo = np.append(mphyo[0], mphyo)
+            
+
         #initialize the new property arrays
         mtotn = np.array([]) 
         massn = np.array([])
-        fcompn = np.zeros((len(locn), len(sim.particles.fcomp[0])))
 
+        #[24/11/27]resample according to iceline is not a good idea...
+        cum_mtoto = np.cumsum(marr)
+        cum_mtotn = np.interp(locn, loc, cum_mtoto)
+        mtotn = np.append(cum_mtotn[0], np.diff(cum_mtotn)) 
         
-        #get the iceline locations and get the new properties according to them 
-        iceloc = [] #[i.loc for i in sim.icelineL]
-        slice_idxo = np.searchsorted(loc, iceloc)
-        slice_idxo = np.concatenate(([0], slice_idxo, [len(loc)]))
+        massn = np.interp(locn, loc, mphyo) 
 
-        slice_idxn = np.searchsorted(locn, iceloc) 
-        slice_idxn = np.concatenate(([0], slice_idxn, [len(locn)]))
-
-        for i in range(len(slice_idxo)-1): 
-            #get the slice of old properties 
-            mtot_sliceo = marr[slice_idxo[i]:slice_idxo[i+1]]
-
-            loc_sliceo = loc[slice_idxo[i]:slice_idxo[i+1]]
-            mass_sliceo = spN.massL[slice_idxo[i]:slice_idxo[i+1]]
-
-            #get the slice of new locations
-            loc_slicen = locn[slice_idxn[i]:slice_idxn[i+1]]
-
-            #[24/11/15]maybe we can try add a 0 in the beginning of the first slice 
-            #[24/11/18]what values to add need to be discussed.
-            if loc_sliceo[0]>loc_slicen[0]:
-                if i==0: 
-                    mtot_sliceo = np.append(0, mtot_sliceo)
-                    loc_sliceo = np.append(sim.rinn, loc_sliceo)
-                    mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
-                else:
-                    mtot_sliceo = np.append(marr[slice_idxo[i]-1], mtot_sliceo)
-                    loc_sliceo = np.append(loc[slice_idxo[i]-1], loc_sliceo)
-                    mass_sliceo = np.append(mass_sliceo[0], mass_sliceo) 
-
-            # f = interp1d(loc_sliceo, cu_mtot_slice_o, kind='quadratic', fill_value='extrapolate')
-            # cu_mtot_slice_n = f(loc_slicen)
-            #insert the slice into the new locations 
-            cu_mtot_slice_o = np.cumsum(mtot_sliceo) 
-
-            cu_mtot_slice_n = np.interp(loc_slicen, loc_sliceo, cu_mtot_slice_o )  #cumulative total mass of the new locations 
-
-            mtot_slice_n = np.append(cu_mtot_slice_n[0], np.diff(cu_mtot_slice_n))
-
-            #check the mass conservation every slices
-            merr = np.abs(cu_mtot_slice_o[-1]/cu_mtot_slice_n[-1]-1)
-            if merr>1e-10:
-                print('mass conservation is violated')
-                #here plot the cumulative mass and mass distribution to check what happens 
-                import cgs
-                fig, (axcu, axm) = plt.subplots(1,2, figsize=(10,5)) 
-                axcu.loglog(loc_sliceo/cgs.RJ, cu_mtot_slice_o, '.-', label='old') 
-                axcu.loglog(loc_slicen/cgs.RJ, cu_mtot_slice_n, 'x-', label='new')
-                axm.loglog(loc_sliceo/cgs.RJ, mtot_sliceo, '.-', label='old')
-                axm.loglog(loc_slicen/cgs.RJ, mtot_slice_n, 'x-', label='new')
-                axcu.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
-                axm.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
-                axcu.legend() 
-                axm.legend()
-                plt.show()
-                import pdb;pdb.set_trace()
+        #remove the first 'virtual' particle 
+        if add_virtual: 
+            locn = locn[2:]
+            mtotn = mtotn[2:]
+            massn = massn[2:]
 
 
+        fcompn = np.zeros((len(locn), len(sim.particles.fcomp[0])))
+        icelineL = np.array([i.loc for i in sim.icelineL])
+        idxn = np.searchsorted(locn, icelineL) 
+        idxo = np.searchsorted(loc, icelineL) 
 
-            #get the physical mass of the slice 
-            mass_slice = np.interp(loc_slicen, loc_sliceo, mass_sliceo)
+        idxn = np.append(0, idxn) 
+        idxn = np.append(idxn, len(locn))
+        idxo = np.append(0, idxo) 
 
-            #get the composition of the slice 
-            fcompn[slice_idxn[i]:slice_idxn[i+1]] = sim.particles.fcomp[slice_idxo[i]]
+        for i in range(len(idxn)-1):
+            fcompn[idxn[i]:idxn[i+1]] = sim.particles.fcomp[idxo[i]] 
 
-            #insert the slice into the new locations 
-            mtotn = np.append(mtotn, mtot_slice_n)
-            massn = np.append(massn, mass_slice)
 
-            # import cgs 
-            # plt.loglog(loc_sliceo/cgs.RJ, cu_mtot_slice_o, 'o') 
-            # plt.loglog(loc_slicen/cgs.RJ, cu_mtot_slice_n, 'x')
-            # plt.show()
-            # import pdb;pdb.set_trace()
+        #check the mass conservation every slices
+        merr = np.abs(cum_mtotn[-1] - cum_mtoto[-1])
+        if merr>1e-10:
+            print('mass conservation is violated')
+            #here plot the cumulative mass and mass distribution to check what happens 
+            import cgs
+            fig, (axcu, axm) = plt.subplots(1,2, figsize=(10,5)) 
+            axcu.loglog(loc/cgs.RJ, cum_mtoto, 'o-', label='old')
+            axcu.loglog(locn/cgs.RJ, cum_mtotn, 'x-', label='new')
+            axm.loglog(loc/cgs.RJ, marr, '.-', label='old')
+            axm.loglog(locn/cgs.RJ, mtotn, 'x-', label='new')
+            axcu.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
+            axm.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
+            axcu.legend() 
+            axm.legend()
+            plt.show()
+            import pdb;pdb.set_trace()       
 
         return locn, mtotn, massn, fcompn
     else:
         return None
-
-
-    
-
 
 
 

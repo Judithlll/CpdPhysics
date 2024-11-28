@@ -19,10 +19,11 @@ if len(argL) > 1:
 else:
     data .append( fileio.load_class('./pickles/', 'data.pickle'))
 print('[plot]: data.pickle has been loaded')
-system = fileio.load_class('./pickles/','system.pickle')
+#system = fileio.load_class('./pickles/','system.pickle')
 
-data[0].plot_deltaT()
+
 import pdb;pdb.set_trace()
+data[0].plot_deltaT()
 data[0].plot_planet_evolution()
 data[0].plot_peff_log()
 #data[0].plot_iceline()

@@ -47,6 +47,7 @@ else:
     print('\033[32m[runcpd]: run from the beginning \033[0m')
     time.sleep(1)  
 
+#[24/11/28]LZX: tbr when these are not needed 
 outflux =[]
 removenum = 0
 addnum = 0 
@@ -95,8 +96,6 @@ while doEvo:
             #it locks into a resonance
             #if inxt>pinfoi['inxt'] and pinfoi['resS']!='R':
 
-
-
     djump = system.query_system_jump()
 
     if system.doJump:
@@ -125,6 +124,7 @@ while doEvo:
         #system.split_merge (..) 
     
     system.timeL.append(system.time)
+
 
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
@@ -163,6 +163,8 @@ while doEvo:
         if system.deltaT <= 0:
             print('[runcpd]: something wrong with deltaT')
             import pdb;pdb.set_trace()
+
+
 
 #tbr[24.09.06]
 plt.figure()
