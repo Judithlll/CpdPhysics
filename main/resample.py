@@ -624,8 +624,14 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
         #[24/11/18] b/c we have consider the iceline location later, so here maybe we can consider the 
         #           planet location only.
         locspecL = [] 
+        #try to also treat the inner edge as a special location 
+        locspecL.append(sim.rinn)
         for line in sim.planetL+sim.icelineL:
             locspecL.append(line.loc)
+
+        #to prevent there are some overlapping special locations 
+        locspecL = list(set(locspecL))
+
 
         #consider the special locations like I did before. Just first add the 1 surrounding particles 
                 #find the locations that close to the special locations 
@@ -639,7 +645,10 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             #maybe we should combine the two methods together. [24/11/27]
             #first get the special particles, and also special range, choose the minimal range to implement
             #inside of special range, we regard the particles as 'effective particles for special locations'
-            specL_par = np.array(loc[idx-nspec:idx+nspec]) 
+            if idx < nspec:
+                specL_par = np.array(loc[:idx+nspec])
+            else:
+                specL_par = np.array(loc[idx-nspec:idx+nspec]) 
 
             #'special range' 
             speclim = [locspecL[i]/10**fspec, locspecL[i]*10**fspec]
@@ -647,15 +656,17 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
             #'crop' the specL_par 
             specL_par = specL_par[np.where((specL_par>speclim[0]) & (specL_par<speclim[1]))[0]]
 
+
             #particles in special range 
             #specL_par = np.where((loc>speclim[0]) & (loc<speclim[1]))[0]
 
-            locn = np.delete(locn, np.where((locn>specL_par.min()) & (locn<specL_par.max())))
-            #locn = np.delete(locn, np.where((locn>speclim[0]) & (locn<speclim[1])))
-            locn = np.insert(locn, np.searchsorted(locn, specL_par), specL_par)
-            #check: if the difference of the locations are too small, 
-            #       just remove! 
-            locn = np.delete(locn, np.where(np.diff(np.log(locn))<fdelM))
+            if len(specL_par)>0:
+                locn = np.delete(locn, np.where((locn>specL_par.min()) & (locn<specL_par.max())))
+                #locn = np.delete(locn, np.where((locn>speclim[0]) & (locn<speclim[1])))
+                locn = np.insert(locn, np.searchsorted(locn, specL_par), specL_par)
+                #check: if the difference of the locations are too small, 
+                #       just remove! 
+                locn = np.delete(locn, np.where(np.diff(np.log(locn))<fdelM))
 
         #get the iceline locations and get the new properties according to them 
         # iceloc = [] #[i.loc for i in sim.icelineL]
@@ -672,17 +683,17 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
         #we add the rinn and rinn-deltar/2  to the beginning of the locn 
         #and add the rinn-deltar/2 to the beginning of the loc 
 
-        add_virtual = loc[0]<locn[0]
+        #add_virtual = False #loc[0]<locn[0]
 
-        if add_virtual:
-            r0 = sim.rinn/(locn[1]/locn[0])
-
-            locn = np.append(sim.rinn, locn) 
-            locn = np.append(r0, locn)
-
-            loc = np.append(r0, loc) 
-            marr = np.append(0, marr) 
-            mphyo = np.append(mphyo[0], mphyo)
+        # if add_virtual:
+        #     r0 = sim.rinn/(locn[1]/locn[0])
+        #
+        #     locn = np.append(sim.rinn, locn) 
+        #     locn = np.append(r0, locn)
+        #
+        #     loc = np.append(r0, loc) 
+        #     marr = np.append(0, marr) 
+        #     mphyo = np.append(mphyo[0], mphyo)
             
 
         #initialize the new property arrays
@@ -697,10 +708,10 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
         massn = np.interp(locn, loc, mphyo) 
 
         #remove the first 'virtual' particle 
-        if add_virtual: 
-            locn = locn[2:]
-            mtotn = mtotn[2:]
-            massn = massn[2:]
+        # if add_virtual: 
+        #     locn = locn[2:]
+        #     mtotn = mtotn[2:]
+        #     massn = massn[2:]
 
 
         fcompn = np.zeros((len(locn), len(sim.particles.fcomp[0])))

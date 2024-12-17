@@ -1459,9 +1459,9 @@ def advance_planets (system):
                 #           incorporate in planet object?
                 #NOTE: this PIM is arbitrary now
                 if Mc<planet.mass and planet.mass<userfun.PIM():                    
-                    epsilon = userfun.epsilon_PA(planet.loc,planet.mass,spk)
+                    epsilon = min(0.99,userfun.epsilon_PA(planet.loc,planet.mass,spk))
 
-                    planet.acc_rate = epsilon
+                    planet.acc_rate =  epsilon
                     #accreted mass by composition
                     delmcomp += epsilon*crossL[k].fcomp *crossL[k].mtotL
 
@@ -1472,6 +1472,7 @@ def advance_planets (system):
                     planet.fcomp = masscomp /planet.mass
                     if spN.mtotL[ip]<=0. or epsilon>1:
                         import pdb;pdb.set_trace()
+
 
                 elif planet.mass>userfun.PIM() and planet.accretion:
                     print('planet {:} has reach the PIM at {:10.1f}'.format(planet.number,system.time/cgs.yr ))
@@ -1627,6 +1628,11 @@ class Superparticles (object):
         for i in range(nini):
             compmask = np.append(compmask,1-sum(self.fcompini[np.argwhere(self.fcomp[i]==0)]))
         
+        out = gas.get_key_disk_properties(self.locL, 0.0)
+
+        if pars.fixed_St is not None:
+            Rdi = pars.fixed_St*2*out[0]/np.pi/self.rhoint
+        
         self.massL = self.rhoint * 4/3*Rdi**3*np.pi        #self.massL *=log_mask*compmask
         self.mini = self.massL[-1]   #for adding particles
 
@@ -1651,9 +1657,8 @@ class Superparticles (object):
             dmdr = 2*np.sqrt(np.pi)*Rd**2*self.sfd/2/Hd  
             return dmdr[-1]
 
-        massL = np.flip(odeint(dm_dr, self.mini, radL).T)*compmask
-        
-        #self.massL = massL[0]
+        #massL = np.flip(odeint(dm_dr, self.mini, radL).T)*compmask
+
 
         self.make_Y2d()   #get a Y2d used to integrate
         for i in range(len(dcomposL)):
@@ -1724,6 +1729,9 @@ class Superparticles (object):
         if pars.dragmodel=='Epstein':
             St = physics.Stokes_Epstein (Rd, self.rhoint, disk.vth, disk.rhog, disk.OmegaK)
             St *= np.sqrt(8/np.pi) #difference b/w sound speed and thermal velocity
+            #just for ism final project
+            if pars.fixed_St is not None:
+                St = np.ones_like(loc)*pars.fixed_St
 
             #this is how Youdin & Shu do it..
             v_r = -2*St *disk.eta *disk.vK

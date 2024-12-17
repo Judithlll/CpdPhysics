@@ -3,6 +3,7 @@ import numpy as np
 import subprocess as sp
 import physics
 import pylab as pl
+import parameters as pars
 
 def init_compos_Z (material):
     """
@@ -13,7 +14,7 @@ def init_compos_Z (material):
     """
 
     #repackage
-    rc = 200*cgs.au
+    rc = 200*cgs.au 
     if material=='silicates':
         def f_compos (rad):
             Zsil = 0.007  *np.exp(-(rad/rc)**2)
@@ -110,8 +111,10 @@ def del_v (St, disk):
 
 
 def H_d (St, disk):
-    import pdb;pdb.set_trace()
     return disk.Hg
+
+def plot_sfd(*args):
+    return 
 
 
 def dm_dt (*args):

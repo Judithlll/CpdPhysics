@@ -1101,9 +1101,10 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
     #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
 def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime):
-    plt.figure(figsize=(6,4))
-    plt.subplot(211)
+    plt.figure(figsize=(8,3))
+    plt.subplot(121)
     plt.xlim(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ)
+    plt.ylim(0, 60)
     plt.title('Surface density profile at {:.2f}yr'.format(time/cgs.yr))
     plt.plot(locL/cgs.RJ, sfd, '.-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
     plt.xscale('log')
@@ -1111,7 +1112,7 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime):
     plt.axvline(5.89, linestyle='dashed', color='black', linewidth = 1)
     plt.legend(loc='lower right')
 
-    plt.subplot(212)
+    plt.subplot(122)
     plt.xlim(time/cgs.yr-10,time/cgs.yr+10)
     t_ticknum = np.linspace(time/cgs.yr-10,time/cgs.yr+10, 5)
     t_tick = ['{:.2f}'.format(t) for t in t_ticknum]
@@ -1119,8 +1120,18 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime):
     plt.ylim(1e2,1e9)
     plt.yscale('log')
     plt.plot(np.array(timeL)/cgs.yr, np.append(np.diff(timeL), deltaT) )
-    for t in restime[-100:]: 
-        plt.axvline(t/cgs.yr, linestyle='dashed', color='gray', alpha=0.5, linewidth = 0.1)
+    
+    if len(restime)>0:
+        if restime[-1]>10*cgs.yr and len(restime)>1:
+            idx = np.searchsorted(restime, [time-9*cgs.yr])[0]
+        else:
+            idx = 0
+    else:
+        idx = 0
+
+    for rt in restime[idx:]:
+        plt.axvline(rt/cgs.yr, linestyle='dotted', color='gray')
+
     plt.scatter(time/cgs.yr, deltaT, c='red')
 
     plt.savefig('./sfdevol/{:.2f}.png'.format(time))
