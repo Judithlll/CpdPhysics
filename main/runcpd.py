@@ -53,13 +53,6 @@ removenum = 0
 addnum = 0 
 plotnum= 0
 
-import physics 
-Hd = []
-mass0=[]
-Hg= []
-St = []
-dmdt = []
-vr = []
 
 while doEvo:
 
@@ -185,8 +178,8 @@ while doEvo:
     #     def fithdst(x, a):
     #         return a*x**(-1/2)
     #
-    #     def fitdmdt(x, a):
-    #         return a*x**(5/3)
+    #     def fitdmdt(x, a, b):
+    #         return a*x**(b)
     #
     #     def fitvr(x, a):
     #         return a*x 
@@ -196,7 +189,7 @@ while doEvo:
     #     poptSt, pcov = curve_fit(fitSt, mass0, St)
     #     poptvr, pcov = curve_fit(fitvr, St, vr)
     #     poptHd,pcov = curve_fit(fithdst, St, Hd)
-    #     poptdmdt, pcov = curve_fit(fitdmdt, mass0, dmdt)
+    #     poptdmdt, pcov = curve_fit(fitdmdt, mass0[:-1], dmdt[:-1])
     #
     #     #plot fitresults 
     #     fig, (ax1, ax2, ax3, ax4) = plt.subplots(4,1, figsize=(6,12)) 
@@ -220,7 +213,7 @@ while doEvo:
     #     ax3.legend()
     #
     #     ax4.loglog(mass0, dmdt, 'o', label='data')
-    #     ax4.loglog(mass0, fitdmdt(mass0, *poptdmdt), 'r-', label='p=5/3')
+    #     ax4.loglog(mass0, fitdmdt(mass0, *poptdmdt), 'r-', label='p={:.2f}'.format(poptdmdt[1]))
     #     ax4.set_xlabel('mass0')
     #     ax4.set_ylabel('dmdt')
     #     ax4.legend()
@@ -230,6 +223,9 @@ while doEvo:
     #
     #     import pdb; pdb.set_trace()
     #
+    #if system.time>0.2*cgs.yr:
+    #    import pdb; pdb.set_trace()
+
     system.back_up_last_data()       #back up the data of last step
     system.ntime += 1
 
@@ -251,7 +247,7 @@ while doEvo:
     userfun.do_stuff(system, final=final)
 
     #tbr
-    # plot the surface density profile
+    #plot the surface density profile
     # if system.time/cgs.yr > plotnum: #plot every 1 yr
     #     userfun.plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time)
     #     plotnum += 1

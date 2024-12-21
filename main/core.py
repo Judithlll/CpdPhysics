@@ -1632,8 +1632,53 @@ class Superparticles (object):
 
         if pars.fixed_St is not None:
             Rdi = pars.fixed_St*2*out[0]/np.pi/self.rhoint
+
+        if pars.fraginit:
+            #if we want the particles to initially reach the fragmentation velocity, then we solve for the initial Rdi with fsolve 
+            from scipy.optimize import fsolve 
+            def func(Rd,disk,rhoint):
+                St,vr = ff.St_iterate(
+                    disk.eta,
+                    disk.vK,
+                    disk.vth,
+                    disk.lmfp,
+                    disk.rhog,
+                    disk.OmegaK,
+                    Rd,
+                    rhoint,
+                    Sto=0.03
+                )
+                return vr 
+            def func2(Rdi, vfrag,disk,rhoint):
+                rere = func(Rdi,disk,rhoint)+vfrag 
+                return rere
+
+            def get_temporary_disk(loc):
+                out = gas.get_key_disk_properties(loc, 0.0)
+                disk = physics.DISK(*out, loc, 0.0, dp.Mcp_t(0.0)) 
+                disk.add_auxiliary()
+                userparL = disk.add_uservar (dp.user_add_var())    #variables
+                userfuncL = disk.add_userfun (dp.user_add_fun())    #functions only
+                userevalL = disk.add_user_eval (dp.user_add_eval()) #evaluations
+                return disk 
+
+            idx = np.argwhere(compmask>0.5).min()
+
+            Rdi = np.zeros(nini)
+            for i in range(idx):
+                disk = get_temporary_disk(self.locL[i])
+
+                initguess = 0.01
+                Rdi[i] = fsolve(func2, initguess, args=(pars.vc['silicates']*2, disk, self.rhoint[i]))[0]
+
+            for i in range(idx,nini):
+                disk = get_temporary_disk(self.locL[i])
+                initguess = 0.1 
+                Rdi[i] = fsolve(func2, initguess, args=((pars.vc['icy']*0.5+pars.vc['silicates']*0.5)*2,disk, self.rhoint[i]))[0]
+            
         
-        self.massL = self.rhoint * 4/3*Rdi**3*np.pi        #self.massL *=log_mask*compmask
+        self.massL = self.rhoint * 4/3*Rdi**3*np.pi    #self.massL *=log_mask*compmask
+        self.massL[195:]*=2
         self.mini = self.massL[-1]   #for adding particles
 
         
@@ -1658,6 +1703,7 @@ class Superparticles (object):
             return dmdr[-1]
 
         #massL = np.flip(odeint(dm_dr, self.mini, radL).T)*compmask
+        #self.massL = massL[0]
 
 
         self.make_Y2d()   #get a Y2d used to integrate

@@ -42,16 +42,17 @@ dgasprop = {'alpha':5e-05,
             'tgap': 1.e6*cgs.yr
             }
 
+fraginit = False#True
 #tmax = 347140156224193.44 
 tmax = 3e4*cgs.yr
 #critical velocity for fragmentation
-vc={'icy': 5.e3,
-    'silicates': 5.e2, 
+vc={'icy': 1.e3,
+    'silicates': 1.e2, 
     }
 
 sfdmode = 'simple'
 resampleMode = 'global_resample' #'Nplevel'
-dresample = {'fdelS':0.002,'fdelM':0.001,'fdelDM':1e-7, 'fspec':0.002}
+dresample = {'fdelS':0.1,'fdelM':0.001,'fdelDM':1e-7, 'fspec':0.002}
 doJump = False
 doPlanets = True
 planetaddmode = 'capture'

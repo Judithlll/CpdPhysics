@@ -142,7 +142,12 @@ def planet_migration (gas,planetLoc,planetMass,time,rhopl):
 def del_v (St, disk):
 
     #take half of the velocity...
-    return np.abs(disk.v_r)/2
+    
+    #turbulent relative veolocity
+    cs = np.sqrt(cgs.kB*disk.temp/disk.mg)
+    vt = np.sqrt(3*disk.alpha*St)*cs
+
+    return (vt**2 + (disk.v_r/2)**2)**0.5
 
 
 def H_d (St, disk):

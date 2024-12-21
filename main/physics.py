@@ -76,6 +76,7 @@ def H_d(Hg, St, alpha):
     Youdin & Lithwick 2007
     """
     Hd = Hg*(1+St/alpha*(1+2*St)/(1+St))**(-0.5) 
+    Hd = Hg*np.sqrt(alpha/(St+alpha))
     return Hd
 
 
