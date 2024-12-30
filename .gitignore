@@ -8,6 +8,7 @@
 *.log
 log/
 plot/
+venv/
 pickles/
 __pycache__
 *.csv
