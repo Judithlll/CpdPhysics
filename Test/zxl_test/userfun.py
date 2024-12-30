@@ -237,7 +237,7 @@ def init_compos (material):
     elif material=='H2O':
         dcompos['name'] = 'H2O'
         dcompos['Zinit'] = 0.0008
-        dcompos['iceline'] = True
+        dcompos['iceline'] = pars.doIcelines 
         dcompos['rhoint'] = 1.0
         dcompos['iceline_temp'] = 160
         dcompos['iceline_init'] = 15*cgs.RJ
@@ -250,6 +250,8 @@ def do_stuff (system, init=False, final= False):
     if init:
         data.data_process(system)
         data.gas = system.gas
+        global plotnum 
+        plotnum =0 
         #initialize your data class
     elif final:
         data.data_process(system)
@@ -265,7 +267,13 @@ def do_stuff (system, init=False, final= False):
         #tminarr = system.minTimes.tminarr 
         #sfmt = '{:6d} {:5d} {:10.2e} {:3d} {:7.2f} {:22s} {:7.2e}'
         #line = sfmt.format(system.ntime, system.particles.num, system.deltaT, tminarr.argmin(), system.time/cgs.yr, nameM, tmin)
-        #print(line)  
+
+        #plot the surface density profile
+        if system.time/cgs.yr > plotnum: #plot every 1 yr
+            y2d = system.particles.dY2d_dt(system.particles.Y2d, system.time)
+            delv = del_v(system.particles.St, system.particles)
+            plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time, y2d, delv, system.particles.St)
+            plotnum += 1       #print(line)  
 
 def plot_massfit(planetMassData):
     def mass_fit(t,a,b):
@@ -1105,19 +1113,29 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
     #    pic_list.append(im)
     #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
-def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime):
-    plt.figure(figsize=(8,3))
-    plt.subplot(121)
-    plt.xlim(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ)
+def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St):
+
+    locL /= cgs.RJ
+    domain = [pars.dgasgrid['rinn']/cgs.RJ, pars.dgasgrid['rout']/cgs.RJ+10]
+    v_r, dmdt = y2d
+
+    plt.figure(figsize=(10,9))
+
+    plt.subplot(321)
+    plt.ylabel('sfd')
+    plt.tick_params(labelsize=8)
+    plt.xlim(domain[0], domain[1])
     plt.ylim(0, 60)
-    plt.title('Surface density profile at {:.2f}yr'.format(time/cgs.yr))
-    plt.plot(locL/cgs.RJ, sfd, '.-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
+    plt.title('{:.2f}yr'.format(time/cgs.yr))
+    plt.plot(locL, sfd, '.-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
     plt.xscale('log')
     plt.scatter(locL[imin[1]]/cgs.RJ, sfd[imin[1]], c= 'red')
     plt.axvline(5.89, linestyle='dashed', color='black', linewidth = 1)
-    plt.legend(loc='lower right')
+    plt.legend(loc='upper right', fontsize = 10)
 
-    plt.subplot(122)
+    plt.subplot(322)
+    plt.tick_params(labelsize=8)
+    plt.ylabel('delt')
     plt.xlim(time/cgs.yr-10,time/cgs.yr+10)
     t_ticknum = np.linspace(time/cgs.yr-10,time/cgs.yr+10, 5)
     t_tick = ['{:.2f}'.format(t) for t in t_ticknum]
@@ -1138,6 +1156,38 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime):
         plt.axvline(rt/cgs.yr, linestyle='dotted', color='gray')
 
     plt.scatter(time/cgs.yr, deltaT, c='red')
+
+    plt.subplot(323)
+    plt.tick_params(labelsize=8)
+    plt.ylabel('v_r')
+    plt.xlim(domain[0], domain[1])
+    plt.ylim(-180,0)
+    plt.plot(locL, v_r, '.')
+    plt.xscale('log')
+
+    plt.subplot(324)
+    plt.tick_params(labelsize=8)
+    plt.ylabel('dmdt')
+    plt.xlim(domain[0], domain[1])
+    plt.xscale('log')
+    plt.ylim(-0.1, 0.1)
+    plt.plot(locL, dmdt, '.')
+
+    plt.subplot(325)
+    plt.tick_params(labelsize=8)
+    plt.ylabel('delv')
+    plt.xlim(domain[0], domain[1])
+    plt.ylim(0,110)
+    plt.xscale('log')
+    plt.plot(locL, delv, '.')
+
+    plt.subplot(326)
+    plt.tick_params(labelsize=8)
+    plt.ylabel('St')
+    plt.xlim(domain[0], domain[1])
+    plt.ylim(0,0.01)
+    plt.xscale('log')
+    plt.plot(locL, St, '.')
 
     plt.savefig('./sfdevol/{:.2f}.png'.format(time))
     plt.close()

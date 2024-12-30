@@ -643,7 +643,7 @@ class System(object):
         #get the dust mass flow
         delmdustIn = sciint.quad(dp.dot_Md, self.time, self.time+self.deltaT)[0]
 
-        self.Minflux_step = delmdustIn
+        self.Minflux_step = 0# delmdustIn
 
         #LZX: [24.04.27] make the mtot1 the largest among these three values, so that the Nadd will 
         #      never be lager than 1
@@ -683,6 +683,7 @@ class System(object):
             sys.exit()
 
         
+        Nadd =0
         if Nadd>0:
             self.daction['add'] = Nadd
         
@@ -1678,8 +1679,8 @@ class Superparticles (object):
             
         
         self.massL = self.rhoint * 4/3*Rdi**3*np.pi    #self.massL *=log_mask*compmask
-        self.massL[195:]*=2
         self.mini = self.massL[-1]   #for adding particles
+
 
         
         def dm_dr(m,r):
