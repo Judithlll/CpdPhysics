@@ -7,7 +7,7 @@ import physics
 
 alpha = 1e-4
 rinn = 5.89*cgs.RJ  #the location of Io
-#rout = 27*cgs.RJ
+rout = 27*cgs.RJ
 frac=0.2
 ratio=0.01
 # Mcp=0.4*cgs.MJ
@@ -18,8 +18,9 @@ Mcp0=0.4*cgs.MJ
 tdep= 3e6*cgs.yr2s  #depletion tiescale of gas (constant: 3e6 yr)
 tgap= 1e6*cgs.yr2s  #time when the gap was built
 
-def rout (t):
-    return 27*cgs.RJ
+#[25.01.01] changed this from rout->r_out
+def r_out (t):
+    return rout #27*cgs.RJ
 
 def Mcp_t(t):
     """

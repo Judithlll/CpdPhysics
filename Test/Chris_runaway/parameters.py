@@ -44,7 +44,7 @@ dgasprop = {'alpha':5e-05,
 
 fraginit = False#True
 #tmax = 347140156224193.44 
-tmax = 3e4*cgs.yr
+tmax = 2e2*cgs.yr
 #critical velocity for fragmentation
 vc={'icy': 1.e3,
     'silicates': 1.e2, 

@@ -188,6 +188,10 @@ class System(object):
             #LZX [24.11.05]: this is not stable now
             newarr = resample.global_resample(self, self.particles, **pars.dresample)
 
+        #[25.01.01]cwo: variation on the above
+        elif pars.resampleMode == 'global_resample2':
+            newarr = resample.global_resample2(self, self.particles, **pars.dresample)
+
         else:
             newarr = None
 
@@ -665,7 +669,8 @@ class System(object):
             while self.Minflux> mtot1:
                 Nadd += 1
                 self.Minflux -= mtot1
-        elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge'  or pars.resampleMode == 'global_resample' and self.rout is not None:
+        elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
+             pars.resampleMode in ['global_resample','global_resample2'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
                 Nadd += 1
@@ -1575,12 +1580,19 @@ class Superparticles (object):
         if initrule=='equallogspace':
             #put sp at equal distances in log space
 
-            xarr = np.linspace(1/nini, 1, nini)
-            radL = rinn *(rout/rinn)**xarr
+
+            #[25.01.01]cwo: put particles at half-distance near boundaries
+            rmid = np.exp(np.linspace(np.log(rinn),np.log(rout),nini+1))
+            radL = np.sqrt(rmid[1:]*rmid[:-1])
+            #
+            ##--old (TBR?)
+            #xarr = np.linspace(1/nini, 1, nini)
+            #radL = rinn *(rout/rinn)**xarr
 
             msup = np.zeros_like(radL)
             r0 = rinn
-            for k,r1 in enumerate(radL):
+            #for k,rr in enumerate(radL):
+            for k,r1 in enumerate(rmid[1:]): #the midpoints
                 #after change the mask_icl getting location, there will be a strange warning, by set the limit=100 can remove this warning
                 msup[k], err = sciint.quad(f_sample, r0, r1, limit =100)
                 r0 = r1
@@ -1776,13 +1788,16 @@ class Superparticles (object):
         if pars.dragmodel=='Epstein':
             St = physics.Stokes_Epstein (Rd, self.rhoint, disk.vth, disk.rhog, disk.OmegaK)
             St *= np.sqrt(8/np.pi) #difference b/w sound speed and thermal velocity
+
+
+            #[25.01.01]cwo Stokes number is fixed??
             #just for ism final project
             if pars.fixed_St is not None:
                 St = np.ones_like(loc)*pars.fixed_St
 
             #this is how Youdin & Shu do it..
             v_r = -2*St *disk.eta *disk.vK
-            
+
         else:#default
             #obtain Stokes number by iterating on drag law
             #LZX [24.08.04]: insert the rhoint calculated from particles here

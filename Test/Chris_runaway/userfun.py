@@ -28,13 +28,19 @@ class PlotObj (object):
 
         axa, axb, axc, axd = self.axL.ravel()
         axa.set_ylim(0.01, 100)
-        axc.set_ylim(1e-4, 2e5)
+        axb.set_ylim(1e-3, 1e2)
+        axc.set_ylim(1e21, 1e23)
+        axd.set_ylim(1e-4, 2e5)
         axa.set_ylabel('surface density')
-        axc.set_ylabel('particle mass')
-        axd.set_ylabel('total mass')
+        axb.set_ylabel('Stokes number')
+        axc.set_ylabel('total mass')
+        axd.set_ylabel('particle mass')
 
-        for ax in [axa,axc,axd]:
-            ax.set_xlim(0.98*pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ)
+        axb.tick_params(axis='y', labelleft=False, labelright=True)
+        axd.tick_params(axis='y', labelleft=False, labelright=True)
+
+        for ax in [axa,axb,axc,axd]:
+            ax.set_xlim(0.95*pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ)
 
         for ax in [axb,axd]:
             ax.yaxis.set_label_position("right")
@@ -45,17 +51,29 @@ class PlotObj (object):
 
         locL = system.particles.locL
         massL = system.particles.massL
-        mtotL = system.particles.massL
+        mtotL = system.particles.mtotL
 
         if iplot>1:
-            for line in [self.linea, self.lined, self.linec]:
+            for line in [self.linea, self.lineb, self.lined, self.linec]:
                 line.pop(0).remove()
 
-        self.linea = axa.loglog(locL/cgs.RJ, system.particles.sfd)
-        self.lined = axd.loglog(locL/cgs.RJ, mtotL, '.', ms=1)
-        self.linec = axc.loglog(locL/cgs.RJ, massL, '.', ms=1)
+            #or more easily...
+            for line in self.lineL:
+                line.remove()
+
+        self.lineL = []
+        self.linea = axa.loglog(locL/cgs.RJ, system.particles.sfd, color='b')
+        self.lineb = axb.loglog(locL/cgs.RJ, system.particles.St, color='r')
+        self.lined = axc.loglog(locL/cgs.RJ, mtotL, '.', ms=1, color='k')
+        self.linec = axd.loglog(locL/cgs.RJ, massL, '.', ms=1, color='k')
+
+        for ax in [axa,axb,axc,axd]:
+            line = ax.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', lw=0.3)
+            self.lineL.append(line)
+
 
         self.fg.savefig(f'data/plot{iplot:05d}.png')
+        import pdb; pdb.set_trace()
 
 
 
@@ -212,6 +230,8 @@ def dm_dt(particles):
     #[24.12.29]:what's the meaning of vc? Fragmentation threshold?
     vc = pars.vc['silicates']*fcomp[:,0] #+pars.vc['icy']*fcomp[:,1]
     Fcomp = np.ones_like(Rd)
+
+    #this may be too abrupt...
     #Fcomp = np.where(delv/vc>1, -1, 1) #cwo
 
     return Fcomp *2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD   #eq. 5 of Shibaike et al. 2017
@@ -341,6 +361,7 @@ def plot_massfit(planetMassData):
     plt.savefig('/home/lzx/CpdPhysics/Test/Zhixuan/plot/test.jpg')
     plt.close()
 
+    
    
 
 class Data(object):
@@ -1183,7 +1204,7 @@ def my_plot (system, iplot):
     axd.set_ylabel('total mass')
 
     for ax in [axa,axc,axd]:
-        ax.set_xlim(pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ)
+        ax.set_xlim(0.98*pars.dgasgrid['rinn']/cgs.RJ, 1.01*pars.dgasgrid['rout']/cgs.RJ)
 
     for ax in [axb,axd]:
         ax.yaxis.set_label_position("right")

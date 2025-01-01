@@ -576,7 +576,71 @@ def re_sample_dropmerge(sim, spN, fdelS=0.05, fdelM=0., fdelX=1, nsampleX=0, fde
     return newarr
 
 
-def global_resample(sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fspec= 0.002,**args):
+def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1, fspec=0.002,**args):
+    """
+    A variation on the below
+    """
+
+    loc = spN.locL 
+    mtot = spN.mtotL #total mass
+    mphy = spN.massL #physical mass
+    fcomp = spN.fcomp #composition fraction
+    ncomp = len(fcomp[0])
+
+    xdel = np.diff(np.log(loc))
+    npar = pars.dparticleprops['nini']
+
+    #[24.12.30]: in global_resample, better to let fdelS, fdelM tied to the initial grid spacing
+    #the disired xdel
+    xdel_aim = np.log((sim.rout/sim.rinn)**(1.0/npar))
+    fdelS = xdel_aim/fchange
+    fdelM = xdel_aim*fchange
+
+    opL, = np.where(xdel<fdelM)
+    opL = np.append(opL, np.where(xdel>fdelS)[0])
+
+    if len(opL)>0:
+
+        #new locations -- this follows initialization and we better save them!
+        rdum = np.exp(np.linspace(np.log(sim.rinn),np.log(sim.rout),npar+1))
+        locn = np.sqrt(rdum[1:]*rdum[:-1])
+
+        #midpoints and extensions
+        locmid = np.sqrt(loc[1:]*loc[:-1])
+        locmidext = np.concatenate(([loc[0]*np.sqrt(loc[0]/loc[1])],
+                                    locmid,
+                                    [sim.rout]))
+                                   #[np.sqrt(loc[-1]/loc[-2])*loc[-1]]))
+
+        #cumulative mass function is defined on the midpoints
+        cummass = np.concatenate(([0],np.cumsum(mtot)))
+
+        #we also sample at the midpoints; then do a "diff" 
+        #to get the new masses
+        locmidn = np.sqrt(locn[1:]*locn[:-1])
+        locmidnext = np.concatenate(([sim.rinn],locmidn,[sim.rout]))
+        cummassn = np.interp(locmidnext, locmidext, cummass)
+        mtotn = np.diff(cummassn)
+        print('[global_resample2]:mass losss = ', cummassn[0], 100*cummassn[0]/cummassn[-1], '%')
+
+        #with these rules we can also sample other (mass-weighted quantities)
+        cummass = np.concatenate(([0], np.cumsum(mtot*mphy)))
+        cummassn = np.interp(locmidnext, locmidext, cummass)
+        mphyn = np.diff(cummassn) /mtotn
+
+
+        #composition... to be tested
+        fcompn = np.empty((npar,ncomp))
+        for k in range(ncomp):
+            cummass = np.concatenate(([0], np.cumsum(mtot*fcomp[:,k])))
+            cummassn = np.interp(locmidnext, locmidext, cummass)
+            fcompn[:,k] = np.diff(cummassn) /mtotn
+
+        return locn, mtotn, mphyn, fcompn
+    else:
+        return None
+
+def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fspec= 0.002,**args):
     """
     Follow the Schoonenberg. 2018 Lagrangian model. 
 
@@ -621,7 +685,6 @@ def global_resample(sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fspe
     opL = np.append(opL, np.where(xdel>fdelS)[0])
 
     if len(opL)>0:
-        import pdb; pdb.set_trace()
         #get new locations
         locn = sim.rinn*(sim.rout/sim.rinn)**np.linspace(1/npar, 1, npar)
 

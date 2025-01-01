@@ -32,6 +32,7 @@ else:
 
     #this initializes the system...
     system, gasL = init.sim_init (calldir, pars.dsystempars)
+
     system.init_particles(pars.dparticleprops)
     system.milestones[pars.tmax] = 'Ending_time'
     #initialize userfun's data class
