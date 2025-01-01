@@ -576,7 +576,7 @@ def re_sample_dropmerge(sim, spN, fdelS=0.05, fdelM=0., fdelX=1, nsampleX=0, fde
     return newarr
 
 
-def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fspec= 0.002,**args):
+def global_resample(sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fspec= 0.002,**args):
     """
     Follow the Schoonenberg. 2018 Lagrangian model. 
 
@@ -609,17 +609,22 @@ def global_resample(sim, spN, fdelS, fdelM, fdelX=1, nsampleX =0, nspec = 1, fsp
     marr = spN.mtotL
 
     xdel = np.diff(np.log(loc))
+    npar = pars.dparticleprops['nini']
 
+    #[24.12.30]: in global_resample, better to let fdelS, fdelM tied to the initial grid spacing
+    #the disired xdel
+    xdel_aim = np.log((sim.rout/sim.rinn)**(1.0/npar))
+    fdelS = xdel_aim/fchange
+    fdelM = xdel_aim*fchange
 
     opL, = np.where(xdel<fdelM)
     opL = np.append(opL, np.where(xdel>fdelS)[0])
 
-    npar = pars.dparticleprops['nini']
-
     if len(opL)>0:
+        import pdb; pdb.set_trace()
         #get new locations
         locn = sim.rinn*(sim.rout/sim.rinn)**np.linspace(1/npar, 1, npar)
-        
+
         #get the special locations 
         #[24/11/18] b/c we have consider the iceline location later, so here maybe we can consider the 
         #           planet location only.

@@ -20,6 +20,46 @@ from matplotlib.colors import LinearSegmentedColormap
 
 plotnum = 1
 
+class PlotObj (object):
+
+    def __init__(self):
+        self.fg, self.axL = plt.subplots(2,2, figsize=(8,6))
+        self.fg.subplots_adjust(bottom=0.05,left=0.07,right=0.93)
+
+        axa, axb, axc, axd = self.axL.ravel()
+        axa.set_ylim(0.01, 100)
+        axc.set_ylim(1e-4, 2e5)
+        axa.set_ylabel('surface density')
+        axc.set_ylabel('particle mass')
+        axd.set_ylabel('total mass')
+
+        for ax in [axa,axc,axd]:
+            ax.set_xlim(0.98*pars.dgasgrid['rinn']/cgs.RJ,pars.dgasgrid['rout']/cgs.RJ)
+
+        for ax in [axb,axd]:
+            ax.yaxis.set_label_position("right")
+
+
+    def add_lines(self, system, iplot):
+        axa, axb, axc, axd = self.axL.ravel()
+
+        locL = system.particles.locL
+        massL = system.particles.massL
+        mtotL = system.particles.massL
+
+        if iplot>1:
+            for line in [self.linea, self.lined, self.linec]:
+                line.pop(0).remove()
+
+        self.linea = axa.loglog(locL/cgs.RJ, system.particles.sfd)
+        self.lined = axd.loglog(locL/cgs.RJ, mtotL, '.', ms=1)
+        self.linec = axc.loglog(locL/cgs.RJ, massL, '.', ms=1)
+
+        self.fg.savefig(f'data/plot{iplot:05d}.png')
+
+
+
+
 def PIM():
     return 1.48e40
 def Stokes_number(delv, Rd, vth, lmfp, OmegaK, rhog, rhoint = 1.4):
@@ -148,7 +188,7 @@ def del_v (St, disk):
     cs = np.sqrt(cgs.kB*disk.temp/disk.mg)
     vt = np.sqrt(3*disk.alpha*St)*cs
 
-    return (vt**2 + (disk.v_r/2)**2)**0.5
+    return (0*vt**2 + (disk.v_r/2)**2)**0.5 #cwo
 
 
 def H_d (St, disk):
@@ -172,7 +212,7 @@ def dm_dt(particles):
     #[24.12.29]:what's the meaning of vc? Fragmentation threshold?
     vc = pars.vc['silicates']*fcomp[:,0] #+pars.vc['icy']*fcomp[:,1]
     Fcomp = np.ones_like(Rd)
-    Fcomp = np.where(delv/vc>1, -1, 1) 
+    #Fcomp = np.where(delv/vc>1, -1, 1) #cwo
 
     return Fcomp *2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD   #eq. 5 of Shibaike et al. 2017
 
@@ -247,7 +287,7 @@ def init_compos (material):
     return dcompos
 
 def do_stuff (system, init=False, final= False):
-    global plotnum
+    global plotnum, plotobj
     #data class is available...
     # import pdb; pdb.set_trace()
     if init:
@@ -259,6 +299,7 @@ def do_stuff (system, init=False, final= False):
         data.data_process(system)
         data.gas = system.gas
         #initialize your data class
+        plotobj = PlotObj ()
     elif final:
         data.data_process(system)
         data.get_plot_list(doParticles = False)
@@ -278,7 +319,8 @@ def do_stuff (system, init=False, final= False):
         #plot the surface density profile
         if system.time/cgs.yr > plotnum: #plot every 1 yr
             #plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time)
-            my_plot(system, plotnum)
+            #my_plot(system, plotnum)
+            plotobj.add_lines(system, plotnum)
             plotnum += 1
 
 

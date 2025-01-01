@@ -1,7 +1,6 @@
 import numpy as np
 import subprocess as sp
 import shutil
-import cv2
 import random
 import fileio
 import matplotlib.pyplot as plt
@@ -1092,6 +1091,7 @@ class Data(object):
         
 
 def make_animation(mp4name, path='./plot/satepart_splitmerge'):
+    import cv2
     pic_list = []
     pics=os.listdir(path)
     pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
@@ -1120,6 +1120,9 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St):
     v_r, dmdt = y2d
 
     plt.figure(figsize=(10,9))
+
+    #consider
+    #fg, axs = plt.subplots(2,2, figsize=(10,9))
 
     plt.subplot(321)
     plt.ylabel('sfd')

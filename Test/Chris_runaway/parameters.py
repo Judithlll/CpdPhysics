@@ -9,7 +9,7 @@ dsystempars = {'timeini': 0.0,
                'rhoPlanet': 1.9}
 
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
-                'nini':700,
+                'nini':200,
                 'initrule':'equallogspace'}  #initial number of particles
 
 #[24.01.08]LZX: don't know whether this is a good idea
@@ -52,7 +52,7 @@ vc={'icy': 1.e3,
 
 sfdmode = 'simple'
 resampleMode = 'global_resample' #'Nplevel'
-dresample = {'fdelS':0.006,'fdelM':0.003,'fdelDM':1e-3, 'fspec':0.002}
+dresample = {'fchange':0.9,'fdelDM':1e-3, 'fspec':0.002}
 doJump = False
 doPlanets = True
 planetaddmode = 'capture'
