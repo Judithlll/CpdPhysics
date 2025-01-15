@@ -10,7 +10,8 @@ import core
 import userfun
 
 
-userfun.make_animation('sfdevol.mp4','./sfdevol/')
+userfun.make_animation('mphy_compare.mp4', path = 'mphy/')
+import pdb;pdb.set_trace()
 argL = sys.argv
 data=[]
 if len(argL) > 1:
@@ -22,7 +23,7 @@ print('[plot]: data.pickle has been loaded')
 #system = fileio.load_class('./pickles/','system.pickle')
 
 
-import pdb;pdb.set_trace()
+userfun.make_animation('sfdevol.mp4','./sfdevol/')
 data[0].plot_deltaT()
 data[0].plot_planet_evolution()
 data[0].plot_peff_log()

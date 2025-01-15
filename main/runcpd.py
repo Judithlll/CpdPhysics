@@ -58,10 +58,16 @@ while doEvo:
     #integrate the super particles
     Yt = system.update_particles (**pars.dtimesteppars)
 
+    # plt.loglog(system.particles.locL, system.particles.massL, 'x-')
+    # plt.axvline(system.icelineL[0].loc, ls = '--', lw =1)
+    # plt.savefig('mphyevol.jpg')
+    # plt.close()
+    # import time 
+    # time.sleep(1)
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
     #NOTE:order may matter a lot!!
-    if system.niceline>0:
+    if system.niceline>0 and False:
         core.advance_iceline(system)
 
     if system.nplanet>0:
@@ -73,7 +79,7 @@ while doEvo:
     #   system.post_process()
     system.post_process()
     #print([system.daction, system.particles.mtot1, system.Minflux])
-    
+
 
     ## cwo: resonance crossing criteria
     if False:

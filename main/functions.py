@@ -177,22 +177,34 @@ def get_stokes_number(disk,t,sPLmtot,rhoint):
     return St
 
 
-def sfd_simple (msup, loc):
+def sfd_simple (msup, loc, specloc):
     """
     calculate the surface density at i based on the distance
     between i-1 and i+1
     """
+    # import matplotlib.pyplot as plt
 
-    wdel = 0.5*np.log(loc[2:]/loc[:-2])
+    # wdel = 0.5*np.log(loc[2:]/loc[:-2])
+    #
+    # #[22.08.19]added this hack to prevent the 
+    # #traffic jam at the inner boundary
+    # w0 = max(np.log(loc[1]/loc[0]), 0.5*np.log(loc[2]/loc[0]) )
+    #
+    # # extrapolate end points
+    # wdel = np.concatenate(([w0], wdel, [np.log(loc[-1]/loc[-2])]))
 
-    #[22.08.19]added this hack to prevent the 
-    #traffic jam at the inner boundary
-    w0 = max(np.log(loc[1]/loc[0]), 0.5*np.log(loc[2]/loc[0]) )
+    #
+    locmid = np.sqrt(loc[1:]*loc[:-1])
+    wdel = np.diff(locmid)
+    wdel = np.concatenate(([2*(locmid[0]-loc[0])], wdel, [2*(loc[-1]-locmid[-1])]))
 
-    #extrapolate end points
-    wdel = np.concatenate(([w0], wdel, [np.log(loc[-1]/loc[-2])]))
+    ## around the speloc, we also take 2*(locmid-locspe_particle) for wdel.
+    # specidx = np.searchsorted(loc, specloc)
+    # for idx in specidx:
+    #     wdel[idx] = 2*(locmid[idx]- loc[idx]) 
+    #     wdel[idx-1] = 2*(loc[idx-1]-locmid[idx-2])
 
-    sfd = msup /(2*np.pi *loc**2) /wdel
+    sfd = msup /(2*np.pi *loc) /wdel
     return sfd
 
 
