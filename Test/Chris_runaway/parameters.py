@@ -29,7 +29,7 @@ jumpfracD={'general': 0.2,
 dgasgrid = {'rinn':5.89*cgs.RJ,'rout':100*cgs.RJ}
 gasmodel = 'prescribed'
 
-dragmodel = 'Epstein'
+#dragmodel = 'Epstein'
 
 dgasprop = {'alpha':5e-05, 
             'frac': 0.2/1.5, # the accretion mass with unit: M_J/Myr
@@ -51,8 +51,8 @@ vc={'icy': 1.e3,
     }
 
 sfdmode = 'simple'
-resampleMode = 'global_resample' #'Nplevel'
-dresample = {'fchange':0.9,'fdelDM':1e-3, 'fspec':0.002}
+resampleMode = 'global_resample2' #'Nplevel'
+dresample = {'fchange':0.8,'fdelDM':1e-3, 'fspec':0.002}
 doJump = False
 doPlanets = True
 planetaddmode = 'capture'

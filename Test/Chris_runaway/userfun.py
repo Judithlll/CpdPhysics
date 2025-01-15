@@ -73,7 +73,6 @@ class PlotObj (object):
 
 
         self.fg.savefig(f'data/plot{iplot:05d}.png')
-        import pdb; pdb.set_trace()
 
 
 
@@ -232,7 +231,7 @@ def dm_dt(particles):
     Fcomp = np.ones_like(Rd)
 
     #this may be too abrupt...
-    #Fcomp = np.where(delv/vc>1, -1, 1) #cwo
+    Fcomp = np.where(delv/vc>1, -1, 1) #cwo
 
     return Fcomp *2*np.sqrt(np.pi)*Rd**2*delv/Hd*sigD   #eq. 5 of Shibaike et al. 2017
 
