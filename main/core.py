@@ -414,7 +414,8 @@ class System(object):
 
         history:
         [23.12.30]CWO: instead of forwarding diskmass, I supply self.gas to the superparticle class
-        [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much in post_process, so get this from superparticles for now
+        [24.01.08]LZX: mtot1 is generated from Superparticles, but is used much 
+                        in post_process, so get this from superparticles for now
         """
 
         #[24.07.21]CWO: not sure if we need dp.rout here...
@@ -1567,7 +1568,6 @@ class Superparticles (object):
         #function gives the initial abundance of species in disk
         f_arr = construct_farr (dcomposL)
 
-        #[23.12.30]:copied from /NewLagrance
         def f_sample (r):
             #samples the initial solid mass distribution
             Zcom = f_arr(r)
@@ -1581,49 +1581,56 @@ class Superparticles (object):
             #sigini_d = dp.ratio*sigini
             return 2*np.pi*r*sigini *Zcom.sum()
 
+        #this is the desired spacing among the particles in log-space
+        self.delta = np.log(rout/rinn) /(nini+1)
+        
+        #divide domain into pieces, as determined by iceline
+        locspecL = []
+        for comp in dcomposL:
+            if comp['iceline'] == True:
+                #locspec = comp['iceline_init'] ## perhaps iceline_init should be removed?
+                locspec = comp['rice_init']
+                if rinn<locspec<rout:
+                    locspecL.append(locspec)
+        locspecL.sort()
+        locspecL.insert(0, rinn)
+        locspecL.append(rout)
+
 
         print('[core.Superparticles.init]:initialization superparticles under rule:', initrule)
+        nspecial = len(locspecL) #includes the boundaries
+        radL = []
+        rmidL = []
+        msupL = []
+        ncomp = len(pars.composL) #number of refractory +volatile species
+        fcompL = []
         if initrule=='equallogspace':
             #put sp at equal distances in log space
 
+            #piecewise..
+            for iloc in range(nspecial-1):
+                r0 = locspecL[iloc]
+                xdum = np.log(locspecL[iloc+1]/r0)
+                Nadd = int(xdum /self.delta)
+                #[25.01.01]cwo: put particles at half-distance near boundaries
+                rmid = r0 *np.exp(np.arange(Nadd+1)*xdum/Nadd)
+                radL.append(np.sqrt(rmid[1:]*rmid[:-1]))
 
-            #[25.01.01]cwo: put particles at half-distance near boundaries
-            rmid = np.exp(np.linspace(np.log(rinn),np.log(rout),nini+1))
+                for k,r1 in enumerate(rmid[1:]): #the midpoints
+                    msup, err = sciint.quad(f_sample, r0, r1, limit =100)
+                   #print('{:11.3e} {:11.3e} {:11.3e} {:11.3e}'.format(f_sample(r0), f_sample(r1), r1, msup))
+                    msupL.append(msup) #total mass
+                    fcdum = f_arr(np.sqrt(r0*r1))
+                    fc = fcdum[:ncomp] /fcdum.sum()
+                    fcompL.append(fc) #composition
+                    r0 = r1
 
-            ## [25.01.15]lzx: maybe we should consider the iceline here 
-            #maybe also construct the rmid by the iceline location 
-            # illoc = [rinn]
-            # for comp in dcomposL:
-            #     if comp['iceline'] == True:
-            #         illoc.append(comp['iceline_init'])
-            # illoc.append(rout)
-            #
-            # idx = np.searchsorted(rmid, illoc)
-            # rmidn = np.array([])
-            # for i in range(len(idx)-1):
-            #     num = idx[i+1]-idx[i]
-            #     slice = np.exp(np.linspace(np.log(illoc[i]),np.log(illoc[i+1]), num+1)) 
-            #     rmidn = np.append(rmidn, slice[1:])
-            # rmid = np.append(rinn,rmidn)
-            radL = np.sqrt(rmid[1:]*rmid[:-1])
-            #
-            ##--old (TBR?)
-            #xarr = np.linspace(1/nini, 1, nini)
-            #radL = rinn *(rout/rinn)**xarr
-
-            msup = np.zeros_like(radL)
-            r0 = rinn
-            #for k,rr in enumerate(radL):
-            for k,r1 in enumerate(rmid[1:]): #the midpoints
-                #after change the mask_icl getting location, there will be a strange warning, by set the limit=100 can remove this warning
-                # if r0 < illoc[1] and r1 > illoc[1]:
-                #     import pdb;pdb.set_trace()
-                #
-                msup[k], err = sciint.quad(f_sample, r0, r1, limit =100)
-                r0 = r1
-
+            radL = np.concatenate(radL) #single array
+            msup = np.array(msupL)
 
         elif initrule=='equalmass':
+            print('TBD: equalmass spacing')
+            sys.exit()
             #puts superparticles at location such that they have
             #equald mass
 
@@ -1641,28 +1648,42 @@ class Superparticles (object):
 
         self.locL = np.array(radL)
         self.mtotL = np.array(msup)
-        self.mtot1 = msup[-1] #for adding new particles
+        self.fcomp = np.array(fcompL)
 
-        #[23.12.30]NEW:add composition data (fcomp)
-        #[23.12.30]this looks a bit ugly...
-        self.fcomp = np.empty((nini,len(pars.composL)))
-        for k,rad in enumerate(radL):
-            Zcomp = []
-            for ic,scomp in enumerate(pars.composL):
-                Zcomp.append(dcomposL[ic]['Z_init'](rad)*max(0,dcomposL[ic]['mask_icl'](rad)))
-            Zcomp = np.array(Zcomp)
+        if False:
+            #[23.12.30]NEW:add composition data (fcomp)
+            #[23.12.30]this looks a bit ugly...
+            self.fcomp = np.empty((nini,len(pars.composL)))
+            for k,rad in enumerate(radL):
+                Zcomp = []
+                for ic,scomp in enumerate(pars.composL):
+                    Zcomp.append(dcomposL[ic]['Z_init'](rad)*max(0,dcomposL[ic]['mask_icl'](rad)))
+                Zcomp = np.array(Zcomp)
 
-            #Zcomp = np.array([dcompos['Z_init'](rad)*max(0,dcompos['mask_icl'](rad)) for dcompos in dcomposL])
-            self.fcomp[k,:] = Zcomp/sum(Zcomp)
+                #Zcomp = np.array([dcompos['Z_init'](rad)*max(0,dcompos['mask_icl'](rad)) for dcompos in dcomposL])
+                self.fcomp[k,:] = Zcomp/sum(Zcomp)
+
 
         #[24.01.01]this is a bit ugly... but necessary for adding particles
         self.fcompini = self.fcomp[-1]
-        
+        self.mtot1 = self.mtotL[-1] #for adding new particles
+
+        #this creates self.rhoint
         self.get_rhoint()
         
         #LZX[24.08.28]:the initial mass list should be more real
         ##maybe pre-solve the growth equation here and get the profile
 
+        #[25.01.15]
+        #Finally, determine the physical mass (massL)
+        #we'll assume the mass corredsponding to the initial radius Rdi 
+        #sets the contribution from the first species ("0") in the 
+        #composition list 
+        self.massL = self.rhocompos[0] * 4/3*Rdi**3*np.pi /self.fcomp[:,0]
+        self.mini = self.massL[-1]   #for adding particles
+
+
+        #CWO? what is compmask?? Do we need it?
         compmask=np.array([])
         for i in range(nini):
             compmask = np.append(compmask,1-sum(self.fcompini[np.argwhere(self.fcomp[i]==0)]))
@@ -1716,10 +1737,6 @@ class Superparticles (object):
                 Rdi[i] = fsolve(func2, initguess, args=((pars.vc['icy']*0.5+pars.vc['silicates']*0.5)*2,disk, self.rhoint[i]))[0]
             
         
-        self.massL = self.rhoint * 4/3*Rdi**3*np.pi    #self.massL *=log_mask*compmask
-        self.mini = self.massL[-1]   #for adding particles
-
-
         
         def dm_dr(m,r):
             Rd = physics.mass_to_radius(m,self.rhoint[-1])

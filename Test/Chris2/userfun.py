@@ -130,7 +130,7 @@ def init_compos (material):
         dcompos['iceline'] = True
         dcompos['rhoint'] = 1.0
         dcompos['iceline_temp'] = 160
-        dcompos['iceline_init'] = 2*cgs.RJ
+        dcompos['iceline_init'] = 10*cgs.RJ
 
     return dcompos
 

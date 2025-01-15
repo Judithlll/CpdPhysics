@@ -204,6 +204,7 @@ def sim_init (calldir, dsystempars={},*args):
             rice = 0.0
 
         dcompos['mask_icl'] = construct_mask_icl (rice)
+        dcompos['rice_init'] = rice #[25.01.15] added this info
 
     system.icelineL = icelineL
     system.niceline = len(icelineL)
