@@ -166,7 +166,10 @@ class System(object):
         '''
 
         disk = self.get_disk(time)
-        self.particles.get_auxiliary(disk, time)
+        self.specloc = np.append([i.loc for i in self.icelineL], [p.loc for p in self.planetL])
+        if self.specloc is None: 
+            import pdb;pdb.set_trace()
+        self.particles.get_auxiliary(disk, time, specloc=self.specloc)
 
 
     def re_sample (self):
@@ -191,6 +194,10 @@ class System(object):
         #[25.01.01]cwo: variation on the above
         elif pars.resampleMode == 'global_resample2':
             newarr = resample.global_resample2(self, self.particles, **pars.dresample)
+
+        #[25.01.13]lzx: just for test 
+        elif pars.resampleMode == 'global_resample3':
+            newarr = resample.global_resample3(self, self.particles, **pars.dresample)
 
         else:
             newarr = None
@@ -236,8 +243,7 @@ class System(object):
                 self.particles.num = len(self.particles.locL)
                 #also we need to get other properties of particles 
                 #idea is make an function to get all these auxiliary
-                disk = self.get_disk()
-                self.particles.get_auxiliary(disk, self.time)
+                self.get_auxiliary(self.time)
                 self.particles.make_Y2d()
             else:
                 print('some crossing caused by resampling')
@@ -415,8 +421,7 @@ class System(object):
         #               this self.rinn and dp.rout is weird...
 
         self.particles = Superparticles(self.rinn,self.rout,self.dcomposL,self.gas, **dparticleprops)
-        disk = self.get_disk()
-        self.particles.get_auxiliary(disk, self.time)
+        self.get_auxiliary(self.time)
 
         self.minitDisk = sum(self.particles.mtotL)
 
@@ -670,7 +675,7 @@ class System(object):
                 Nadd += 1
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
-             pars.resampleMode in ['global_resample','global_resample2'] and self.rout is not None:
+             pars.resampleMode in ['global_resample','global_resample2', 'global_resample3'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
                 Nadd += 1
@@ -688,7 +693,6 @@ class System(object):
             sys.exit()
 
         
-        Nadd =0
         if Nadd>0:
             self.daction['add'] = Nadd
         
@@ -1287,6 +1291,8 @@ def advance_iceline (system):
                 system.particles.fcomp[i,ic] = 0.      #gone is the ice!
                 #renormalize
                 system.particles.fcomp[i,:] = (system.particles.fcomp[i,:].T /(system.particles.fcomp[i,:].sum()+1e-100)).T
+                
+                #import pdb;pdb.set_trace()
 
         #renew the iceline location
         loc_pv = system.oldstate.icelineL[k].loc
@@ -1583,6 +1589,22 @@ class Superparticles (object):
 
             #[25.01.01]cwo: put particles at half-distance near boundaries
             rmid = np.exp(np.linspace(np.log(rinn),np.log(rout),nini+1))
+
+            ## [25.01.15]lzx: maybe we should consider the iceline here 
+            #maybe also construct the rmid by the iceline location 
+            # illoc = [rinn]
+            # for comp in dcomposL:
+            #     if comp['iceline'] == True:
+            #         illoc.append(comp['iceline_init'])
+            # illoc.append(rout)
+            #
+            # idx = np.searchsorted(rmid, illoc)
+            # rmidn = np.array([])
+            # for i in range(len(idx)-1):
+            #     num = idx[i+1]-idx[i]
+            #     slice = np.exp(np.linspace(np.log(illoc[i]),np.log(illoc[i+1]), num+1)) 
+            #     rmidn = np.append(rmidn, slice[1:])
+            # rmid = np.append(rinn,rmidn)
             radL = np.sqrt(rmid[1:]*rmid[:-1])
             #
             ##--old (TBR?)
@@ -1594,8 +1616,12 @@ class Superparticles (object):
             #for k,rr in enumerate(radL):
             for k,r1 in enumerate(rmid[1:]): #the midpoints
                 #after change the mask_icl getting location, there will be a strange warning, by set the limit=100 can remove this warning
+                # if r0 < illoc[1] and r1 > illoc[1]:
+                #     import pdb;pdb.set_trace()
+                #
                 msup[k], err = sciint.quad(f_sample, r0, r1, limit =100)
                 r0 = r1
+
 
         elif initrule=='equalmass':
             #puts superparticles at location such that they have
@@ -1767,7 +1793,7 @@ class Superparticles (object):
         return (self.massL/(self.rhoint*4/3*np.pi))**(1/3)
 
 
-    def get_auxiliary (self, disk, time, Rd = None, rhoint = None, loc = None, mode='group'):
+    def get_auxiliary (self, disk, time, specloc, Rd = None, rhoint = None, loc = None, mode='group'):
         """
         Get the auxiliary properties of particles in disk, which 
         need disk properties in the particles's locations
@@ -1817,7 +1843,7 @@ class Superparticles (object):
             if pars.sfdmode=='simple':
                 #adds the surface to the particles
                 #LZX[24.11.01] this fcomp thing should only be used in the steady mode 
-                sfd = ff.sfd_simple (self.mtotL, loc)#/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
+                sfd = ff.sfd_simple (self.mtotL, loc, specloc)#/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)

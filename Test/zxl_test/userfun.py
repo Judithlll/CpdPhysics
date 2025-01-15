@@ -235,7 +235,7 @@ def init_compos (material):
         dcompos['Zinit'] = 0.0008  #cwo made smaller by factor 10
     elif material=='H2O':
         dcompos['name'] = 'H2O'
-        dcompos['Zinit'] = 0.0008
+        dcompos['Zinit'] = 0. 
         dcompos['iceline'] = pars.doIcelines 
         dcompos['rhoint'] = 1.0
         dcompos['iceline_temp'] = 160
@@ -271,8 +271,10 @@ def do_stuff (system, init=False, final= False):
         if system.time/cgs.yr > plotnum: #plot every 1 yr
             y2d = system.particles.dY2d_dt(system.particles.Y2d, system.time)
             delv = del_v(system.particles.St, system.particles)
-            plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time, y2d, delv, system.particles.St)
+            plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time, y2d, delv, system.particles.St, 
+                     system.particles.massL)
             plotnum += 1       #print(line)  
+
 
 def plot_massfit(planetMassData):
     def mass_fit(t,a,b):
@@ -1113,10 +1115,10 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
     #    pic_list.append(im)
     #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
-def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St):
+def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St, mass):
 
-    locL /= cgs.RJ
-    domain = [pars.dgasgrid['rinn']/cgs.RJ, pars.dgasgrid['rout']/cgs.RJ+10]
+    locloc = locL/cgs.RJ
+    domain = [pars.dgasgrid['rinn']/cgs.RJ-2, pars.dgasgrid['rout']/cgs.RJ+10]
     v_r, dmdt = y2d
 
     plt.figure(figsize=(10,9))
@@ -1128,11 +1130,12 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St):
     plt.ylabel('sfd')
     plt.tick_params(labelsize=8)
     plt.xlim(domain[0], domain[1])
-    plt.ylim(0, 60)
+    plt.ylim(0.01, 100)
+    plt.yscale('log')
     plt.title('{:.2f}yr'.format(time/cgs.yr))
-    plt.plot(locL, sfd, '.-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
+    plt.plot(locloc, sfd, '.-', label=str(imin)+'\n'+'{:.2f}'.format(deltaT))
     plt.xscale('log')
-    plt.scatter(locL[imin[1]]/cgs.RJ, sfd[imin[1]], c= 'red')
+    plt.scatter(locloc[imin[1]]/cgs.RJ, sfd[imin[1]], c= 'red')
     plt.axvline(5.89, linestyle='dashed', color='black', linewidth = 1)
     plt.legend(loc='upper right', fontsize = 10)
 
@@ -1165,7 +1168,7 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St):
     plt.ylabel('v_r')
     plt.xlim(domain[0], domain[1])
     plt.ylim(-180,0)
-    plt.plot(locL, v_r, '.')
+    plt.plot(locloc, v_r, '.')
     plt.xscale('log')
 
     plt.subplot(324)
@@ -1174,15 +1177,16 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St):
     plt.xlim(domain[0], domain[1])
     plt.xscale('log')
     plt.ylim(-0.1, 0.1)
-    plt.plot(locL, dmdt, '.')
+    plt.plot(locloc, dmdt, '.')
 
     plt.subplot(325)
     plt.tick_params(labelsize=8)
-    plt.ylabel('delv')
+    plt.ylabel('mass')
     plt.xlim(domain[0], domain[1])
-    plt.ylim(0,110)
+    plt.ylim(1e-2,1e6)
     plt.xscale('log')
-    plt.plot(locL, delv, '.')
+    plt.yscale('log')
+    plt.plot(locloc, mass, '.')
 
     plt.subplot(326)
     plt.tick_params(labelsize=8)
@@ -1190,7 +1194,7 @@ def plot_sfd(locL,sfd,time,imin,deltaT,timeL,restime, y2d, delv, St):
     plt.xlim(domain[0], domain[1])
     plt.ylim(0,0.01)
     plt.xscale('log')
-    plt.plot(locL, St, '.')
+    plt.plot(locloc, St, '.')
 
     plt.savefig('./sfdevol/{:.2f}.png'.format(time))
     plt.close()

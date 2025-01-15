@@ -576,7 +576,7 @@ def re_sample_dropmerge(sim, spN, fdelS=0.05, fdelM=0., fdelX=1, nsampleX=0, fde
     return newarr
 
 
-def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1, fspec=0.002,**args):
+def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args):
     """
     A variation on the below
     """
@@ -595,42 +595,113 @@ def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1, fspec
     xdel_aim = np.log((sim.rout/sim.rinn)**(1.0/npar))
     fdelS = xdel_aim/fchange
     fdelM = xdel_aim*fchange
+    fspec = (fdelS+fdelM)/2
 
     opL, = np.where(xdel<fdelM)
     opL = np.append(opL, np.where(xdel>fdelS)[0])
 
     if len(opL)>0:
-
         #new locations -- this follows initialization and we better save them!
         rdum = np.exp(np.linspace(np.log(sim.rinn),np.log(sim.rout),npar+1))
+
+
         locn = np.sqrt(rdum[1:]*rdum[:-1])
+
+        #get the special locations 
+        #[24/11/18] b/c we have consider the iceline location later, so here maybe we can consider the 
+        #           planet location only.
+        locspecL = [] 
+        #try to also treat the inner edge as a special location 
+        locspecL.append(sim.rinn)
+        for line in sim.planetL+sim.icelineL:
+            locspecL.append(line.loc)
+
+        # not sure whether it's a good idea to add the outermost location of particles to the special location 
+        # locspecL.append(loc[-1])
+
+        #to prevent there are some overlapping special locations 
+        locspecL = list(set(locspecL))
+
+
+        #consider the special locations like I did before. Just first add the 1 surrounding particles 
+                #find the locations that close to the special locations 
+        specpar_idx = np.searchsorted(loc, locspecL) 
+        #insert the surrounding particles into locn 
+        #we also need to remove the locations that closer to the special locations in locn 
+
+        #LZX[24/11/2] not sure whether we should get the 'special particles' within two particles or within a 
+        #             certain location range.
+        for i, idx in enumerate(specpar_idx):
+            #maybe we should combine the two methods together. [24/11/27]
+            #first get the special particles, and also special range, choose the minimal range to implement
+            #inside of special range, we regard the particles as 'effective particles for special locations'
+            if idx < nspec:
+                specL_par = np.array(loc[:idx+nspec])
+            elif idx>len(loc)-nspec:
+                specL_par = np.array(loc[idx-nspec:])
+            else:
+                specL_par = np.array(loc[idx-nspec:idx+nspec]) 
+
+            #'special range' 
+            speclim = [locspecL[i]/np.exp(fspec), locspecL[i]*np.exp(fspec)]
+
+            #'crop' the specL_par 
+            specL_par = specL_par[np.where((specL_par>speclim[0]) & (specL_par<speclim[1]))[0]]
+
+
+            #particles in special range 
+            #specL_par = np.where((loc>speclim[0]) & (loc<speclim[1]))[0]
+
+            if len(specL_par)>0:
+                locn = np.delete(locn, np.where((locn>specL_par.min()) & (locn<specL_par.max())))
+                #locn = np.delete(locn, np.where((locn>speclim[0]) & (locn<speclim[1])))
+                locn = np.insert(locn, np.searchsorted(locn, specL_par), specL_par)
+                #check: if the difference of the locations are too small, 
+                #       just remove! 
+                locn = np.delete(locn, np.where(np.diff(np.log(locn))<fdelM))
+
+
 
         #midpoints and extensions
         locmid = np.sqrt(loc[1:]*loc[:-1])
         locmidext = np.concatenate(([loc[0]*np.sqrt(loc[0]/loc[1])],
                                     locmid,
-                                    [sim.rout]))
-                                   #[np.sqrt(loc[-1]/loc[-2])*loc[-1]]))
+        #[24.0112]LZX: here we use this thing to be consistent with the sfd_simple
+                                    [np.sqrt(loc[-1]/loc[-2])*loc[-1]]))
 
         #cumulative mass function is defined on the midpoints
-        cummass = np.concatenate(([0],np.cumsum(mtot)))
+        cummtot = np.concatenate(([0],np.cumsum(mtot)))
 
         #we also sample at the midpoints; then do a "diff" 
         #to get the new masses
         locmidn = np.sqrt(locn[1:]*locn[:-1])
+
         locmidnext = np.concatenate(([sim.rinn],locmidn,[sim.rout]))
-        cummassn = np.interp(locmidnext, locmidext, cummass)
-        mtotn = np.diff(cummassn)
-        print('[global_resample2]:mass losss = ', cummassn[0], 100*cummassn[0]/cummassn[-1], '%')
+        cummtotn = np.interp(locmidnext, locmidext, cummtot)
+        mtotn = np.diff(cummtotn)
+        print('[global_resample2]:mass losss = ', cummtotn[0], 100*cummtotn[0]/cummtotn[-1], '%')
+
+        #maybe we just remove the 0 mtot particles 
+        non0idx = np.argwhere(mtotn>0).flatten()
+        locn = locn[non0idx]
+        mtotn = mtotn[non0idx]
+        locmidnext = locmidnext[np.append(non0idx, non0idx[-1]+1)]
+
 
         #with these rules we can also sample other (mass-weighted quantities)
         cummass = np.concatenate(([0], np.cumsum(mtot*mphy)))
         cummassn = np.interp(locmidnext, locmidext, cummass)
-        mphyn = np.diff(cummassn) /mtotn
+        mphyn = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
 
+        #check for the mass conservation 
+        try: 
+            assert(np.abs(cummtotn[-1]-cummtot[-1])/cummtot[-1]<1e-10)
+        except:
+            print('[global_resample2]:mass conservation violated')
+            import pdb;pdb.set_trace()
 
         #composition... to be tested
-        fcompn = np.empty((npar,ncomp))
+        fcompn = np.empty((len(non0idx),ncomp))
         for k in range(ncomp):
             cummass = np.concatenate(([0], np.cumsum(mtot*fcomp[:,k])))
             cummassn = np.interp(locmidnext, locmidext, cummass)
@@ -640,7 +711,161 @@ def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1, fspec
     else:
         return None
 
-def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fspec= 0.002,**args):
+def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args):
+    """
+    A variation on the below
+    """
+
+    loc = spN.locL 
+    mtot = spN.mtotL #total mass
+    mphy = spN.massL #physical mass
+    fcomp = spN.fcomp #composition fraction
+    ncomp = len(fcomp[0])
+
+    xdel = np.diff(np.log(loc))
+    npar = pars.dparticleprops['nini']
+
+    #[24.12.30]: in global_resample, better to let fdelS, fdelM tied to the initial grid spacing
+    #the disired xdel
+    xdel_aim = np.log((sim.rout/sim.rinn)**(1.0/npar))
+    fdelS = xdel_aim/fchange
+    fdelM = xdel_aim*fchange
+    fspec = (fdelS+fdelM)/2
+
+    opL, = np.where(xdel<fdelM)
+    opL = np.append(opL, np.where(xdel>fdelS)[0])
+
+    if len(opL)>0:
+        print(opL, np.searchsorted(loc, sim.icelineL[0].loc))
+
+        ## get the rdum according to the special location 
+        locspecL = [] 
+        #try to also treat the inner edge as a special location 
+        for line in sim.planetL+sim.icelineL:
+            locspecL.append(line.loc)
+
+        #new locations -- this follows initialization and we better save them!
+        rdum = np.exp(np.linspace(np.log(sim.rinn),np.log(sim.rout),npar+1))
+
+
+        locn = np.sqrt(rdum[1:]*rdum[:-1])
+        if len(locspecL) > 0:
+            locfull = np.concatenate(([locn[0]], loc, [locn[-1]]))
+            #get the index of special particles in the original locations
+            specidx = np.searchsorted(locfull, locspecL) 
+            specidx = np.concatenate(([0], specidx, [len(locfull)]))
+
+            #maybe also need to apply the special range to specidx 
+
+            locnn = np.array([])
+
+            for i in range(len(specidx)-1): 
+                numpar = len(locn[np.argwhere((locn>locfull[specidx[i]]) & (locn<locfull[specidx[i+1]-1])).flatten()])
+                slice = np.exp(np.linspace(np.log(locfull[specidx[i]]), np.log(locfull[specidx[i+1]-1]), numpar))
+                # slice = np.sqrt(slice_dum[1:]*slice_dum[:-1])
+                locnn = np.append(locnn, slice)
+
+        #to see what the locnn different from locn 
+        # import cgs
+        # y1 = np.ones_like(locn)
+        # y2 = 2*np.ones_like(locnn) 
+        # y3 = 3*np.ones_like(loc)
+        # plt.ylim(-4,6)
+        # plt.xlim(locspecL[0]-cgs.RJ, locspecL[0]+cgs.RJ)
+        # plt.axvline(locspecL[0], ls='--', c = 'gray', label='iceline')
+        # plt.axvline(locfull[specidx[1]], ls='--', c = 'gray', lw = 0.5)
+        # plt.axvline(locfull[specidx[1]-1], ls='--', c = 'gray', lw = 0.5)
+        # plt.scatter(locn, y1, label = 'locn', c='r', s=4)
+        # plt.scatter(locnn, y2, label = 'locnn', s = 4)
+        # plt.scatter(loc, y3, label = 'old', s=4)
+        # plt.legend()
+        # plt.savefig('resample_spec.jpg')
+        # plt.close()
+
+
+
+        #midpoints and extensions
+        locmid = np.sqrt(loc[1:]*loc[:-1])
+        locmidext = np.concatenate(([loc[0]*np.sqrt(loc[0]/loc[1])],
+                                    locmid,
+        #[24.0112]LZX: here we use this thing to be consistent with the sfd_simple
+                                    [np.sqrt(loc[-1]/loc[-2])*loc[-1]]))
+
+        #cumulative mass function is defined on the midpoints
+        cummtot = np.concatenate(([0],np.cumsum(mtot)))
+
+
+        locn = locnn
+
+        #we also sample at the midpoints; then do a "diff" 
+        #to get the new masses
+        locmidn = np.sqrt(locn[1:]*locn[:-1])
+
+        locmidnext = np.concatenate(([sim.rinn],locmidn,[sim.rout]))
+        cummtotn = np.interp(locmidnext, locmidext, cummtot)
+        mtotn = np.diff(cummtotn)
+        print('[global_resample2]:mass losss = ', cummtotn[0], 100*cummtotn[0]/cummtotn[-1], '%')
+
+        #maybe we just remove the 0 mtot particles 
+        non0idx = np.argwhere(mtotn>0).flatten()
+        locn = locn[non0idx]
+        mtotn = mtotn[non0idx]
+        locmidnext = locmidnext[np.append(non0idx, non0idx[-1]+1)]
+
+
+        #with these rules we can also sample other (mass-weighted quantities)
+        cummass = np.concatenate(([0], np.cumsum(mtot*mphy)))
+        cummassn = np.interp(locmidnext, locmidext, cummass)
+        mphyn = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
+
+        #check for the mass conservation 
+        merr = np.abs(cummtotn[-1] - cummtot[-1])/cummtot[-1]
+        if merr>1e-5:
+            print('mass conservation is violated')
+            #here plot the cumulative mass and mass distribution to check what happens 
+            import cgs
+            fig, (axcu, axm) = plt.subplots(1,2, figsize=(10,5)) 
+            axcu.loglog(locmidext/cgs.RJ, cummtot, 'o-', label='old')
+            axcu.loglog(locmidnext/cgs.RJ, cummtotn, 'x-', label='new loss{:.3e}'.format(merr))
+            axcu.set_ylim(cummtot[-1]*0.99, cummtot[-1]*1.01)
+            axcu.set_xlim(locmidext[-1]/cgs.RJ*0.99, locmidext[-1]/cgs.RJ*1.01)
+
+            axm.loglog(loc/cgs.RJ, mtot, '.-', label='old')
+            axm.loglog(locn/cgs.RJ, mtotn, 'x-', label='new')
+            axm.set_ylim(mtot[-1]*0.99, mtot[-1]*1.01)
+            axm.set_xlim(loc[-1]/cgs.RJ*0.99, loc[-1]/cgs.RJ*1.01)
+            axcu.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
+            axm.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
+            axcu.legend() 
+            axm.legend()
+            plt.show()
+
+        #check the mphy around the iceline  
+        # import cgs
+        # plt.loglog(loc, mphy/mphy.max(), 'x-', label ='old')
+        # plt.loglog(locn, mphyn/mphy.max(), 'x-', label = str(sim.time/cgs.yr))
+        # plt.loglog(loc, mtot/mtot.max(), '.-', label='oldmtot')
+        # plt.loglog(locn, mtotn/mtot.max(), '.-', label='newmtot')
+        # plt.axvline(locspecL[0], ls='--', lw=1, c = 'gray')
+        # plt.xlim(locspecL[0]*0.9, locspecL[0]*1.1)
+        # plt.legend()
+        # plt.savefig('/home/lzx/CpdPhysics/Test/zxl_test/mphy/{:.2f}.jpg'.format(sim.time))
+        # plt.close()
+        # import time 
+        # time.sleep(0.5)
+
+        #composition... to be tested
+        fcompn = np.empty((len(non0idx),ncomp))
+        for k in range(ncomp):
+            cummass = np.concatenate(([0], np.cumsum(mtot*fcomp[:,k])))
+            cummassn = np.interp(locmidnext, locmidext, cummass)
+            fcompn[:,k] = np.diff(cummassn) /mtotn
+
+        return locn, mtotn, mphyn, fcompn
+    else:
+        return None
+
+def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1,**args):
     """
     Follow the Schoonenberg. 2018 Lagrangian model. 
 
@@ -680,6 +905,7 @@ def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fsp
     xdel_aim = np.log((sim.rout/sim.rinn)**(1.0/npar))
     fdelS = xdel_aim/fchange
     fdelM = xdel_aim*fchange
+    fspec = (fdelS+fdelM)/2
 
     opL, = np.where(xdel<fdelM)
     opL = np.append(opL, np.where(xdel>fdelS)[0])
@@ -696,6 +922,9 @@ def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fsp
         locspecL.append(sim.rinn)
         for line in sim.planetL+sim.icelineL:
             locspecL.append(line.loc)
+
+        # not sure whether it's a good idea to add the outermost location of particles to the special location 
+        # locspecL.append(loc[-1])
 
         #to prevent there are some overlapping special locations 
         locspecL = list(set(locspecL))
@@ -715,11 +944,13 @@ def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fsp
             #inside of special range, we regard the particles as 'effective particles for special locations'
             if idx < nspec:
                 specL_par = np.array(loc[:idx+nspec])
+            elif idx>len(loc)-nspec:
+                specL_par = np.array(loc[idx-nspec:])
             else:
                 specL_par = np.array(loc[idx-nspec:idx+nspec]) 
 
             #'special range' 
-            speclim = [locspecL[i]/10**fspec, locspecL[i]*10**fspec]
+            speclim = [locspecL[i]/np.exp(fspec), locspecL[i]*np.exp(fspec)]
 
             #'crop' the specL_par 
             specL_par = specL_par[np.where((specL_par>speclim[0]) & (specL_par<speclim[1]))[0]]
@@ -735,6 +966,9 @@ def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1, fsp
                 #check: if the difference of the locations are too small, 
                 #       just remove! 
                 locn = np.delete(locn, np.where(np.diff(np.log(locn))<fdelM))
+
+        #[24.01.07]LZX: don't resample the particles outer than the final one 
+        #locn = np.append(locn[locn<loc[-2]/np.exp(fdelM)], [loc[-2],loc[-1]])
 
         #get the iceline locations and get the new properties according to them 
         # iceloc = [] #[i.loc for i in sim.icelineL]
