@@ -576,6 +576,125 @@ def re_sample_dropmerge(sim, spN, fdelS=0.05, fdelM=0., fdelX=1, nsampleX=0, fde
     return newarr
 
 
+def locmid_ext (loc):
+    """
+    provides the midpoints and extends them 
+    """
+    locmid = np.sqrt(loc[1:]*loc[:-1])
+    locmidext = np.concatenate((
+        [loc[0]*np.sqrt(loc[0]/loc[1])],
+        locmid,
+        [np.sqrt(loc[-1]/loc[-2])*loc[-1]]))
+    #[24.0112]LZX: here we use this thing to be consistent with the sfd_simple
+
+    return locmidext
+
+
+def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args):
+    """
+    similar to global_resample2... but with:
+    -- segmented sampling (special locations; specL)
+    -- do not adjust positions of 2 particles near specL
+    """
+
+    loc = spN.locL 
+    mtot = spN.mtotL #total mass
+    mphy = spN.massL #physical mass
+    fcomp = spN.fcomp #composition fraction
+    ncomp = len(fcomp[0])
+
+    #general
+    fdelS = sim.particles.delta/fchange
+    fdelM = sim.particles.delta*fchange
+
+    specL = list(sim.specloc) +[np.inf]
+
+    #segmented...
+    doResample = []
+    loc0 = 0
+    for kseg, loc1 in enumerate(specL):
+
+        ii = (loc0<loc) *(loc<loc1)
+
+        #we only interested in the spacing among these particles in the segment
+        xdel = np.diff(np.log(loc[ii]))
+
+        #normal mode
+        #the first/last particles two cannot be merged...
+        #so need to have at least 5 particles in the segment!
+        if np.any(xdel[1:-1]<fdelM) or np.any(xdel[1:-1]>fdelS) and sum(ii)>=5:
+            doResample.append(True)
+        else:
+            doResample.append(False)
+
+        loc0 = loc1 #for next segment
+
+
+    if np.any(doResample):
+        loc0 = 0
+        locnL=[]; mtotnL=[]; mphynL=[]; fcompnL=[] 
+        for kseg, loc1 in enumerate(specL):
+            ii = (loc0<loc) *(loc<loc1)
+            if doResample[kseg]:
+
+                #extended midpoints locations
+                locmidext = locmid_ext (loc[ii])
+
+                #cumulative mass function is defined on the midpoints
+                cummtot = np.concatenate(([0],np.cumsum(mtot[ii])))
+
+                #number of particles to place in segment 
+                npar = int(np.log(loc[ii][-2]/loc[ii][1]) /sim.particles.delta)
+
+                #at these (new) locations
+                locn = np.concatenate(([loc[ii][0]],
+                            np.exp(np.linspace(np.log(loc[ii][1]), np.log(loc[ii][-2]), npar+1)),
+                            [loc[ii][-1]]))
+
+                locmidnext = locmid_ext (locn)
+                cummtotn = np.interp(locmidnext, locmidext, cummtot)
+                mtotn = np.diff(cummtotn)
+
+
+                #with these rules we can also sample other (mass-weighted quantities)
+                cummass = np.concatenate(([0], np.cumsum(mtot[ii]*mphy[ii])))
+                cummassn = np.interp(locmidnext, locmidext, cummass)
+                mphyn = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
+
+
+                #composition... to be tested
+                fcompn = np.empty((npar+3,ncomp))
+                for k in range(ncomp):
+                    cummass = np.concatenate(([0], np.cumsum(mtot[ii]*fcomp[ii,k])))
+                    cummassn = np.interp(locmidnext, locmidext, cummass)
+                    fcompn[:,k] = np.diff(cummassn) /mtotn
+
+                locnL.append(locn)
+                mtotnL.append(mtotn)
+                mphynL.append(mphyn)
+                fcompnL.append(fcompn)
+
+
+
+            else:#just copy stuff
+                locnL.append(loc[ii])
+                mtotnL.append(mtot[ii])
+                mphynL.append(mphy[ii])
+                fcompnL.append(fcomp[ii])
+
+            loc0 = loc1 #for next segment
+
+        locn = np.concatenate(locnL)
+        mtotn = np.concatenate(mtotnL)
+        mphyn = np.concatenate(mphynL)
+        fcompn = np.concatenate(fcompnL)
+
+        return locn, mtotn, mphyn, fcompn
+    else:
+        return None
+
+
+
 def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args):
     """
     A variation on the below
@@ -710,6 +829,7 @@ def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
         return locn, mtotn, mphyn, fcompn
     else:
         return None
+
 
 def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args):
     """

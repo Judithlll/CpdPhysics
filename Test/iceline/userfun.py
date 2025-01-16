@@ -70,18 +70,21 @@ class PlotObj (object):
             line = ax.axvline(pars.dgasgrid['rinn']/cgs.au, color='k', lw=0.3)
             self.lineL.append(line)
 
+        spatch = axa.text(0.1,0.1,'{:11.2e} yr'.format(system.time/cgs.yr), transform=axa.transAxes)
+
         for iceline in system.icelineL:
             for ax in [axa,axb,axc,axd]:
                 line = ax.axvline(iceline.loc/cgs.au, color='k', lw=0.3)
                 self.lineL.append(line)
 
         self.fg.savefig(f'data/plot{iplot:05d}.png')
+        spatch.remove()
 
 
 def do_stuff (system, init=False, final=False):
     global plotnum, plotobj
 
-    plottimeL = np.array([0, 1e3, 1e4, 1e5, 3e5, 1e6, np.inf]) *cgs.yr
+    plottimeL = np.array([0, 1e3, 1e4, 1e5, 2e5, 5e5, 1e6, 2e6, np.inf]) *cgs.yr
 
     if init:
         plotobj = PlotObj ()
