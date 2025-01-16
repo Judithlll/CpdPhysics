@@ -1519,6 +1519,7 @@ class SingleSP(object):
 class Superparticles (object):
 
     def __init__(self, rinn, rout, dcomposL, gas, nini=40, Rdi=0.1, 
+            user_init_radius = None,
             initrule='equalmass'):
         """
         systems initial properties
@@ -1613,7 +1614,7 @@ class Superparticles (object):
                 xdum = np.log(locspecL[iloc+1]/r0)
                 Nadd = int(xdum /self.delta)
                 #[25.01.01]cwo: put particles at half-distance near boundaries
-                rmid = r0 *np.exp(np.arange(Nadd+1)*xdum/Nadd)
+                rmid = r0 *np.exp(np.linspace(0,1,Nadd+1)*xdum)
                 radL.append(np.sqrt(rmid[1:]*rmid[:-1]))
 
                 for k,r1 in enumerate(rmid[1:]): #the midpoints
@@ -1650,6 +1651,7 @@ class Superparticles (object):
         self.mtotL = np.array(msup)
         self.fcomp = np.array(fcompL)
 
+        #TBR
         if False:
             #[23.12.30]NEW:add composition data (fcomp)
             #[23.12.30]this looks a bit ugly...
@@ -1666,9 +1668,12 @@ class Superparticles (object):
 
         #this creates self.rhoint
         self.get_rhoint()
-        
-        #LZX[24.08.28]:the initial mass list should be more real
-        ##maybe pre-solve the growth equation here and get the profile
+
+        #if Stokes number is fixed, calculate initial radii
+        if pars.fixed_St is not None:
+            out = gas.get_key_disk_properties(self.locL, 0.0)
+            Rdi = pars.fixed_St*2*out[0]/np.pi/self.rhoint
+
 
         #[25.01.15]
         #Finally, determine the physical mass (massL)
@@ -1678,23 +1683,22 @@ class Superparticles (object):
         self.massL = self.rhocompos[0] * 4/3*Rdi**3*np.pi /self.fcomp[:,0]
 
         #[24.01.01]this is a bit ugly... but necessary for adding particles
-        #could we give these more consistent names?
+        #TBd? could we give these more consistent names?
         self.fcompini = self.fcomp[-1]
         self.mtot1 = self.mtotL[-1] #for adding new particles
         self.mini = self.massL[-1]   #for adding particles
 
 
-        #CWO? what is compmask?? Do we need it?
-        compmask=np.array([])
-        for i in range(nini):
-            compmask = np.append(compmask,1-sum(self.fcompini[np.argwhere(self.fcomp[i]==0)]))
-        
-        out = gas.get_key_disk_properties(self.locL, 0.0)
-
-        if pars.fixed_St is not None:
-            Rdi = pars.fixed_St*2*out[0]/np.pi/self.rhoint
 
         if pars.fraginit:
+            out = gas.get_key_disk_properties(self.locL, 0.0)
+
+            #CWO? what is compmask?? Do we need it?
+            compmask=np.array([])
+            for i in range(nini):
+                compmask = np.append(compmask,1-sum(self.fcompini[np.argwhere(self.fcomp[i]==0)]))
+        
+
             #if we want the particles to initially reach the fragmentation velocity, then we solve for the initial Rdi with fsolve 
             from scipy.optimize import fsolve 
             def func(Rd,disk,rhoint):
@@ -1737,7 +1741,7 @@ class Superparticles (object):
                 initguess = 0.1 
                 Rdi[i] = fsolve(func2, initguess, args=((pars.vc['icy']*0.5+pars.vc['silicates']*0.5)*2,disk, self.rhoint[i]))[0]
             
-        
+        #<-- initialization
         
         def dm_dr(m,r):
             Rd = physics.mass_to_radius(m,self.rhoint[-1])
@@ -1862,6 +1866,8 @@ class Superparticles (object):
                 #adds the surface to the particles
                 #LZX[24.11.01] this fcomp thing should only be used in the steady mode 
                 sfd = ff.sfd_simple (self.mtotL, loc, specloc)#/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
+            elif pars.sfdmode=='special':
+                sfd = ff.sfd_special (self.mtotL, loc, specloc)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)

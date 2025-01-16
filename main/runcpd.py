@@ -67,7 +67,7 @@ while doEvo:
     #change planet and super particle properties
     #due to crossings and intrinsic evolution
     #NOTE:order may matter a lot!!
-    if system.niceline>0 and False:
+    if system.niceline>0:
         core.advance_iceline(system)
 
     if system.nplanet>0:
