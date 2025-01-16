@@ -27,7 +27,7 @@ class PlotObj (object):
         self.fg.subplots_adjust(bottom=0.05,left=0.07,right=0.93)
 
         axa, axb, axc, axd = self.axL.ravel()
-        axa.set_ylim(0.01, 100)
+        axa.set_ylim(0.03, 500)
         axb.set_ylim(1e-3, 1e2)
         axc.set_ylim(2e26, 1e28)
         axd.set_ylim(1e-8, 2e2)
@@ -84,7 +84,7 @@ class PlotObj (object):
 def do_stuff (system, init=False, final=False):
     global plotnum, plotobj
 
-    plottimeL = np.array([0, 1e3, 1e4, 1e5, 2e5, 5e5, 1e6, 2e6, np.inf]) *cgs.yr
+    plottimeL = np.array([0, 1e1, 2e1, 5e1, 1e2, 2e2, 3e2, 1e3, 1.5e3, 2e3, 2.1e3, 1e4, 1e5, 2e5, 5e5, 1e6, 2e6, np.inf]) *cgs.yr
 
     if init:
         plotobj = PlotObj ()
@@ -126,16 +126,31 @@ def add_planet(system):
     return system
 
 
-def del_v (St, disk):
-    return 0.0
+def del_v (St, particles):
+
+    #turbulent relative veolocity
+    cs = np.sqrt(cgs.kB*particles.temp/particles.mu/cgs.mp)
+    vt = np.sqrt(3*particles.alpha*St)*cs
+
+    return (vt**2 + (particles.v_r/2)**2)**0.5
+
+def H_d (St, particles):
+    return physics.H_d(particles.Hg, St, particles.alpha) 
 
 
-def H_d (St, disk):
-    return disk.Hg
+def dm_dt (particles):
+
+    Rd = particles.Rd 
+    sigD = particles.sfd
+    St = particles.St 
+    fcomp = particles.fcomp
+    delv = del_v(St, particles)
+    Hd = H_d(St, particles)
 
 
-def dm_dt (*args):
-    return 0
+    dmdt = Rd**2 *delv *sigD/Hd   #eq. 5 of Shibaike et al. 2017
+
+    return 1e-1*dmdt
 
 
 #def Stokes_number(v_r, Rd, v_th, lmfp, Omega_K, rho_g, rhoint):

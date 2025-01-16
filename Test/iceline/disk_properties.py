@@ -31,7 +31,7 @@ def user_add_fun ():
     return [dot_Md]
 
 def user_add_eval ():
-    return [eta, m_gas]
+    return [eta, mu]
 
 
 def key_disk_properties (rad, t, dold=None):
@@ -40,15 +40,15 @@ def key_disk_properties (rad, t, dold=None):
     """
     rc = 30*cgs.au
     sigma = 1700 *(rad/cgs.au)**-1.5 *np.exp(-rad/rc)
-    mgas = m_gas(rad)
+    mugas = mu (rad)
     temp = 300 *(rad/cgs.au)**-0.5
 
-    return sigma, temp, mgas
+    return sigma, temp, mugas
 
 def eta (disk):
     return 0.01*np.ones_like(disk.loc)
 
-def m_gas (rad):
+def mu (rad):
     return 2.34*np.ones_like(rad)
 
 def H_d (Hg, St):

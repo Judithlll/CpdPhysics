@@ -609,7 +609,7 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
 
     specL = list(sim.specloc) +[np.inf]
 
-    #segmented...
+    #first consider need of resample per segment
     doResample = []
     loc0 = 0
     for kseg, loc1 in enumerate(specL):
@@ -618,6 +618,8 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
 
         #we only interested in the spacing among these particles in the segment
         xdel = np.diff(np.log(loc[ii]))
+
+        #TBD: direct merge and single split
 
         #normal mode
         #the first/last particles two cannot be merged...
@@ -656,6 +658,7 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
                 mtotn = np.diff(cummtotn)
 
 
+
                 #with these rules we can also sample other (mass-weighted quantities)
                 cummass = np.concatenate(([0], np.cumsum(mtot[ii]*mphy[ii])))
                 cummassn = np.interp(locmidnext, locmidext, cummass)
@@ -673,8 +676,6 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
                 mtotnL.append(mtotn)
                 mphynL.append(mphyn)
                 fcompnL.append(fcompn)
-
-
 
             else:#just copy stuff
                 locnL.append(loc[ii])
