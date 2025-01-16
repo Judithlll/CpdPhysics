@@ -590,12 +590,13 @@ def locmid_ext (loc):
     return locmidext
 
 
-def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args):
+def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=2,**args):
     """
     similar to global_resample2... but with:
     -- segmented sampling (special locations; specL)
-    -- do not adjust positions of 2 particles near specL
+    -- do not adjust positions of nn particles near specL
     """
+    n1 = nn-1 #so 0 or 1
 
     loc = spN.locL 
     mtot = spN.mtotL #total mass
@@ -619,12 +620,14 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
         #we only interested in the spacing among these particles in the segment
         xdel = np.diff(np.log(loc[ii]))
 
+
         #TBD: direct merge and single split
 
         #normal mode
         #the first/last particles two cannot be merged...
         #so need to have at least 5 particles in the segment!
-        if np.any(xdel[1:-1]<fdelM) or np.any(xdel[1:-1]>fdelS) and sum(ii)>=5:
+        ss = slice(n1,len(xdel)-n1)
+        if (np.any(xdel[ss]<fdelM) or np.any(xdel[ss]>fdelS)) and sum(ii)>=2*nn+1:
             doResample.append(True)
         else:
             doResample.append(False)
@@ -645,28 +648,34 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
                 #cumulative mass function is defined on the midpoints
                 cummtot = np.concatenate(([0],np.cumsum(mtot[ii])))
 
-                #number of particles to place in segment 
-                npar = int(np.log(loc[ii][-2]/loc[ii][1]) /sim.particles.delta)
+                if nn==2:
+                    #number of particles to place in segment 
+                    npar = int(np.log(loc[ii][-nn]/loc[ii][n1]) /sim.particles.delta)
 
-                #at these (new) locations
-                locn = np.concatenate(([loc[ii][0]],
-                            np.exp(np.linspace(np.log(loc[ii][1]), np.log(loc[ii][-2]), npar+1)),
-                            [loc[ii][-1]]))
+                    #at these (new) locations
+                    locn = np.concatenate(([loc[ii][0]],
+                                np.exp(np.linspace(np.log(loc[ii][1]), np.log(loc[ii][-2]), npar+1)),
+                                [loc[ii][-1]]))
+
+                    npar = len(locn)
+
+                elif nn==1:
+                    npar = int(np.log(locmidext[-1]/locmidext[0]) /sim.particles.delta)
+                    locmid = np.exp(np.linspace(np.log(locmidext[0]),np.log(locmidext[-1]),npar+1))
+                    locn = np.sqrt(locmid[1:]*locmid[:-1])
+
 
                 locmidnext = locmid_ext (locn)
                 cummtotn = np.interp(locmidnext, locmidext, cummtot)
                 mtotn = np.diff(cummtotn)
-
-
 
                 #with these rules we can also sample other (mass-weighted quantities)
                 cummass = np.concatenate(([0], np.cumsum(mtot[ii]*mphy[ii])))
                 cummassn = np.interp(locmidnext, locmidext, cummass)
                 mphyn = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
 
-
                 #composition... to be tested
-                fcompn = np.empty((npar+3,ncomp))
+                fcompn = np.empty((npar,ncomp))
                 for k in range(ncomp):
                     cummass = np.concatenate(([0], np.cumsum(mtot[ii]*fcomp[ii,k])))
                     cummassn = np.interp(locmidnext, locmidext, cummass)
