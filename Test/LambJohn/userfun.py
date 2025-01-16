@@ -6,7 +6,6 @@ import subprocess as sp
 import physics
 import pylab as pl
 import os 
-import cv2
 import disk_properties as dp
 
 Z0 = 0.01
@@ -142,6 +141,7 @@ def dm_dt(particles):
 
 
 def make_animation(mp4name, path='./plot/satepart_splitmerge'):
+    import cv2
     pic_list = []
     pics=os.listdir(path)
     pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
