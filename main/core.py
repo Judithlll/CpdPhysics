@@ -1664,10 +1664,6 @@ class Superparticles (object):
                 self.fcomp[k,:] = Zcomp/sum(Zcomp)
 
 
-        #[24.01.01]this is a bit ugly... but necessary for adding particles
-        self.fcompini = self.fcomp[-1]
-        self.mtot1 = self.mtotL[-1] #for adding new particles
-
         #this creates self.rhoint
         self.get_rhoint()
         
@@ -1680,6 +1676,11 @@ class Superparticles (object):
         #sets the contribution from the first species ("0") in the 
         #composition list 
         self.massL = self.rhocompos[0] * 4/3*Rdi**3*np.pi /self.fcomp[:,0]
+
+        #[24.01.01]this is a bit ugly... but necessary for adding particles
+        #could we give these more consistent names?
+        self.fcompini = self.fcomp[-1]
+        self.mtot1 = self.mtotL[-1] #for adding new particles
         self.mini = self.massL[-1]   #for adding particles
 
 
