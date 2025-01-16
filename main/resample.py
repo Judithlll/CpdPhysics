@@ -971,8 +971,6 @@ def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
         # plt.legend()
         # plt.savefig('/home/lzx/CpdPhysics/Test/zxl_test/mphy/{:.2f}.jpg'.format(sim.time))
         # plt.close()
-        # import time 
-        # time.sleep(0.5)
 
         #composition... to be tested
         fcompn = np.empty((len(non0idx),ncomp))
