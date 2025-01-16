@@ -4,7 +4,7 @@ import core
 import scipy.integrate as sciint
 import scipy.optimize as sciop
 import disk_properties as dp
-import os
+import os, sys
 import parameters as pars
 import shutil
 import userfun
@@ -175,6 +175,36 @@ def get_stokes_number(disk,t,sPLmtot,rhoint):
 
     St,v_r = St_iterate(eta,v_K,v_th,lmfp,rho_g,Omega_K,Rd) 
     return St
+
+
+def sfd_special (msup, loc, specloc):
+    """
+    like sfd_simple, but accounting for special locations
+    """
+
+    #sort the special locations
+    specL = sorted(list(specloc)+[np.inf])
+
+    loc0 = 0
+    wdelL = []
+    for k, loc1 in enumerate(specL):
+        ii = (loc>loc0) *(loc<loc1)
+
+        if sum(ii)<=1:
+            print('[functions.sfd_special]BUG: less than 1 particle -- cannot calculate sfd?')
+            sys.exit()
+
+        locmid = np.sqrt(loc[ii][1:]*loc[ii][:-1])
+        wdel = np.concatenate(([2*(locmid[0]-loc[ii][0])], 
+                                np.diff(locmid),
+                               [2*(loc[ii][-1]-locmid[-1])]))
+
+        wdelL.append(wdel)
+        loc0 = loc1
+
+    wdel = np.concatenate(wdelL)
+    sfd = msup /(2*np.pi *loc) /wdel
+    return sfd
 
 
 def sfd_simple (msup, loc, specloc):

@@ -1866,6 +1866,8 @@ class Superparticles (object):
                 #adds the surface to the particles
                 #LZX[24.11.01] this fcomp thing should only be used in the steady mode 
                 sfd = ff.sfd_simple (self.mtotL, loc, specloc)#/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
+            elif pars.sfdmode=='special':
+                sfd = ff.sfd_special (self.mtotL, loc, specloc)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
