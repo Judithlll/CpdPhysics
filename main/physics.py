@@ -80,8 +80,6 @@ def H_d(Hg, St, alpha):
 
 
 def c_s (temp, mu):
-    ## CWO: sound speed depends on mean molecular weight, as well!
-    #       you need to address this...
     return np.sqrt(cgs.kB*temp /(mu*cgs.mp))
 
 
