@@ -820,7 +820,7 @@ def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
 
         #check for the mass conservation 
         merr = np.abs(cummtotn[-1] - cummtot[-1])/cummtot[-1]
-        if merr>1e-5:
+        if merr>1e-10:
             print('mass conservation is violated')
             #here plot the cumulative mass and mass distribution to check what happens 
             import cgs
@@ -838,7 +838,13 @@ def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
             axm.axvline(pars.dgasgrid['rinn']/cgs.RJ, color='k', linestyle='--')
             axcu.legend() 
             axm.legend()
+
+            #make the ticks smaller in fontsize
+            axcu.tick_params(axis='both', labelsize=2) 
+            axm.tick_params(axis='both', labelsize=2)
+
             plt.show()
+            import pdb;pdb.set_trace()
 
         #check the mphy around the iceline  
         # import cgs

@@ -1674,22 +1674,6 @@ class Superparticles (object):
             out = gas.get_key_disk_properties(self.locL, 0.0)
             Rdi = pars.fixed_St*2*out[0]/np.pi/self.rhoint
 
-
-        #[25.01.15]
-        #Finally, determine the physical mass (massL)
-        #we'll assume the mass corredsponding to the initial radius Rdi 
-        #sets the contribution from the first species ("0") in the 
-        #composition list 
-        self.massL = self.rhocompos[0] * 4/3*Rdi**3*np.pi /self.fcomp[:,0]
-
-        #[24.01.01]this is a bit ugly... but necessary for adding particles
-        #TBd? could we give these more consistent names?
-        self.fcompini = self.fcomp[-1]
-        self.mtot1 = self.mtotL[-1] #for adding new particles
-        self.mini = self.massL[-1]   #for adding particles
-
-
-
         if pars.fraginit:
             out = gas.get_key_disk_properties(self.locL, 0.0)
 
@@ -1740,6 +1724,23 @@ class Superparticles (object):
                 disk = get_temporary_disk(self.locL[i])
                 initguess = 0.1 
                 Rdi[i] = fsolve(func2, initguess, args=((pars.vc['icy']*0.5+pars.vc['silicates']*0.5)*2,disk, self.rhoint[i]))[0]
+
+
+        #[25.01.15]
+        #Finally, determine the physical mass (massL)
+        #we'll assume the mass corredsponding to the initial radius Rdi 
+        #sets the contribution from the first species ("0") in the 
+        #composition list 
+        self.massL = self.rhocompos[0] * 4/3*Rdi**3*np.pi /self.fcomp[:,0]
+
+        #[24.01.01]this is a bit ugly... but necessary for adding particles
+        #TBd? could we give these more consistent names?
+        self.fcompini = self.fcomp[-1]
+        self.mtot1 = self.mtotL[-1] #for adding new particles
+        self.mini = self.massL[-1]   #for adding particles
+
+
+
             
         #<-- initialization
         
