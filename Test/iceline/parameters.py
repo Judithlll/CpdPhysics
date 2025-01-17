@@ -8,7 +8,7 @@ intrhoL = [3.0, 1.0]
 #parameters fed into System
 dsystempars = {}
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
-                'nini':200,  #initial number of particles
+                'nini':100,  #initial number of particles
                 'initrule':'equallogspace'} #how particles are distributed
 
 dtimesteppars = {'deltaTfraction':0.2, 'itgmethod':'Heun'}
