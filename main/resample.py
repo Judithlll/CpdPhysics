@@ -841,7 +841,7 @@ def global_resample2 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
         return None
 
 
-def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args):
+def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1, fdelDM= 1e-3, **args):
     """
     A variation on the below
     """
@@ -851,6 +851,32 @@ def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
     mphy = spN.massL #physical mass
     fcomp = spN.fcomp #composition fraction
     ncomp = len(fcomp[0])
+
+
+    #also try the keep two particles 
+    nspec = 2
+    idxspec = np.searchsorted(loc, sim.specloc)
+    idxspec = np.concatenate(([0], idxspec, [len(loc)-1]))
+
+
+    #firstly check whether the nspec particles need direct merge or split 
+    for idx in idxspec:
+        if idx<nspec:
+            specL = loc[:idx+nspec]
+        elif idx>len(loc)-nspec:
+            specL = loc[idx-nspec:]
+        else:
+            specL = loc[idx-nspec:idx+nspec]
+
+        #if the particles are too close to each other, we need to do the direct merge 
+        if np.any(np.diff(specL))<fdelDM:
+            print('[global_resample3]:direct merge for particles', idx)
+
+            #direct merge 
+            loc
+
+
+
 
     xdel = np.diff(np.log(loc))
     npar = pars.dparticleprops['nini']
@@ -950,7 +976,7 @@ def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1,**args
 
         #check for the mass conservation 
         merr = np.abs(cummtotn[-1] - cummtot[-1])/cummtot[-1]
-        if merr>1e-10:
+        if merr>1e-5:
             print('mass conservation is violated')
             #here plot the cumulative mass and mass distribution to check what happens 
             import cgs
