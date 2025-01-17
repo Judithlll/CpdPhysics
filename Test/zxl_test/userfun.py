@@ -235,11 +235,10 @@ def init_compos (material):
         dcompos['Zinit'] = 0.0008  #cwo made smaller by factor 10
     elif material=='H2O':
         dcompos['name'] = 'H2O'
-        dcompos['Zinit'] = 0. 
+        dcompos['Zinit'] = 0.0008 
         dcompos['iceline'] = pars.doIcelines 
         dcompos['rhoint'] = 1.0
         dcompos['iceline_temp'] = 160
-        dcompos['iceline_init'] = 15*cgs.RJ
 
     return dcompos
 
