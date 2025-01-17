@@ -590,7 +590,7 @@ def locmid_ext (loc):
     return locmidext
 
 
-def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=2,**args):
+def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=1,**args):
     """
     similar to global_resample2... but with:
     -- segmented sampling (special locations; specL)
@@ -665,9 +665,17 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=2,**args):
                     locn = np.sqrt(locmid[1:]*locmid[:-1])
 
 
+
                 locmidnext = locmid_ext (locn)
                 cummtotn = np.interp(locmidnext, locmidext, cummtot)
                 mtotn = np.diff(cummtotn)
+
+                ## it would be very weird if the particles cross the boundary
+                if nn==1 and kseg==0 and locn[-1]>loc1:
+                    locn[-1] = (1-1e-10)*loc1
+
+                if nn==1 and kseg==1 and locn[0]<loc0:
+                    locn[0] = (1+1e-10)*loc0
 
                 #with these rules we can also sample other (mass-weighted quantities)
                 cummass = np.concatenate(([0], np.cumsum(mtot[ii]*mphy[ii])))
