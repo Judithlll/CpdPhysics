@@ -203,6 +203,10 @@ class System(object):
         elif pars.resampleMode == 'global_resample4':
             newarr = resample.global_resample4(self, self.particles, **pars.dresample)
 
+        #[25.01.18]cwo: another variation...
+        elif pars.resampleMode == 'new_splitmerge_chris':
+            newarr = resample.new_splitmerge_chris(self, self.particles, **pars.dresample)
+
         else:
             newarr = None
 
@@ -680,6 +684,7 @@ class System(object):
                 Nadd += 1
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
+             pars.resampleMode in ['new_splitmerge_chris'] or\
              pars.resampleMode in ['global_resample','global_resample2', 'global_resample3', 'global_resample4'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:

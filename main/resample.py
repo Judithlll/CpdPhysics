@@ -3,6 +3,80 @@ import parameters as pars
 import sys
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+import functions as ff
+
+def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
+    """
+    [25.01.18]: new splitmerge based on cumulative mass function
+                for the moment w/o special locations functionality
+    """
+    loc = spN.locL 
+    mtot = spN.mtotL
+    mphy = spN.massL
+    fcomp = spN.fcomp #composition fraction
+
+    ncomp = len(fcomp[0])
+    xdel = np.diff(np.log(loc))
+
+    fdelS = 2*sim.particles.delta
+    #midpoint locations elligible for splitting (isL)
+    #don't split 1st/last particles (i.e., around special locations; TBD)
+    fdelXarr = np.ones_like(xdel)
+    #fdelXarr[0] = np.inf
+    #fdelXarr[-1] = np.inf
+    isL, = np.nonzero(xdel>fdelS*fdelXarr)
+
+    #now the masses
+    #ydel = np.diff(np.log(mphy))
+    #isL2, = np.nonzero(np.abs(ydel)>0.5*fdelXarr)
+    #isL = np.union1d(isL1, isL2)
+
+
+    #merging
+    #fdelXarr[0] = 0; fdelXarr[-1] = 0
+    #imL, = np.nonzero(xdel<fdelXarr*fdelS/5)
+
+    if len(isL)>0:#or len(imL)>0:
+        locmidext = locmid_ext (loc)
+        cummtot = np.concatenate(([0],np.cumsum(mtot)))
+
+        #merging: remove the locations from loc (TBD)
+        dumloc = loc
+
+        #splitting: add the locations
+        addloc = np.sqrt(loc[isL]*loc[isL+1])
+
+        #a bit weird
+        locn = np.concatenate((dumloc,addloc))
+        locn.sort()
+        npar = len(locn) #new number of particles
+
+        locmidnext = locmid_ext (locn)
+        locmidnext[0] = locmidext[0] #hack
+        cummtotn = np.interp(locmidnext, locmidext, cummtot)
+        mtotn = np.diff(cummtotn)
+
+        logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy), mtot, mtotn)
+        mphyn = np.exp(logmphyn)
+
+        if np.all(np.diff(np.log10(mphyn[:100]))<0)==False:
+            import pdb; pdb.set_trace()
+        #if len(imL): import pdb; pdb.set_trace()
+
+        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+        import pdb; pdb.set_trace()
+
+
+        #composition... to be tested
+        fcompn = np.empty((npar,ncomp))
+        for k in range(ncomp):
+            cummass = np.concatenate(([0], np.cumsum(mtot*fcomp[:,k])))
+            cummassn = np.interp(locmidnext, locmidext, cummass)
+            fcompn[:,k] = np.diff(cummassn) /mtotn
+
+        return locn, mtotn, mphyn, fcompn
+    else:
+        return None
 
 
 def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
@@ -697,7 +771,7 @@ def global_resample4 (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, nn=1,**args):
                     locn = np.sqrt(locmid[1:]*locmid[:-1])
 
 
-                if True:
+                if False:
                     xdum = np.log(sim.rout/sim.rinn)
                     npar = int(xdum /sim.particles.delta)
                     rmid = sim.rinn *np.exp(np.linspace(0,1,npar+1)*xdum)
@@ -725,7 +799,9 @@ def global_resample4 (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, nn=1,**args):
                 #cummassn = np.interp(locmidnext, locmidext, cummass)
                 #dum = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
 
-                mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy[ii], mtot[ii], mtotn)
+                #log-interpolation of the mass seems much better
+                logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy[ii]), mtot[ii], mtotn)
+                mphyn = np.exp(logmphyn)
                 #mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy[ii])
 
                 #composition... to be tested
