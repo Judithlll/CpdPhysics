@@ -1587,7 +1587,7 @@ class Superparticles (object):
             return 2*np.pi*r*sigini *Zcom.sum()
 
         #this is the desired spacing among the particles in log-space
-        self.delta = np.log(rout/rinn) /(nini+1)
+        self.delta = np.log(rout/rinn) /nini
         
         #divide domain into pieces, as determined by iceline
         locspecL = []

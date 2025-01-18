@@ -590,7 +590,40 @@ def locmid_ext (loc):
     return locmidext
 
 
-def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=1,**args):
+def interp_mtot_weighted (xn, xmid, qarr, marr=None, mn=None, neval=0):
+    """
+    interpolates a certain quantity qarr defined with respect to the 
+    midpoints xmid onto new locations (midpoints) xn, 
+    weighted (optionally) by masses mn
+
+    [25.01.18]:try to detect loss of significance
+    """
+    if marr is None: marr = np.ones_like(qarr)
+    if mn is None: mn = np.ones(len(xn)-1)
+
+    neval += 1
+    if neval==1:
+        ix = 0
+    else:
+        ix = (xmid>xn[0]).argmax() -1
+
+    cummass = np.concatenate(([0], np.cumsum(marr[ix:]*qarr[ix:])))
+    cummassn = np.interp(xn, xmid[ix:], cummass)
+    qn = np.diff(cummassn) /(mn+1e-16) #1e-16 to prevent the zero division 
+
+    #print(neval, xn[0], len(xn))
+
+    #relative error/significance
+    sig = np.diff(cummassn)/cummassn[1:]
+    itrust = (sig<1e-8).argmax() #trust until here
+    if itrust>0:
+        qn[itrust:] = interp_mtot_weighted (xn[itrust:], xmid, qarr, marr, mn[itrust:], neval)
+
+    #if neval==1: import pdb; pdb.set_trace()
+    return qn
+
+
+def global_resample4 (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, nn=1,**args):
     """
     similar to global_resample2... but with:
     -- segmented sampling (special locations; specL)
@@ -634,7 +667,6 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=1,**args):
 
         loc0 = loc1 #for next segment
 
-
     if np.any(doResample):
         loc0 = 0
         locnL=[]; mtotnL=[]; mphynL=[]; fcompnL=[] 
@@ -665,10 +697,20 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=1,**args):
                     locn = np.sqrt(locmid[1:]*locmid[:-1])
 
 
+                if True:
+                    xdum = np.log(sim.rout/sim.rinn)
+                    npar = int(xdum /sim.particles.delta)
+                    rmid = sim.rinn *np.exp(np.linspace(0,1,npar+1)*xdum)
+                    locn = np.sqrt(rmid[1:]*rmid[:-1])
+                    #import pdb; pdb.set_trace()
+
 
                 locmidnext = locmid_ext (locn)
                 cummtotn = np.interp(locmidnext, locmidext, cummtot)
                 mtotn = np.diff(cummtotn)
+
+                ## this should give the same...
+                #dum = interp_mtot_weighted (locmidnext, locmidext, mtot[ii])
 
                 ## it would be very weird if the particles cross the boundary
                 if nn==1 and kseg==0 and locn[-1]>loc1:
@@ -678,9 +720,13 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=1,**args):
                     locn[0] = (1+1e-10)*loc0
 
                 #with these rules we can also sample other (mass-weighted quantities)
-                cummass = np.concatenate(([0], np.cumsum(mtot[ii]*mphy[ii])))
-                cummassn = np.interp(locmidnext, locmidext, cummass)
-                mphyn = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
+                #if False:
+                #cummass = np.concatenate(([0], np.cumsum(mtot[ii]*mphy[ii])))
+                #cummassn = np.interp(locmidnext, locmidext, cummass)
+                #dum = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
+
+                mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy[ii], mtot[ii], mtotn)
+                #mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy[ii])
 
                 #composition... to be tested
                 fcompn = np.empty((npar,ncomp))
@@ -688,6 +734,7 @@ def global_resample4 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nn=1,**args):
                     cummass = np.concatenate(([0], np.cumsum(mtot[ii]*fcomp[ii,k])))
                     cummassn = np.interp(locmidnext, locmidext, cummass)
                     fcompn[:,k] = np.diff(cummassn) /mtotn
+
 
                 locnL.append(locn)
                 mtotnL.append(mtotn)
@@ -1174,8 +1221,11 @@ def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1,**ar
         cum_mtoto = np.cumsum(marr)
         cum_mtotn = np.interp(locn, loc, cum_mtoto)
         mtotn = np.append(cum_mtotn[0], np.diff(cum_mtotn)) 
-        
         massn = np.interp(locn, loc, mphyo) 
+        
+        #cumdum = np.cumsum(marr*mphyo)
+        #dum1 = np.interp(locn, loc, cumdum)
+        #massn = np.append(dum1[0], np.diff(dum1))/mtotn
 
         #remove the first 'virtual' particle 
         # if add_virtual: 
