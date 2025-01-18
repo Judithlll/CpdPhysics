@@ -28,9 +28,9 @@ class PlotObj (object):
 
         axa, axb, axc, axd = self.axL.ravel()
         axa.set_ylim(0.03, 500)
-        axb.set_ylim(1e-3, 1e2)
-        axc.set_ylim(2e26, 1e28)
-        axd.set_ylim(1e-8, 2e2)
+        axb.set_ylim(1e-4, 1e1)
+        axc.set_ylim(2e25, 1e28)
+        axd.set_ylim(1e-8, 2e5)
         axa.set_ylabel('surface density')
         axb.set_ylabel('Stokes number')
         axc.set_ylabel('total mass')
@@ -85,7 +85,7 @@ def do_stuff (system, init=False, final=False):
     global plotnum, plotobj
 
     plottimeL = np.array([0, 1e1, 2e1, 5e1, 1e2, 2e2, 3e2, 1e3, 1.5e3, 2e3, 
-                          2.1e3, 2.2e3, 3e3, 4e3, 5e3, 6e3, 7e3, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, np.inf]) *cgs.yr
+                          2.1e3, 2.2e3, 3e3, 4e3, 5e3, 5.3e3, 6e3, 7e3, 1e4, 2e4, 5e4, 1e5, 1.5e5, 2e5, 5e5, 1e6, 2e6, np.inf]) *cgs.yr
 
     if init:
         plotobj = PlotObj ()

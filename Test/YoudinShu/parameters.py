@@ -22,5 +22,5 @@ doJump = False
 doPlanets = False
 doIcelines = False
 
-resampleMode = 'splitmerge'
+resampleMode = 'splitmerge'# 'global_resample4'# 
 dresample = {'fdelS':1e99, 'fdelM':1e-3, 'fdelDM':1e-5}
