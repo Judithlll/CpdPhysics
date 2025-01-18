@@ -5,6 +5,14 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 
+def resamplr_spiltmerge_zxl(sim, fchange, *args):
+    """
+    do the split and merge by the cumulative total mass distrbution
+    """
+
+
+
+
 def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
     """
     [22.04.10]: mmid picked through midpoints
@@ -881,7 +889,7 @@ def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1, fdelD
             print('[global_resample3]:direct merge for particles', idx)
 
             #direct merge 
-            loc
+            locn = 
 
 
 
