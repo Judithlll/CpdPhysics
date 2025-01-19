@@ -60,7 +60,8 @@ def do_stuff (system, init=False, final=False):
                                             tminarr.argmin(), imin[0],imin[1], system.time/cgs.yr)
 
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
-        print(line)
+        if system.ntime%10==0:
+            print(line)
 
         #sfmt = '{:10.3e} {:10.3e} {:10.3e}'        
         #line = sfmt.format(system.time, system.particles.v_r[-1], system.particles.locL[-1]/cgs.au)

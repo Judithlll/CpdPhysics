@@ -253,6 +253,10 @@ class System(object):
                 #idea is make an function to get all these auxiliary
                 self.get_auxiliary(self.time)
                 self.particles.make_Y2d()
+
+                #mflux = self.particles.v_r *self.particles.sfd *self.particles.locL
+                #import pdb; pdb.set_trace()
+
             else:
                 print('some crossing caused by resampling')
 
@@ -1878,6 +1882,8 @@ class Superparticles (object):
                 sfd = ff.sfd_simple (self.mtotL, loc, specloc)#/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
             elif pars.sfdmode=='special':
                 sfd = ff.sfd_special (self.mtotL, loc, specloc)
+            elif pars.sfdmode=='sfd_chris':
+                sfd = ff.sfd_chris (self.mtotL, loc)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
