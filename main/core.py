@@ -246,8 +246,8 @@ class System(object):
                 #     plt.close()
                 #     import pdb;pdb.set_trace()
 
-                #vrold = self.particles.v_r
-                #sfdold = self.particles.sfd
+                vrold = self.particles.v_r
+                sfdold = self.particles.sfd
 
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
@@ -256,7 +256,7 @@ class System(object):
                 #idea is make an function to get all these auxiliary
                 self.get_auxiliary(self.time)
 
-                #import pdb; pdb.set_trace()
+                import pdb; pdb.set_trace()
                 
                 #TBR
                 #self.particles.make_Y2d()
@@ -1852,31 +1852,26 @@ class Superparticles (object):
         if loc is None:
             loc = self.locL 
 
-        if pars.dragmodel=='Epstein':
-            St = physics.Stokes_Epstein (Rd, self.rhoint, disk.vth, disk.rhog, disk.OmegaK)
-            St *= np.sqrt(8/np.pi) #difference b/w sound speed and thermal velocity
+        ##[25.01.20]let's to the if/else in functions
 
+        St, v_r = ff.Stokes_number (disk, Rd, rhoint, Sto=self.stokesOld)
 
-            #[25.01.01]cwo Stokes number is fixed??
-            #just for ism final project
-            if pars.fixed_St is not None:
-                St = np.ones_like(loc)*pars.fixed_St
-
-            #this is how Youdin & Shu do it..
-            v_r = -2*St *disk.eta *disk.vK
-
-        else:#default
-            #obtain Stokes number by iterating on drag law
-            #LZX [24.08.04]: insert the rhoint calculated from particles here
-            St, v_r = ff.St_iterate (disk.eta,
-                                     disk.vK,
-                                     disk.vth,
-                                     disk.lmfp,
-                                     disk.rhog,
-                                     disk.OmegaK,
-                                     Rd,
-                                     rhoint,
-                                     Sto=self.stokesOld)
+        if False:
+            if pars.dragmodel=='Epstein':
+                St = physics.Stokes_Epstein (Rd, self.rhoint, disk.vth, disk.rhog, disk.OmegaK)
+                St *= np.sqrt(8/np.pi) #difference b/w sound speed and thermal velocity
+            else:#default
+                #obtain Stokes number by iterating on drag law
+                #LZX [24.08.04]: insert the rhoint calculated from particles here
+                St, v_r = ff.St_iterate (disk.eta,
+                                         disk.vK,
+                                         disk.vth,
+                                         disk.lmfp,
+                                         disk.rhog,
+                                         disk.OmegaK,
+                                         Rd,
+                                         rhoint,
+                                         Sto=self.stokesOld)
 
         if mode=='individual':
             sfd = disk.dot_Md(time)/(-2*loc*np.pi*v_r)
