@@ -190,8 +190,10 @@ def sfd_special (msup, loc, specloc):
     for k, loc1 in enumerate(specL):
         ii = (loc>loc0) *(loc<loc1)
 
-        if sum(ii)<=1:
-            print('[functions.sfd_special]BUG: less than 1 particle -- cannot calculate sfd?')
+        if sum(ii)==0:
+            continue
+        if sum(ii)==1:
+            print('[functions.sfd_special]BUG: 1 particle -- cannot calculate sfd?')
             sys.exit()
 
         locmid = np.sqrt(loc[ii][1:]*loc[ii][:-1])
@@ -234,6 +236,16 @@ def sfd_simple (msup, loc, specloc):
     #     wdel[idx] = 2*(locmid[idx]- loc[idx]) 
     #     wdel[idx-1] = 2*(loc[idx-1]-locmid[idx-2])
 
+    sfd = msup /(2*np.pi *loc) /wdel
+    return sfd
+
+
+def sfd_chris (msup, loc):
+    """
+    sfd determined from back
+    """
+    wdel = np.diff(loc)
+    wdel = np.concatenate((wdel, [wdel[-1]]))
     sfd = msup /(2*np.pi *loc) /wdel
     return sfd
 

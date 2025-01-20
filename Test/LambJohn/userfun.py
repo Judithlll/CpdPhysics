@@ -60,7 +60,8 @@ def do_stuff (system, init=False, final=False):
                                             tminarr.argmin(), imin[0],imin[1], system.time/cgs.yr)
 
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
-        print(line)
+        if system.ntime%10==0:
+            print(line)
 
         #sfmt = '{:10.3e} {:10.3e} {:10.3e}'        
         #line = sfmt.format(system.time, system.particles.v_r[-1], system.particles.locL[-1]/cgs.au)
@@ -86,7 +87,8 @@ def do_stuff (system, init=False, final=False):
             #ax2.semilogx(system.particles.locL/cgs.au, system.particles.sfd/sigana-1, c=colL[iplot], lw=0.5)
 
             fg.savefig(figname, dpi=180)
-            if iplot==3: import pdb; pdb.set_trace()
+            if iplot>=3: 
+                import pdb; pdb.set_trace()
 
 
 

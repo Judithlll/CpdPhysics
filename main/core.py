@@ -203,6 +203,10 @@ class System(object):
         elif pars.resampleMode == 'global_resample4':
             newarr = resample.global_resample4(self, self.particles, **pars.dresample)
 
+        #[25.01.18]cwo: another variation...
+        elif pars.resampleMode == 'new_splitmerge_chris':
+            newarr = resample.new_splitmerge_chris(self, self.particles, **pars.dresample)
+
         else:
             newarr = None
 
@@ -249,6 +253,10 @@ class System(object):
                 #idea is make an function to get all these auxiliary
                 self.get_auxiliary(self.time)
                 self.particles.make_Y2d()
+
+                #mflux = self.particles.v_r *self.particles.sfd *self.particles.locL
+                #import pdb; pdb.set_trace()
+
             else:
                 print('some crossing caused by resampling')
 
@@ -680,6 +688,7 @@ class System(object):
                 Nadd += 1
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
+             pars.resampleMode in ['new_splitmerge_chris'] or\
              pars.resampleMode in ['global_resample','global_resample2', 'global_resample3', 'global_resample4'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
@@ -1873,6 +1882,8 @@ class Superparticles (object):
                 sfd = ff.sfd_simple (self.mtotL, loc, specloc)#/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1)
             elif pars.sfdmode=='special':
                 sfd = ff.sfd_special (self.mtotL, loc, specloc)
+            elif pars.sfdmode=='sfd_chris':
+                sfd = ff.sfd_chris (self.mtotL, loc)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
