@@ -174,6 +174,11 @@ class System(object):
 
     def re_sample (self):
 
+        mphy = self.particles.massL
+        if np.all(np.diff(np.log10(mphy[10:1000]))<0)==False and False:
+            print('physical mass not in order')
+            import pdb; pdb.set_trace()
+
         if pars.resampleMode=='splitmerge':
 
             #the particles crossing is not physical
@@ -246,17 +251,12 @@ class System(object):
                 #     plt.close()
                 #     import pdb;pdb.set_trace()
 
-                vrold = self.particles.v_r
-                sfdold = self.particles.sfd
-
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
                 self.particles.num = len(self.particles.locL)
                 #also we need to get other properties of particles 
                 #idea is make an function to get all these auxiliary
                 self.get_auxiliary(self.time)
-
-                import pdb; pdb.set_trace()
                 
                 #TBR
                 #self.particles.make_Y2d()
@@ -856,6 +856,10 @@ class System(object):
             mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
 
+            #rdum = (1-0.1*self.particles.delta)*self.rinn
+            #tinn = (self.particles.locL[0] -rdum) /(-Y2dp[0,0])
+            #mintimeL.append({'name': 'innercrossTime', 'tmin': tinn})
+
 
         #calculate mass flow change Timescale
         if self.oldstate is not None:   
@@ -1056,11 +1060,12 @@ class System(object):
         self.minTimes = Mintimes(mintimeL, jumpfracD)
 
         #determine next timestep
+        #[25.01.20]: maybe deltaTfraction not applied to ALL, but only to
         deltaT = deltaTfraction *min(self.minTimes.tminarr)
 
         #limit increase of deltaT to (some number)
         if self.ntime>0:
-            deltaT = min(deltaT, self.oldstate.deltaT*1.01)
+            deltaT = min(deltaT, self.oldstate.deltaT*1.05)
 
             
         if self.time+deltaT>tEnd:

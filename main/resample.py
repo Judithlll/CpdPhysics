@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import functions as ff
 import physics
+from scipy.optimize import fsolve 
 
 
-def v_rad (marr,disk,rhoint, Stg=None, vadd=0):
+def v_rad (marr,disk,rhoint,Stg=None,vaim=0):
     """
     obtain radial velocity of particles
     - radarr    :input locations
@@ -18,8 +19,7 @@ def v_rad (marr,disk,rhoint, Stg=None, vadd=0):
     sarr = physics.mass_to_radius(marr,rhoint)
     St, vr = ff.Stokes_number(disk, sarr, rhoint, Sto=Stg)
 
-    import pdb; pdb.set_trace()
-    return vr + vadd
+    return vr -vaim
 
 
 def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
@@ -46,7 +46,7 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     #fdelXarr[0] = 0; fdelXarr[-1] = 0
     fdelXarr = np.ones_like(xdel)
     imL, = np.nonzero(xdel<fdelXarr*sim.particles.delta*2/3)
-    #imL = np.array([],dtype=np.int64) #no merging
+    imL = np.array([],dtype=np.int64) #no merging
 
 
     fdelXarr[imL] = np.inf #dont split where we merge
@@ -63,7 +63,7 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     addlocS = np.sqrt(loc[isL]*loc[isL+1])
     addlocM = np.sqrt(loc[imL]*loc[imL+1])
 
-    if len(isL)>0 or len(imL)>0:
+    if len(isL)>0:
         doResample = True
     else:
         doResample = False
@@ -100,22 +100,34 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
             print('mflux not in order')
 
 
-        pm = 0.5
-        dum = interp_mtot_weighted (locmidnext, locmidext, mphy**pm, mtot, mtotn)
-        mphyn = dum**(1/pm)
-        #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy), mtot, mtotn)
-        #mphyn = np.exp(logmphyn)
+        if False:
+            pm = 0.4
+            dum = interp_mtot_weighted (locmidnext, locmidext, mphy**pm, mtot, mtotn)
+            mphyn = dum**(1/pm)
+            #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy), mtot, mtotn)
+            #mphyn = np.exp(logmphyn)
+        
+        elif True:
 
-        #the desired velocities
-        vraim = (sim.particles.v_r[isL] +sim.particles.v_r[isL+1])/2
+            pm = 0.5
+            mphyadd = mphy[isL]**pm *mphy[isL+1]**(1-pm)
+            mphyn = np.insert(mphy, isL+1, mphyadd)
 
-        ## search for proper particles mass
-        disk = sim.get_disk (loc=addlocS)
-        rhoint = sim.particles.rhoint[isL] #this should be changed
-        stgarr = sim.particles.St[isL]
-        out = v_rad (mphy[isL],disk,rhoint, stgarr, vadd=0)
+        else:
+            #the desired velocities
+            vraim = addlocS/2 *(sim.particles.v_r[isL]/loc[isL] +sim.particles.v_r[isL+1]/loc[isL+1])
+            #vraim = (sim.particles.v_r[isL] +sim.particles.v_r[isL+1])/2
+            #vraim = -np.sqrt(sim.particles.v_r[isL] *sim.particles.v_r[isL+1])
 
-        import pdb; pdb.set_trace()
+            ## search for proper particles mass
+            disk = sim.get_disk (loc=addlocS)
+            rhoint = sim.particles.rhoint[isL] #this should be changed
+            stgarr = sim.particles.St[isL]
+            #out = v_rad (mphy[isL],disk,rhoint, stgarr, vaim=0)
+
+            mphyadd = fsolve(v_rad, mphy[isL], args=(disk,rhoint,stgarr,vraim))
+            mphyn = np.insert(mphy, isL+1, mphyadd)
+
         #
         # def func(mass,disk,rhoint):
         #       return vr
