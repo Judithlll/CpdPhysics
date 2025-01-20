@@ -9,6 +9,29 @@ def resamplr_spiltmerge_zxl(sim, fchange, *args):
     """
     do the split and merge by the cumulative total mass distrbution
     """
+    loco = sim.particles.locL 
+    mtoto = sim.particles.mtotL 
+    masso = sim.particles.massL 
+    fcompo = sim.particles.fcomp 
+
+    #let's forget about the special locations for now [25.01.18]lzx 
+    xdel = np.log(loco[1:]/loco[:-1])
+
+    fdelS = sim.particles.delta/fchange
+    fdelM = sim.particles.delta*fchange
+
+    isL = np.where(xdel>fdelS)[0] 
+    imL = np.where(xdel<fdelM)[0]
+
+    if len(isL)>0: 
+        for id in isL:
+            if id>0 and id<len(loco)-2:
+                locn = np.insert(loco, id+1, np.sqrt(loco[id]*loco[id+1]))
+
+                #do the cumulative mass distribution to find the total mass 
+                cummasso = np.cumsum(mtoto)
+                cummassn = np.interp(locn, loco, cummasso) 
+                mtotn = np.diff(cummassn)
 
 
 
