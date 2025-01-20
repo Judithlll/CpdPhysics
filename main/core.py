@@ -246,13 +246,20 @@ class System(object):
                 #     plt.close()
                 #     import pdb;pdb.set_trace()
 
+                #vrold = self.particles.v_r
+                #sfdold = self.particles.sfd
+
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
                 self.particles.num = len(self.particles.locL)
                 #also we need to get other properties of particles 
                 #idea is make an function to get all these auxiliary
                 self.get_auxiliary(self.time)
-                self.particles.make_Y2d()
+
+                #import pdb; pdb.set_trace()
+                
+                #TBR
+                #self.particles.make_Y2d()
 
                 #mflux = self.particles.v_r *self.particles.sfd *self.particles.locL
                 #import pdb; pdb.set_trace()
@@ -510,7 +517,8 @@ class System(object):
         #    import pdb;pdb.set_trace()
 
 
-        Y0 = np.copy(self.particles.Y2d)
+        Y2d = self.particles.make_Y2d()
+        Y0 = np.copy(Y2d)
         t0 = self.time
         tn = t0 +self.deltaT
         #NOTE: need to update the properties of particles according to the time of every 
@@ -646,14 +654,13 @@ class System(object):
 
         self.daction = {}
 
-        loc = self.particles.Y2d[0]
+        #loc = self.particles.Y2d[0] #TBR
+        loc = self.particles.locL
 
         #particles that cross the inner disk edge
         idx, = (loc<self.rinn).nonzero()
         if len(idx)>0:
             self.daction['remove'] = idx
-        
-        
         
         #delmgasIn = dp.ratio*sciint.quad(dp.dot_Mg,self.time,self.time+self.deltaT)[0]
         #self.dotMd = dp.ratio*dp.dot_Mg(self.time)
@@ -676,8 +683,6 @@ class System(object):
         #but the self.mtot1 cannot be lower than (self.Minflux+self.Minflux_step)/2 
         #because this can make the adding two particles once
         self.Minflux += self.Minflux_step
-
-
 
         Nadd = 0#particles that enter the domain
         if pars.resampleMode=='Nplevel':
@@ -773,9 +778,9 @@ class System(object):
 
         #TBD: add particles when outmost particles is far from the rout
 
-        
         #get the Y2d needed to be used next step
-        self.particles.make_Y2d()
+        #TBR
+        #self.particles.make_Y2d()
 
         # get the property list to remove/add particles and select_single
         self.particles.propL = [attr for attr in dir(self.particles) if not attr.startswith('__') and isinstance(getattr(self.particles, attr), list) or isinstance(getattr(self.particles, attr), np.ndarray)]   
@@ -813,11 +818,11 @@ class System(object):
         #organize the procedure a bit (for quasi-steady evolution... later!)
         mintimeL = []
         
-        #self.particles.make_Y2d()
-        Y2dp = self.particles.dY2d_dt(self.particles.Y2d,self.time)
+        Y2d = self.particles.make_Y2d()
+        Y2dp = self.particles.dY2d_dt(Y2d,self.time)
 
         #timescale for the particles
-        tpart = np.abs(self.particles.Y2d/Y2dp)
+        tpart = np.abs(Y2d/Y2dp)
 
         #get the collision timescale of particles 
         #[2024.08.15]LZX: If the 0.5 here is absent, the particles crossing will happen
@@ -1780,8 +1785,8 @@ class Superparticles (object):
         #massL = np.flip(odeint(dm_dr, self.mini, radL).T)*compmask
         #self.massL = massL[0]
 
-
-        self.make_Y2d()   #get a Y2d used to integrate
+        #TBR
+        #self.make_Y2d()   #get a Y2d used to integrate
         for i in range(len(dcomposL)):
             del dcomposL[i]['Z_init']
             del dcomposL[i]['mask_icl']
@@ -1811,7 +1816,7 @@ class Superparticles (object):
 
     def make_Y2d (self):
         #let's say the second part in composition is always icy fraction 
-        self.Y2d = np.array([self.locL, self.massL])
+        return np.array([self.locL, self.massL])
 
     def get_rhoint(self):
         "get the true fcomp according to fcomp"
