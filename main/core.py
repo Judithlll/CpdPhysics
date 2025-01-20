@@ -206,6 +206,8 @@ class System(object):
         #[25.01.18]cwo: another variation...
         elif pars.resampleMode == 'new_splitmerge_chris':
             newarr = resample.new_splitmerge_chris(self, self.particles, **pars.dresample)
+        elif pars.resampleMode == 'new_splitmerge_zxl':
+            newarr = resample.new_splitmerge_zxl(self, self.particles, **pars.dresample)
 
         else:
             newarr = None
@@ -689,6 +691,7 @@ class System(object):
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
              pars.resampleMode in ['new_splitmerge_chris'] or\
+             pars.resampleMode in ['new_splitmerge_zxl'] or\
              pars.resampleMode in ['global_resample','global_resample2', 'global_resample3', 'global_resample4'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
@@ -1625,7 +1628,7 @@ class Superparticles (object):
             for iloc in range(nspecial-1):
                 r0 = locspecL[iloc]
                 xdum = np.log(locspecL[iloc+1]/r0)
-                Nadd = int(xdum /self.delta)
+                Nadd = round(xdum /self.delta)
                 #[25.01.01]cwo: put particles at half-distance near boundaries
                 rmid = r0 *np.exp(np.linspace(0,1,Nadd+1)*xdum)
                 radL.append(np.sqrt(rmid[1:]*rmid[:-1]))

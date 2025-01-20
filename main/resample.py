@@ -175,6 +175,154 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     else:
         return None
 
+def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
+    """
+    [25.01.18]: new splitmerge based on cumulative mass function
+                for the moment w/o special locations functionality
+    """
+    loc = spN.locL 
+    mtot = spN.mtotL
+    mphy = spN.massL
+    fcomp = spN.fcomp #composition fraction
+
+    ncomp = len(fcomp[0])
+    xdel = np.diff(np.log(loc))
+
+    #midpoint locations elligible for splitting (isL)
+    #don't split 1st/last particles (i.e., around special locations; TBD)
+    #fdelXarr[0] = np.inf; fdelXarr[-1] = np.inf
+
+
+    #now the masses
+    #ydel = np.diff(np.log(mphy))
+    #isL2, = np.nonzero(np.abs(ydel)>0.5*fdelXarr)
+    #isL = np.union1d(isL1, isL2)
+
+    #merging
+    #fdelXarr[0] = 0; fdelXarr[-1] = 0
+    fdelXarr = np.ones_like(xdel)
+    imL, = np.nonzero(xdel<fdelXarr*sim.particles.delta*2/3)
+
+
+    fdelXarr[imL] = np.inf #dont split where we merge
+    fdelXarr[imL+1] = np.inf
+    fdelXarr[imL-1] = np.inf
+
+    fdelS = 2*sim.particles.delta
+    isL, = np.nonzero(xdel>fdelS*fdelXarr)
+
+    #splitting: add the locations
+    addlocS = np.sqrt(loc[isL]*loc[isL+1])
+    addlocM = np.sqrt(loc[imL]*loc[imL+1])
+
+    if len(isL)>0 or len(imL)>0:
+        doResample = True
+    else:
+        doResample = False
+
+
+    if False and len(imL)>0:
+        addloc = np.sqrt(loc[imL]*loc[imL+1])
+        addmtot = mtot[imL]+mtot[imL+1]
+        addmphy = np.sqrt(mphy[imL]*mphy[imL+1])
+
+        #addmphy = (mphy[imL]*mtot[imL] +mphy[imL+1]*mtot[imL+1]) /addmtot
+        #addmloc = (loc[imL]*mtot[imL] +loc[imL+1]*mtot[imL+1]) /addmtot
+
+        locn = loc.copy()
+        locn[imL] = addloc
+        locn = np.delete(locn,imL+1)
+        npar = len(locn)
+
+        mtotn = mtot.copy()
+        mtotn[imL] = addmtot
+        mtotn = np.delete(mtotn,imL+1)
+
+        mphyn = mphy.copy()
+        mphyn[imL] = addmphy
+        mphyn = np.delete(mphyn,imL+1)
+
+        fcompn = np.ones((npar,ncomp))
+
+        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+        return locn, mtotn, mphyn, fcompn
+
+
+    if doResample:#or len(imL)>0:
+        locmidext = locmid_ext (loc)
+        cummtot = np.concatenate(([0],np.cumsum(mtot)))
+
+        #merging: remove the locations from loc (TBD)
+        locn = loc.copy()
+        locn[imL] = addlocM
+        locn = np.delete(locn,imL+1)
+
+        #a bit weird
+        locn = np.concatenate((locn,addlocS))
+        locn.sort()
+        npar = len(locn) #new number of particles
+
+        locmidnext = locmid_ext (locn)
+        locmidnext[0] = locmidext[0] #hack
+        cummtotn = np.interp(locmidnext, locmidext, cummtot)
+        mtotn = np.diff(cummtotn)
+
+        #print(isL)
+        mflux = sim.particles.v_r *sim.particles.sfd *sim.particles.locL
+        if np.any(np.diff(mflux[1:20])<0) and False:
+            print('mflux not in order')
+            import pdb; pdb.set_trace()
+
+        pm = 0.5
+        dum = interp_mtot_weighted (locmidnext, locmidext, mphy**pm, mtot, mtotn)
+        mphyn = dum**(1/pm)
+
+        ##[25.01.20]lzx: now from the velocity to get the mass 
+        #first get the velocity in the geometrical average point 
+        addloc = np.append(addlocS, addlocM)
+        for i, idx in enumerate(np.append(isL, imL)):
+            v1 = sim.particles.v_r[idx] 
+            v2 = sim.particles.v_r[idx+1]
+            r1 = loc[idx]
+            r2 = loc[idx+1]
+            vnew = (r1*v2+r2*v1)/2/addloc[i]
+
+            #get the mass from the velocity
+
+        import pdb;pdb.set_trace()
+        #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy))
+        #mphyn = np.exp(logmphyn)
+        #import pdb; pdb.set_trace()
+
+        #mphyn[isL+1] = (0.5*(mphy[isL]**(1/3)+mphy[isL+2]**(1/3)))**3
+
+       #if np.all(np.diff(np.log10(mphyn[:100]))<0)==False:
+       #    print('physical mass not in order')
+
+        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+
+        #if len(imL)>0: import pdb; pdb.set_trace()
+
+        #composition... to be tested
+        fcompn = np.empty((npar,ncomp))
+        for k in range(ncomp):
+            cummass = np.concatenate(([0], np.cumsum(mtot*fcomp[:,k])))
+            cummassn = np.interp(locmidnext, locmidext, cummass)
+            fcompn[:,k] = np.diff(cummassn) /mtotn
+
+        return locn, mtotn, mphyn, fcompn
+    else:
+        return None
+
+
+def v2mass (vr, loc, sim):
+    """
+    [25.01.20]: get the mass from the velocity
+    """
+    from scipy.optimize import fsolve 
+    pass
+
+
 
 def resamplr_spiltmerge_zxl(sim, fchange, *args):
     """
@@ -1121,26 +1269,6 @@ def global_resample3 (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, nspec=1, fdelD
     nspec = 2
     idxspec = np.searchsorted(loc, sim.specloc)
     idxspec = np.concatenate(([0], idxspec, [len(loc)-1]))
-
-
-    #firstly check whether the nspec particles need direct merge or split 
-    for idx in idxspec:
-        if idx<nspec:
-            specL = loc[:idx+nspec]
-        elif idx>len(loc)-nspec:
-            specL = loc[idx-nspec:]
-        else:
-            specL = loc[idx-nspec:idx+nspec]
-
-        #if the particles are too close to each other, we need to do the direct merge 
-        if np.any(np.diff(specL))<fdelDM:
-            print('[global_resample3]:direct merge for particles', idx)
-
-            #direct merge 
-            locn = 
-
-
-
 
     xdel = np.diff(np.log(loc))
     npar = pars.dparticleprops['nini']
