@@ -4,51 +4,23 @@ import sys
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import functions as ff
+import physics
 
-def new_splitmerge_chris2 (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
-    loc = spN.locL 
-    mtot = spN.mtotL
-    mphy = spN.massL
-    fcomp = spN.fcomp #composition fraction
 
-    ncomp = len(fcomp[0])
-    xdel = np.diff(np.log(loc))
+def v_rad (marr,disk,rhoint, Stg=None, vadd=0):
+    """
+    obtain radial velocity of particles
+    - radarr    :input locations
+    - disk      :disk object at locations
+    - rhoint    :internal densities
+    """
 
-    fdelS = 2*sim.particles.delta
-    #midpoint locations elligible for splitting (isL)
-    #don't split 1st/last particles (i.e., around special locations; TBD)
-    fdelXarr = np.ones_like(xdel)
-    #fdelXarr[0] = np.inf; fdelXarr[-1] = np.inf
-    isL, = np.nonzero(xdel>fdelS*fdelXarr)
+    sarr = physics.mass_to_radius(marr,rhoint)
+    St, vr = ff.Stokes_number(disk, sarr, rhoint, Sto=Stg)
 
-    if len(isL)>0:#or len(imL)>0:
-        #merging: remove the locations from loc (TBD)
-        dumloc = loc
+    import pdb; pdb.set_trace()
+    return vr + vadd
 
-        #splitting: add the locations
-        #addloc = np.sqrt(loc[isL]*loc[isL+1])
-        addloc = (loc[isL]+loc[isL+1])/2
-        locn = np.insert(loc,isL+1,addloc)
-        npar = len(locn) #new number of particles
-
-        addmtot = mtot[isL]/2
-        mtotn = mtot.copy()
-        mtotn[isL] /= 2
-        mtotn = np.insert(mtotn,isL+1,addmtot)
-
-        addmphy = np.sqrt(mphy[isL]*mphy[isL+1])
-        addmphy = mphy[isL]
-        mphyn = mphy.copy()
-        mphyn = np.insert(mphyn,isL+1,addmphy)
-
-        sfdnew = ff.sfd_chris (mtotn, locn)
-
-        #composition... to be tested
-        fcompn = np.ones((npar,ncomp))
-
-        return locn, mtotn, mphyn, fcompn
-    else:
-        return None
 
 def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
     """
@@ -63,9 +35,6 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     ncomp = len(fcomp[0])
     xdel = np.diff(np.log(loc))
 
-    #midpoint locations elligible for splitting (isL)
-    #don't split 1st/last particles (i.e., around special locations; TBD)
-    #fdelXarr[0] = np.inf; fdelXarr[-1] = np.inf
 
 
     #now the masses
@@ -77,12 +46,16 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     #fdelXarr[0] = 0; fdelXarr[-1] = 0
     fdelXarr = np.ones_like(xdel)
     imL, = np.nonzero(xdel<fdelXarr*sim.particles.delta*2/3)
+    #imL = np.array([],dtype=np.int64) #no merging
 
 
     fdelXarr[imL] = np.inf #dont split where we merge
     fdelXarr[imL+1] = np.inf
     fdelXarr[imL-1] = np.inf
 
+    #midpoint locations elligible for splitting (isL)
+    #don't split 1st/last particles (i.e., around special locations; TBD)
+    #fdelXarr[:2] = np.inf; fdelXarr[-2:] = np.inf
     fdelS = 2*sim.particles.delta
     isL, = np.nonzero(xdel>fdelS*fdelXarr)
 
@@ -94,33 +67,6 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         doResample = True
     else:
         doResample = False
-
-
-    if False and len(imL)>0:
-        addloc = np.sqrt(loc[imL]*loc[imL+1])
-        addmtot = mtot[imL]+mtot[imL+1]
-        addmphy = np.sqrt(mphy[imL]*mphy[imL+1])
-
-        #addmphy = (mphy[imL]*mtot[imL] +mphy[imL+1]*mtot[imL+1]) /addmtot
-        #addmloc = (loc[imL]*mtot[imL] +loc[imL+1]*mtot[imL+1]) /addmtot
-
-        locn = loc.copy()
-        locn[imL] = addloc
-        locn = np.delete(locn,imL+1)
-        npar = len(locn)
-
-        mtotn = mtot.copy()
-        mtotn[imL] = addmtot
-        mtotn = np.delete(mtotn,imL+1)
-
-        mphyn = mphy.copy()
-        mphyn[imL] = addmphy
-        mphyn = np.delete(mphyn,imL+1)
-
-        fcompn = np.ones((npar,ncomp))
-
-        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
-        return locn, mtotn, mphyn, fcompn
 
 
     if doResample:#or len(imL)>0:
@@ -142,34 +88,45 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         cummtotn = np.interp(locmidnext, locmidext, cummtot)
         mtotn = np.diff(cummtotn)
 
-        #print(isL)
-        mflux = sim.particles.v_r *sim.particles.sfd *sim.particles.locL
-        if np.any(np.diff(mflux[1:20])<0) and False:
-            print('mflux not in order')
-            import pdb; pdb.set_trace()
-
-        pm = 0.5
-        dum = interp_mtot_weighted (locmidnext, locmidext, mphy**pm, mtot, mtotn)
-        mphyn = dum**(1/pm)
-        #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy))
-        #mphyn = np.exp(logmphyn)
-        #import pdb; pdb.set_trace()
-
-        #mphyn[isL+1] = (0.5*(mphy[isL]**(1/3)+mphy[isL+2]**(1/3)))**3
-
-       #if np.all(np.diff(np.log10(mphyn[:100]))<0)==False:
-       #    print('physical mass not in order')
-
-        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
-
-        #if len(imL)>0: import pdb; pdb.set_trace()
-
-        #composition... to be tested
+        #composition... TBD
         fcompn = np.empty((npar,ncomp))
         for k in range(ncomp):
             cummass = np.concatenate(([0], np.cumsum(mtot*fcomp[:,k])))
             cummassn = np.interp(locmidnext, locmidext, cummass)
             fcompn[:,k] = np.diff(cummassn) /mtotn
+
+        mflux = sim.particles.v_r *sim.particles.sfd *sim.particles.locL
+        if np.any(np.diff(mflux[1:20])<0) and False:
+            print('mflux not in order')
+
+
+        pm = 0.5
+        dum = interp_mtot_weighted (locmidnext, locmidext, mphy**pm, mtot, mtotn)
+        mphyn = dum**(1/pm)
+        #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy), mtot, mtotn)
+        #mphyn = np.exp(logmphyn)
+
+        #the desired velocities
+        vraim = (sim.particles.v_r[isL] +sim.particles.v_r[isL+1])/2
+
+        ## search for proper particles mass
+        disk = sim.get_disk (loc=addlocS)
+        rhoint = sim.particles.rhoint[isL] #this should be changed
+        stgarr = sim.particles.St[isL]
+        out = v_rad (mphy[isL],disk,rhoint, stgarr, vadd=0)
+
+        import pdb; pdb.set_trace()
+        #
+        # def func(mass,disk,rhoint):
+        #       return vr
+
+        if loc[0]<sim.rinn:
+            import pdb; pdb.set_trace()
+
+        if np.all(np.diff(np.log10(mphyn[:100]))<0)==False and False:
+            print('physical mass not in order')
+
+        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
 
         return locn, mtotn, mphyn, fcompn
     else:

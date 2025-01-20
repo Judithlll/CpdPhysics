@@ -118,9 +118,7 @@ def load_dict_from_file (fname):
     return dout
 
 
-
-def St_iterate (eta, vK, vth, lmfp, rhog,
-                OmegaK, Rd, rhoint=1.4, Sto=0.001, errorX=1e-4, nmax=100):
+def Stokes_number (disk, size, rhoint, Sto=0.001, errorX=1e-4, nmax=100):
     """
     Get Stokes number and drift velocity by fixed-point iteration
     
@@ -134,7 +132,7 @@ def St_iterate (eta, vK, vth, lmfp, rhog,
 
     if Sto is None:
         St = 1e-4
-    elif type(eta)==np.ndarray and type(Sto)==np.ndarray and len(eta)==len(Sto):
+    elif type(disk.eta)==np.ndarray and type(Sto)==np.ndarray and len(disk.eta)==len(Sto):
         St = Sto
     else:
         St = 1e-4
@@ -142,11 +140,27 @@ def St_iterate (eta, vK, vth, lmfp, rhog,
     niter = 1
     while niter<nmax:
         niter += 1
-        vr = physics.radial_v(St, eta, vK)
+        vr = physics.radial_v(St, disk.eta, disk.vK)
 
+        #[25.01.20]cwo: made this a bit more general
         #call userfunction for Stokes number
-        Stn = userfun.Stokes_number(delv=vr, Rd=Rd, vth=vth, lmfp=lmfp, OmegaK=OmegaK, 
-                                    rhog=rhog, rhoint=rhoint)
+
+        if pars.dragmodel=='Epstein':
+            Stn = physics.Stokes_Epstein (size, rhoint, disk.vth, disk.rhog, disk.OmegaK)
+            Stn *= np.sqrt(8/np.pi) #difference b/w sound speed and thermal velocity
+
+            #this is how Youdin & Shu do it..
+            vr = -2*St *disk.eta *disk.vK
+
+        #[25.01.01]cwo Stokes number is fixed??
+        #just for ism final project
+        elif pars.dragmodel=='fixed_St':
+            St = np.ones_like(loc)*pars.fixed_St
+
+        #user defines
+        else:
+            Stn = Stokes_number(delv=vr, Rd=size, vth=disk.vth, lmfp=disk.lmfp, OmegaK=disk.OmegaK, 
+                                    rhog=disk.rhog, rhoint=rhoint)
 
         #better to do relative error 
         error = abs(St/Stn-1)
