@@ -739,6 +739,25 @@ def locmid_ext (loc):
     return locmidext
 
 
+def locmid_ext_special (loc, specL=[]):
+    """
+    this is a modified version of the above, in which
+    midpoint locations around special locations are shifted
+    to concide with the latter
+    """
+    locmidext = locmid_ext (loc)
+
+    for locs in specL:
+        il = np.searchsorted(loc, locs)
+        ix = np.searchsorted(locmidext, locs)
+        if loc[il]>loc[ix]:# p<special<ix<il
+            locmidext[ix] = locs
+        else:# ix-1<special<il<ix
+            locmidext[ix-1] = locs
+
+    return locmidext
+
+
 def interp_mtot_weighted (xn, xmid, qarr, marr=None, mn=None, neval=0):
     """
     interpolates a certain quantity qarr defined with respect to the 
@@ -770,6 +789,64 @@ def interp_mtot_weighted (xn, xmid, qarr, marr=None, mn=None, neval=0):
 
     #if neval==1: import pdb; pdb.set_trace()
     return qn
+
+
+def fixed_resample (sim, spN, fchange=0.9, **kwargs):
+    """
+    like global_resample, resample to fixed positions
+    - finer resampling near iceline locations (TBD)
+    - piecewise, but not mass-conserving
+    """
+
+    loc = spN.locL 
+    mtot = spN.mtotL
+    mphy = spN.massL
+    fcomp = spN.fcomp #composition fraction
+    ncomp = len(fcomp[0])
+
+    xdel = np.diff(np.log(loc))
+
+    #splitting/changes based on fdelS
+    fdelS = sim.particles.delta /fchange
+
+    #initial locations and midpoins
+    locn, locmidnext = sim.particles.loc_init(specL=sim.specloc)
+    npar = len(locn)
+
+    #areas surrounding special locations are better resolved
+    #and need to have a more stringent merging criterion
+    fdelM = np.ones_like(xdel) *sim.particles.delta *fchange
+    conspecial = False
+    for spec in list(sim.specloc):
+        i0 = np.searchsorted(loc,spec)
+        i1 = np.searchsorted(loc,spec*np.exp(2*sim.particles.delta))
+        fdelM[i0-2:i1] /= 10
+        fdelM[i0-1] = 0 #contains iceline
+
+    conmerge = xdel<fdelM
+    consplit = np.any(xdel>fdelS)
+
+    #if np.any(conmerge) or conspecial: import pdb; pdb.set_trace()
+
+    if conmerge.any() or consplit:
+        #extended midpoints locations and cumulative mass
+        #TBD: add special locations in here
+        locmidext = locmid_ext_special (loc, list(sim.specloc))
+        cummtot = np.concatenate(([0],np.cumsum(mtot)))
+
+        cummtotn = np.interp(locmidnext, locmidext, cummtot)
+        mtotn = np.diff(cummtotn)
+
+        mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy, mtot, mtotn)
+        fcompn = np.empty((npar,ncomp))
+        for k in range(ncomp):
+            fcompn[:,k] = interp_mtot_weighted (locmidnext, locmidext, fcomp[:,k], mtot, mtotn)
+
+        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+        import pdb; pdb.set_trace()
+        return locn, mtotn, mphyn, fcompn
+    else:
+        return None
 
 
 def global_resample4 (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, nn=1,**args):
@@ -875,14 +952,16 @@ def global_resample4 (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, nn=1,**args):
                 #dum = np.diff(cummassn) /(mtotn+1e-16) #1e-16 to prevent the zero division 
 
                 #log-interpolation of the mass seems much better
-                logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy[ii]), mtot[ii], mtotn)
-                mphyn = np.exp(logmphyn)
-                #mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy[ii])
+                #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy[ii]), mtot[ii], mtotn)
+                #mphyn = np.exp(logmphyn)
 
-                #this is quite diffusive
-                #pwl = 0.5
-                #dum = interp_mtot_weighted (locmidnext, locmidext, mphy[ii]**pwl, mtot[ii], mtotn)
-                #mphyn = dum**(1/pwl)
+                #this is very diffusive
+                #mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy[ii], mtot[ii], mtotn)
+
+                #this is also quite diffusive
+                pwl = 0.5
+                dum = interp_mtot_weighted (locmidnext, locmidext, mphy[ii]**pwl, mtot[ii], mtotn)
+                mphyn = dum**(1/pwl)
 
                 #composition... to be tested
                 fcompn = np.empty((npar,ncomp))

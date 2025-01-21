@@ -208,6 +208,10 @@ class System(object):
         elif pars.resampleMode == 'global_resample4':
             newarr = resample.global_resample4(self, self.particles, **pars.dresample)
 
+        #[25.01.21]cwo: fixed_resampling (should be similar to global_resample)
+        elif pars.resampleMode == 'fixed_resample':
+            newarr = resample.fixed_resample(self, self.particles, **pars.dresample)
+
         #[25.01.18]cwo: another variation...
         elif pars.resampleMode == 'new_splitmerge_chris':
             newarr = resample.new_splitmerge_chris(self, self.particles, **pars.dresample)
@@ -257,6 +261,9 @@ class System(object):
                 #also we need to get other properties of particles 
                 #idea is make an function to get all these auxiliary
                 self.get_auxiliary(self.time)
+
+                if np.isnan(self.particles.locL).any():
+                    import pdb; pdb.set_trace()
                 
                 #TBR
                 #self.particles.make_Y2d()
@@ -693,7 +700,7 @@ class System(object):
                 Nadd += 1
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
-             pars.resampleMode in ['new_splitmerge_chris'] or\
+             pars.resampleMode in ['new_splitmerge_chris','fixed_resample'] or\
              pars.resampleMode in ['global_resample','global_resample2', 'global_resample3', 'global_resample4'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
@@ -1617,19 +1624,35 @@ class Superparticles (object):
                 if rinn<locspec<rout:
                     locspecL.append(locspec)
         locspecL.sort()
-        locspecL.insert(0, rinn)
-        locspecL.append(rout)
-
 
         print('[core.Superparticles.init]:initialization superparticles under rule:', initrule)
-        nspecial = len(locspecL) #includes the boundaries
         radL = []
         rmidL = []
         msupL = []
         ncomp = len(pars.composL) #number of refractory +volatile species
         fcompL = []
-        if initrule=='equallogspace':
+
+        if pars.resampleMode=='fixed_resample' and initrule=='equallogspace':
+            
+            radL, locmid = self.loc_init (specL=locspecL)
+
+            r0 = locmid[0]
+            for k,r1 in enumerate(locmid[1:]): #the midpoints
+                msup, err = sciint.quad(f_sample, r0, r1, limit =100)
+                msupL.append(msup) #total mass
+                fcdum = f_arr(np.sqrt(r0*r1))
+                fc = fcdum[:ncomp] /fcdum.sum()
+                fcompL.append(fc) #composition
+                r0 = r1
+
+            msup = np.array(msupL)
+
+        elif initrule=='equallogspace':
             #put sp at equal distances in log space
+
+            locspecL.insert(0, rinn)
+            locspecL.append(rout)
+            nspecial = len(locspecL) #includes the boundaries
 
             #piecewise..
             for iloc in range(nspecial-1):
@@ -1762,11 +1785,8 @@ class Superparticles (object):
         self.mtot1 = self.mtotL[-1] #for adding new particles
         self.mini = self.massL[-1]   #for adding particles
 
-
-
-            
         #<-- initialization
-        
+
         def dm_dr(m,r):
             Rd = physics.mass_to_radius(m,self.rhoint[-1])
             out = gas.get_key_disk_properties(r, 0.0)
@@ -1795,6 +1815,42 @@ class Superparticles (object):
         for i in range(len(dcomposL)):
             del dcomposL[i]['Z_init']
             del dcomposL[i]['mask_icl']
+
+
+
+    def loc_init (self, specL=[]):
+        """
+        provides the (initial) locations of particles and midpoints
+        - accounting for refinement near special locations
+
+        [25.01.21]: NOTE it is important to specify the locations first
+                    and then the midpoints!!
+        """
+
+        ## first get the fixed positions
+        xdum = np.log(self.rout/self.rinn)
+        npar = int( xdum/self.delta)
+
+        loc = self.rinn *np.exp((0.5+np.arange(npar))*self.delta)
+
+        #insert the iceline point
+        val = np.sort(specL)[::-1]
+        ixL = list(np.searchsorted(loc, val))
+
+        #this needs to be done in reverse order...
+        #we add the iceline as a midpoint. It's possible that a
+        #very small particle is created interior to it however... 
+        for i,ix in enumerate(ixL):
+            #give finer resolution 
+            locadd = val[i]*np.exp((np.arange(-1.5,20))*self.delta/10)
+            i0 = np.searchsorted(loc,locadd[0])
+            i1 = np.searchsorted(loc,locadd[-1])
+            loc = np.concatenate((loc[:i0], locadd[1:-1], loc[i1:]))
+
+        locmid = np.concatenate(([self.rinn], 
+                                 np.sqrt(loc[1:]*loc[:-1]), 
+                                 [self.rout]))
+        return loc, locmid
 
 
     def select_single(self, ix):

@@ -24,5 +24,5 @@ doJump = False
 doPlanets = False
 doIcelines = True
 
-resampleMode = 'global_resample4'# None#
+resampleMode = 'fixed_resample' #'global_resample4'# None#
 dresample = {'fdelS':0.04, 'fdelM':0.01}

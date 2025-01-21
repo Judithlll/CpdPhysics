@@ -159,7 +159,7 @@ def Stokes_number (disk, size, rhoint, Sto=0.001, errorX=1e-4, nmax=100):
 
         #user defines
         else:
-            Stn = Stokes_number(delv=vr, Rd=size, vth=disk.vth, lmfp=disk.lmfp, OmegaK=disk.OmegaK, 
+            Stn = userfun.Stokes_number(delv=vr, Rd=size, vth=disk.vth, lmfp=disk.lmfp, OmegaK=disk.OmegaK, 
                                     rhog=disk.rhog, rhoint=rhoint)
 
         #better to do relative error 
