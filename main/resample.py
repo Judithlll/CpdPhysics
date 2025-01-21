@@ -36,7 +36,6 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     xdel = np.diff(np.log(loc))
 
 
-
     #now the masses
     #ydel = np.diff(np.log(mphy))
     #isL2, = np.nonzero(np.abs(ydel)>0.5*fdelXarr)
@@ -46,7 +45,9 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     #fdelXarr[0] = 0; fdelXarr[-1] = 0
     fdelXarr = np.ones_like(xdel)
     imL, = np.nonzero(xdel<fdelXarr*sim.particles.delta*2/3)
-    imL = np.array([],dtype=np.int64) #no merging
+
+    #switch off merging
+    imL = np.array([],dtype=np.int64)
 
 
     fdelXarr[imL] = np.inf #dont split where we merge
@@ -100,20 +101,29 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
             print('mflux not in order')
 
 
-        if False:
-            pm = 0.4
+        if True:
+            # this mixing scheme for the physical mass works surprisingly well
+            # if the power-law equals 0.4. I have no clue why
+            pm = 0.5
             dum = interp_mtot_weighted (locmidnext, locmidext, mphy**pm, mtot, mtotn)
             mphyn = dum**(1/pm)
+
+            #the log-based mixing scheme isn't so good though
+            #
             #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy), mtot, mtotn)
             #mphyn = np.exp(logmphyn)
-        
-        elif True:
 
+        #the following two mixing schemes do not yet account for merging
+        elif False:
+            # this is a more physical mixing scheme
             pm = 0.5
             mphyadd = mphy[isL]**pm *mphy[isL+1]**(1-pm)
             mphyn = np.insert(mphy, isL+1, mphyadd)
 
         else:
+            #in this mixing scheme, we aim to insert the "right" velocity
+            #unfortunately, we get the same issues as before
+
             #the desired velocities
             vraim = addlocS/2 *(sim.particles.v_r[isL]/loc[isL] +sim.particles.v_r[isL+1]/loc[isL+1])
             #vraim = (sim.particles.v_r[isL] +sim.particles.v_r[isL+1])/2
@@ -121,24 +131,23 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 
             ## search for proper particles mass
             disk = sim.get_disk (loc=addlocS)
-            rhoint = sim.particles.rhoint[isL] #this should be changed
-            stgarr = sim.particles.St[isL]
-            #out = v_rad (mphy[isL],disk,rhoint, stgarr, vaim=0)
+            rhoint = sim.particles.rhoint[isL]  #this should be changed
+            stgarr = sim.particles.St[isL]      #initial guess
 
             mphyadd = fsolve(v_rad, mphy[isL], args=(disk,rhoint,stgarr,vraim))
             mphyn = np.insert(mphy, isL+1, mphyadd)
 
-        #
-        # def func(mass,disk,rhoint):
-        #       return vr
 
         if loc[0]<sim.rinn:
+            print('1st particle location too small')
             import pdb; pdb.set_trace()
 
+        #print a warning message when the physical mass is not in order
+        #I think that this shouldn't happen in reality...
         if np.all(np.diff(np.log10(mphyn[:100]))<0)==False and False:
             print('physical mass not in order')
 
-        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+        #sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
 
         return locn, mtotn, mphyn, fcompn
     else:
