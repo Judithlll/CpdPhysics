@@ -210,7 +210,10 @@ class System(object):
 
         #[25.01.21]cwo: fixed_resampling (should be similar to global_resample)
         elif pars.resampleMode == 'fixed_resample':
-            newarr = resample.fixed_resample(self, self.particles, **pars.dresample)
+            newarr = resample.fixed_resample(self, self.particles, self.specloc, **pars.dresample)
+
+        elif pars.resampleMode == 'local_splitmerge':
+            newarr = resample.local_splitmerge(self, self.particles, **pars.dresample)
 
         #[25.01.18]cwo: another variation...
         elif pars.resampleMode == 'new_splitmerge_chris':
@@ -700,7 +703,7 @@ class System(object):
                 Nadd += 1
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
-             pars.resampleMode in ['new_splitmerge_chris','fixed_resample'] or\
+             pars.resampleMode in ['new_splitmerge_chris','fixed_resample','local_splitmerge'] or\
              pars.resampleMode in ['global_resample','global_resample2', 'global_resample3', 'global_resample4'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
@@ -1614,6 +1617,10 @@ class Superparticles (object):
 
         #this is the desired spacing among the particles in log-space
         self.delta = np.log(rout/rinn) /nini
+
+        #grid used in calculating particle surface density
+        #it should (?) be courser than aimed particle number
+        self.pgrid = 10**np.linspace(np.log10(rinn), np.log10(rout), nini//5)
         
         #divide domain into pieces, as determined by iceline
         locspecL = []
@@ -1785,8 +1792,6 @@ class Superparticles (object):
         self.mtot1 = self.mtotL[-1] #for adding new particles
         self.mini = self.massL[-1]   #for adding particles
 
-        #<-- initialization
-
         def dm_dr(m,r):
             Rd = physics.mass_to_radius(m,self.rhoint[-1])
             out = gas.get_key_disk_properties(r, 0.0)
@@ -1817,6 +1822,8 @@ class Superparticles (object):
             del dcomposL[i]['mask_icl']
 
 
+        #<-- initialization (Superparticles)
+
 
     def loc_init (self, specL=[]):
         """
@@ -1842,10 +1849,8 @@ class Superparticles (object):
         #very small particle is created interior to it however... 
         for i,ix in enumerate(ixL):
             #give finer resolution 
-            locadd = val[i]*np.exp((np.arange(-1.5,20))*self.delta/10)
-            i0 = np.searchsorted(loc,locadd[0])
-            i1 = np.searchsorted(loc,locadd[-1])
-            loc = np.concatenate((loc[:i0], locadd[1:-1], loc[i1:]))
+            locadd = loc[ix-1] *np.exp(self.delta*np.arange(1,20)/10)
+            loc = np.concatenate((loc[:ix], locadd, loc[ix+1:]))
 
         locmid = np.concatenate(([self.rinn], 
                                  np.sqrt(loc[1:]*loc[:-1]), 
@@ -1945,11 +1950,14 @@ class Superparticles (object):
                 sfd = ff.sfd_special (self.mtotL, loc, specloc)
             elif pars.sfdmode=='sfd_chris':
                 sfd = ff.sfd_chris (self.mtotL, loc)
+            elif pars.sfdmode=='sfd_spline':
+                sfd = ff.sfd_spline (self.mtotL, loc)
+            elif pars.sfdmode=='fixed_bin':
+                sfd = ff.sfd_fixedbin (self.mtotL, loc, self.pgrid, specloc)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
                 #import pdb;pdb.set_trace()
-
             else:
                 sfd = None
                 

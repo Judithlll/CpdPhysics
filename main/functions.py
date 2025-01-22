@@ -191,6 +191,63 @@ def get_stokes_number(disk,t,sPLmtot,rhoint):
     return St
 
 
+def sfd_spline (msup, loc, **kwargs):
+    """
+    also fails LJ test
+    """
+    from scipy.interpolate import PchipInterpolator
+
+    locmid = np.sqrt(loc[1:]*loc[:-1])
+    locmidext = np.concatenate((
+        [loc[0]*np.sqrt(loc[0]/loc[1])],
+        locmid,
+        [np.sqrt(loc[-1]/loc[-2])*loc[-1]]))
+
+    mcum = np.concatenate(([0],np.cumsum(msup)))
+
+    # Create a monotonic piecewise spline
+    pchip = PchipInterpolator(np.log(locmidext), mcum)
+    px = pchip.derivative()
+
+    return px(np.log(loc)) /(2*np.pi*loc**2)
+
+
+def sfd_fixedbin (msup, loc, pgrid, specloc=[], noff=1):
+    """
+    We simply fix the bins and count...
+    """
+
+    rinn = pgrid[0]
+    rout = pgrid[-1]
+
+    fac = (rout/rinn)**(1/(len(pgrid)-1))
+
+    sfd_avg = np.zeros_like(loc)
+    for koff in range(noff):
+        grid = pgrid *fac**(koff/noff)
+
+        if koff!=0:
+            grid = np.concatenate(([rinn],grid[:-1],[rout]))
+
+        rbin = np.sqrt(grid[1:]*grid[:-1]) #the midpoints
+        wbin = grid[1:] -grid[:-1] #bin spacing
+        nbin = len(rbin)
+
+        Abin = 2*np.pi*rbin*wbin
+        
+        ig = np.searchsorted(grid, loc) -1  #points to the bin index
+
+        ig = np.maximum(0, ig) #hack...
+
+
+        mbin = np.bincount(ig, weights=msup, minlength=nbin)    #total mass in bin 0, 1, ...
+        mbin /= Abin                            #transform to surface density
+        sfd = mbin[ig]                            #corresponding mass for particles
+        sfd_avg += sfd /noff
+
+    return sfd
+
+
 def sfd_special (msup, loc, specloc):
     """
     like sfd_simple, but accounting for special locations

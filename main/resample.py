@@ -22,6 +22,68 @@ def v_rad (marr,disk,rhoint,Stg=None,vaim=0):
     return vr -vaim
 
 
+def local_splitmerge (sim, spN, **kwargs):
+    """
+    similar to new_splitmerge_chris
+    """
+    loc = spN.locL 
+    mtot = spN.mtotL
+    mphy = spN.massL
+    fcomp = spN.fcomp #composition fraction
+
+    ncomp = len(fcomp[0])
+    xdel = np.diff(np.log(loc))
+
+    fdelXarr = np.ones_like(xdel)
+    fdelS = 2*sim.particles.delta
+    isL, = np.nonzero(xdel>fdelS*fdelXarr)
+    imL, = np.nonzero(xdel<fdelXarr*sim.particles.delta*2/3)
+
+    #splitting: add the locations
+    addlocS = np.sqrt(loc[isL]*loc[isL+1])
+    addlocM = np.sqrt(loc[imL]*loc[imL+1])
+
+    if len(isL)>0 or len(imL)>0:
+        doResample = True
+    else:
+        doResample = False
+
+    if doResample:#or len(imL)>0:
+        locmidext = locmid_ext (loc)
+        cummtot = np.concatenate(([0],np.cumsum(mtot)))
+
+        #merging: remove the locations from loc (TBD)
+        locn = loc.copy()
+        locn[imL] = addlocM
+        locn = np.delete(locn,imL+1)
+
+        #a bit weird
+        locn = np.concatenate((locn,addlocS))
+        locn.sort()
+        npar = len(locn) #new number of particles
+
+        locmidnext = locmid_ext (locn)
+        locmidnext[0] = locmidext[0] #hack
+        cummtotn = np.interp(locmidnext, locmidext, cummtot)
+        mtotn = np.diff(cummtotn)
+
+        #composition... TBD
+        fcompn = np.empty((npar,ncomp))
+        for k in range(ncomp):
+            cummass = np.concatenate(([0], np.cumsum(mtot*fcomp[:,k])))
+            cummassn = np.interp(locmidnext, locmidext, cummass)
+            fcompn[:,k] = np.diff(cummassn) /mtotn
+
+        #the physical mass
+        mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy, mtot, mtotn)
+
+        #print(mtotn)
+        #sfdnew = ff.sfd_fixedbin (mtotn, locn, sim.particles.pgrid, sim.specloc)
+        return locn, mtotn, mphyn, fcompn
+    else:
+        return None
+
+
 def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
     """
     [25.01.18]: new splitmerge based on cumulative mass function
@@ -791,7 +853,7 @@ def interp_mtot_weighted (xn, xmid, qarr, marr=None, mn=None, neval=0):
     return qn
 
 
-def fixed_resample (sim, spN, fchange=0.9, **kwargs):
+def fixed_resample (sim, spN, specloc, fchange=0.9, **kwargs):
     """
     like global_resample, resample to fixed positions
     - finer resampling near iceline locations (TBD)
@@ -818,10 +880,10 @@ def fixed_resample (sim, spN, fchange=0.9, **kwargs):
     fdelM = np.ones_like(xdel) *sim.particles.delta *fchange
     conspecial = False
     for spec in list(sim.specloc):
-        i0 = np.searchsorted(loc,spec)
-        i1 = np.searchsorted(loc,spec*np.exp(2*sim.particles.delta))
-        fdelM[i0-2:i1] /= 10
-        fdelM[i0-1] = 0 #contains iceline
+        ii = (loc>spec*np.exp(-2*sim.particles.delta)) *\
+                (loc<spec*np.exp(2*sim.particles.delta))
+        fdelM[ii[:-1]] /= 10 #contains iceline
+
 
     conmerge = xdel<fdelM
     consplit = np.any(xdel>fdelS)
@@ -829,9 +891,11 @@ def fixed_resample (sim, spN, fchange=0.9, **kwargs):
     #if np.any(conmerge) or conspecial: import pdb; pdb.set_trace()
 
     if conmerge.any() or consplit:
+
         #extended midpoints locations and cumulative mass
         #TBD: add special locations in here
-        locmidext = locmid_ext_special (loc, list(sim.specloc))
+        #locmidext = locmid_ext_special (loc, list(sim.specloc))
+        locmidext = locmid_ext (loc)
         cummtot = np.concatenate(([0],np.cumsum(mtot)))
 
         cummtotn = np.interp(locmidnext, locmidext, cummtot)
@@ -842,8 +906,7 @@ def fixed_resample (sim, spN, fchange=0.9, **kwargs):
         for k in range(ncomp):
             fcompn[:,k] = interp_mtot_weighted (locmidnext, locmidext, fcomp[:,k], mtot, mtotn)
 
-        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
-        import pdb; pdb.set_trace()
+        #sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
         return locn, mtotn, mphyn, fcompn
     else:
         return None

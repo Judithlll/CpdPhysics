@@ -166,7 +166,7 @@ def make_animation(mp4name, path='./plot/satepart_splitmerge'):
     #    pic_list.append(im)
     #imageio.mimsave(save_name_gif, pic_list, 'GIF', loop=0)
 
-tplot = np.array([0,1e3,1e4,1e5,1e6,1e7, 1e99]) *cgs.yr
+tplot = np.array([0,1e2,1e3,1e4,1e5,1e6,1e7, 1e99]) *cgs.yr
 colL = ['k', '0.8', '0.6', '0.4', 'r', 'm', 'b', 'g', (0.8,0.4,0.),'y']
 iplot = 0
 
