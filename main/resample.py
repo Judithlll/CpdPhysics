@@ -820,7 +820,8 @@ def locmid_ext_special (loc, specL=[]):
     return locmidext
 
 
-def interp_mtot_weighted (xn, xmid, qarr, marr=None, mn=None, neval=0):
+def interp_mtot_weighted (xn, xmid, qarr, marr=None, mn=None, 
+                          neval=0, sigval=1e-9):
     """
     interpolates a certain quantity qarr defined with respect to the 
     midpoints xmid onto new locations (midpoints) xn, 
@@ -839,31 +840,34 @@ def interp_mtot_weighted (xn, xmid, qarr, marr=None, mn=None, neval=0):
 
     cummass = np.concatenate(([0], np.cumsum(marr[ix:]*qarr[ix:])))
     cummassn = np.interp(xn, xmid[ix:], cummass)
-    qn = np.diff(cummassn) /(mn+1e-16) #1e-16 to prevent the zero division 
-
-    #print(neval, xn[0], len(xn))
+    diffcumm = np.diff(cummassn)
+    qn = diffcumm /(mn+1e-16) #1e-16 to prevent the zero division 
 
     #relative error/significance
-    sig = np.diff(cummassn)/cummassn[1:]
-    itrust = (sig<1e-8).argmax() #trust until here
-    if itrust>0:
-        qn[itrust:] = interp_mtot_weighted (xn[itrust:], xmid, qarr, marr, mn[itrust:], neval)
+    sig = diffcumm/cummassn[1:]
+    itrust = (sig<sigval).argmax() #trust until here
 
-    #if neval==1: import pdb; pdb.set_trace()
+    if itrust>0:
+        qn[itrust:] = interp_mtot_weighted (xn[itrust:], xmid, qarr, marr, mn[itrust:], neval, sigval)
+
     return qn
 
 
-def fixed_resample (sim, spN, specloc, fchange=0.9, **kwargs):
+def fixed_resample (sim, spN, specloc, fchange=0.9, Xspecial=1, **kwargs):
     """
     like global_resample, resample to fixed positions
     - finer resampling near iceline locations (TBD)
     - piecewise, but not mass-conserving
+
+    [25.01.23]: accounting for "specials" makes the algorith very terse bookkeeping
     """
 
-    loc = spN.locL 
-    mtot = spN.mtotL
-    mphy = spN.massL
-    fcomp = spN.fcomp #composition fraction
+    #we need to make copies b/c of some b/c this could change...
+    loc = spN.locL
+    mtot = spN.mtotL.copy()
+    mphy = spN.massL.copy()
+    fcomp = spN.fcomp.copy() #composition fraction
+
     ncomp = len(fcomp[0])
 
     xdel = np.diff(np.log(loc))
@@ -882,34 +886,104 @@ def fixed_resample (sim, spN, specloc, fchange=0.9, **kwargs):
     for spec in list(sim.specloc):
         ii = (loc>spec*np.exp(-2*sim.particles.delta)) *\
                 (loc<spec*np.exp(2*sim.particles.delta))
-        fdelM[ii[:-1]] /= 10 #contains iceline
+        fdelM[ii[:-1]] /= Xspecial #contains iceline
 
 
     conmerge = xdel<fdelM
     consplit = np.any(xdel>fdelS)
 
-    #if np.any(conmerge) or conspecial: import pdb; pdb.set_trace()
+    nspec = len(specloc)
+    specL = [0] +list(specloc)
+    loc1 = sim.rout
+    loc1mod = sim.rout #modified outer bounds
 
+    mloss = 0
     if conmerge.any() or consplit:
 
-        #extended midpoints locations and cumulative mass
-        #TBD: add special locations in here
-        #locmidext = locmid_ext_special (loc, list(sim.specloc))
-        locmidext = locmid_ext (loc)
-        cummtot = np.concatenate(([0],np.cumsum(mtot)))
+        mphyn = np.zeros_like(locn)
+        mtotn = np.zeros_like(locn)
+        fcompn = np.zeros((npar,ncomp))
 
-        cummtotn = np.interp(locmidnext, locmidext, cummtot)
-        mtotn = np.diff(cummtotn)
+        #segmented resample, inverse order!
+        #This is very annoying bookkeeping
+        for kseg,loc0 in enumerate(specL[::-1]):
+            ii = (loc0<loc) *(loc<loc1mod)
+            iin = (loc0<locn) *(locn<=loc1)
 
-        mphyn = interp_mtot_weighted (locmidnext, locmidext, mphy, mtot, mtotn)
-        fcompn = np.empty((npar,ncomp))
-        for k in range(ncomp):
-            fcompn[:,k] = interp_mtot_weighted (locmidnext, locmidext, fcomp[:,k], mtot, mtotn)
+            #make cumulative array
+            locmidext = locmid_ext (loc[ii])
+            cummtot = np.concatenate(([0],np.cumsum(mtot[ii])))
 
-        #sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+            #corresponding midpoint indices that span iin
+            imn0 = iin.argmax()
+            ss = slice(imn0,imn0 +np.sum(iin)+1)
+
+            if locmidnext[imn0]<locmidext[0]:
+                #I addded this but I don't think it's necessary...
+                #locmidext[0] = locmidnext[imn0]
+                problem = False
+            else:
+                #Here there is overflow into the next segment!
+                #it would be very BAD to adjust locmidext, which results in mass
+                #pileup near the special location
+                problem = True
+
+
+            cummd = np.interp(locmidnext[ss], locmidext, cummtot)
+
+            #this is the mass lost at the inner boundary...
+            if kseg==nspec:
+                mloss += cummd[0]
+
+            #sometimes midpoints exceeds domian of midpoint-new..
+            #.. need to ensure we include all mass at the outer domain end
+            cummd[-1] = cummtot[-1]
+            mtotn[iin] = np.diff(cummd)
+
+            mphyn[iin] = interp_mtot_weighted (locmidnext[ss], locmidext, mphy[ii], mtot[ii], mtotn[iin])
+            for k in range(ncomp):
+                fcompn[iin,k] = interp_mtot_weighted (locmidnext[ss], locmidext, fcomp[ii,k], mtot[ii], mtotn[iin])
+
+            #The Problem particle -- that would be created at the location interior to the special
+            #This represents mass overflow.
+            if imn0>0 and problem: 
+                mtotp = cummd[0] #the mass not included in the above
+
+                #other properties are taken from the "old" particle
+                ii0 = ii.argmax()
+                spiP = sim.particles.select_single(ii0)
+                spiP.mtotL = mtotp
+
+                #this particle should cross the special location (e.g., lose its ice; pebble accretion):
+                #   spiP --> spiP'
+                #and from spiP' we extract the new properties and we replace the particle
+                #at ii0 with these new properties (and mtot->mtotp)
+
+                #so stuff TBD here!!
+
+                #here we mimic water icelines where 50% is lost
+                #for illustrative purposes:
+                fcomp[ii0] = np.array([1,0]) #it has crossed the iceline!
+                mphy[ii0] /=2       #physical mass is reduces
+                mtot[ii0] = mtotp/2 #only a fraction has crossed
+                mloss += mtotp/2
+
+                loc1mod = (1+1e-8)*loc[ii0] #make sure it will be included in the next segment
+            else:
+                loc1mod = loc0
+
+            loc1 = loc0
+
+        #check mass conservation...
+        err = (mtotn.sum() +mloss)/spN.mtotL.sum()-1
+        if abs(err)>2e-14:
+            print('[fixed_resample]:mass loss detected')
+            import pdb; pdb.set_trace()
+
         return locn, mtotn, mphyn, fcompn
     else:
         return None
+
 
 
 def global_resample4 (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, nn=1,**args):

@@ -261,9 +261,10 @@ def sfd_special (msup, loc, specloc):
     for k, loc1 in enumerate(specL):
         ii = (loc>loc0) *(loc<loc1)
 
-        if sum(ii)==0:
+        npar = np.sum(ii)
+        if npar==0:
             continue
-        if sum(ii)==1:
+        elif npar==1:
             print('[functions.sfd_special]BUG: 1 particle -- cannot calculate sfd?')
             sys.exit()
 
