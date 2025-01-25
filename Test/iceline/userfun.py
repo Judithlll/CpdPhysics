@@ -41,6 +41,7 @@ class PlotObj (object):
 
         for ax in [axa,axb,axc,axd]:
             ax.set_xlim(0.95*pars.dgasgrid['rinn']/cgs.au,pars.dgasgrid['rout']/cgs.au)
+            #ax.set_xlim(1,5)
 
         for ax in [axb,axd]:
             ax.yaxis.set_label_position("right")

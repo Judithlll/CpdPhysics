@@ -174,6 +174,11 @@ class System(object):
 
     def re_sample (self):
 
+        mphy = self.particles.massL
+        if np.all(np.diff(np.log10(mphy[10:1000]))<0)==False and False:
+            print('physical mass not in order')
+            import pdb; pdb.set_trace()
+
         if pars.resampleMode=='splitmerge':
 
             #the particles crossing is not physical
@@ -202,6 +207,13 @@ class System(object):
         #[25.01.01]cwo: another variation...
         elif pars.resampleMode == 'global_resample4':
             newarr = resample.global_resample4(self, self.particles, **pars.dresample)
+
+        #[25.01.21]cwo: fixed_resampling (should be similar to global_resample)
+        elif pars.resampleMode == 'fixed_resample':
+            newarr = resample.fixed_resample(self, self.particles, self.specloc, **pars.dresample)
+
+        elif pars.resampleMode == 'local_splitmerge':
+            newarr = resample.local_splitmerge(self, self.particles, **pars.dresample)
 
         #[25.01.18]cwo: another variation...
         elif pars.resampleMode == 'new_splitmerge_chris':
@@ -248,9 +260,6 @@ class System(object):
                 #     plt.close()
                 #     import pdb;pdb.set_trace()
 
-                vrold = self.particles.v_r
-                sfdold = self.particles.sfd
-
                 #assign the key properties 
                 self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
                 self.particles.num = len(self.particles.locL)
@@ -258,7 +267,8 @@ class System(object):
                 #idea is make an function to get all these auxiliary
                 self.get_auxiliary(self.time)
 
-                import pdb; pdb.set_trace()
+                if np.isnan(self.particles.locL).any():
+                    import pdb; pdb.set_trace()
                 
                 #TBR
                 #self.particles.make_Y2d()
@@ -695,7 +705,7 @@ class System(object):
                 Nadd += 1
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
-             pars.resampleMode in ['new_splitmerge_chris'] or\
+             pars.resampleMode in ['new_splitmerge_chris','fixed_resample','local_splitmerge'] or\
              pars.resampleMode in ['new_splitmerge_zxl'] or\
              pars.resampleMode in ['global_resample','global_resample2', 'global_resample3', 'global_resample4'] and self.rout is not None:
             mtot1 = self.particles.mtot1
@@ -858,6 +868,10 @@ class System(object):
             McTscale = self.centralbody.m/ np.abs(self.centralbody.m - self.oldstate.centralbody.m) *self.deltaT
             mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
+
+            #rdum = (1-0.1*self.particles.delta)*self.rinn
+            #tinn = (self.particles.locL[0] -rdum) /(-Y2dp[0,0])
+            #mintimeL.append({'name': 'innercrossTime', 'tmin': tinn})
 
 
         #calculate mass flow change Timescale
@@ -1059,11 +1073,12 @@ class System(object):
         self.minTimes = Mintimes(mintimeL, jumpfracD)
 
         #determine next timestep
+        #[25.01.20]: maybe deltaTfraction not applied to ALL, but only to
         deltaT = deltaTfraction *min(self.minTimes.tminarr)
 
         #limit increase of deltaT to (some number)
         if self.ntime>0:
-            deltaT = min(deltaT, self.oldstate.deltaT*1.01)
+            deltaT = min(deltaT, self.oldstate.deltaT*1.05)
 
             
         if self.time+deltaT>tEnd:
@@ -1260,12 +1275,12 @@ class System(object):
         #such that new fit for dm/dt starts w/ N=0 particles
 
 
-def get_cross_idx(loc, locL, locLo, daction, locnew = None):
+def get_cross_idx (loc, locL, locLo, daction, locnew = None):
     """
     this is needed for the 'advance' things to avoid some error caused by 
     removing and adding particles
     """
-    lrm = 0
+    lrm = 0 #[25.01.23]cwo:??
     lad = 0
     #daction={}
     #make up the locL:
@@ -1282,7 +1297,9 @@ def get_cross_idx(loc, locL, locLo, daction, locnew = None):
     else:
         idx,=np.nonzero((loc< locLo) & (locnew>locL))
 
+    #[25.01.23]cwo:I dont understand this...
     idxD = {'idx_for_new': idx-lrm, 'idx_for_old': idx}
+
     #if loc<5.89*cgs.RJ:
     #    print(loc/cgs.RJ)
     #    print(np.append([0.]*lrm , locL)[0:4]/cgs.RJ)
@@ -1297,50 +1314,52 @@ def advance_iceline (system):
     for now particles directly lose the mass of water without any other effect
     """
 
-    #sploc = system.particles.locL[system.particles.locL<]
-    #sploc_old = system.oldstate.particles.locL
     for k,iceline in enumerate(system.icelineL):
         ic = pars.composL.index(iceline.species) #refers to species index
-        for i in range(system.particles.num):
-            fice = system.particles.fcomp[i,ic]  #mass fraction in ice
-            fremain = (1-fice)          #remain fraction
 
-            if fremain < 1e-15:
-                fremain=0 #loss of numbers (!!)
-            if fice!=0 and system.particles.locL[i]<iceline.loc:
-                system.particles.mtotL[i] *= fremain    #reduce masses accordingly
-                system.particles.massL[i] *= fremain
-                system.particles.fcomp[i,ic] = 0.      #gone is the ice!
-                #renormalize
-                system.particles.fcomp[i,:] = (system.particles.fcomp[i,:].T /(system.particles.fcomp[i,:].sum()+1e-100)).T
-                
-                #import pdb;pdb.set_trace()
+        #[25.01.23]cwo: why this?
+        if False:
+            for i in range(system.particles.num):
+                fice = system.particles.fcomp[i,ic]  #mass fraction in ice
+                fremain = (1-fice)          #remain fraction
 
-        #renew the iceline location
-        loc_pv = system.oldstate.icelineL[k].loc
-        iceline.get_icelines_location(system.gas,system.time,bounds= (system.rinn, system.rout), guess=loc_pv)
+                if fremain < 1e-15:
+                    fremain=0 #loss of numbers (!!)
+                if fice!=0 and system.particles.locL[i]<iceline.loc:
+                    system.particles.mtotL[i] *= fremain    #reduce masses accordingly
+                    system.particles.massL[i] *= fremain
+                    system.particles.fcomp[i,ic] = 0.      #gone is the ice!
+                    #renormalize
+                    system.particles.fcomp[i,:] = (system.particles.fcomp[i,:].T /(system.particles.fcomp[i,:].sum()+1e-100)).T
+                    
+                    #import pdb;pdb.set_trace()
+
+            #renew the iceline location
+            loc_pv = system.oldstate.icelineL[k].loc
+            iceline.get_icelines_location(system.gas,system.time,bounds= (system.rinn, system.rout), guess=loc_pv)
 
 
-        #idxD = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
-        #idx = idxD['idx_for_new']
-        #idx,=np.nonzero((iceline.loc<sploc_old) & (iceline.loc>sploc))
-        #if len(idx)!=0:     
-            
-        #    for ix in idx:
-        #        fice = system.particles.fcomp[ix,ic]  #mass fraction in ice
-        #        fremain = (1-fice)          #remain fraction
+        sploc = system.particles.locL
+        sploc_old = system.oldstate.particles.locL
+        idxD = get_cross_idx(iceline.loc,sploc,sploc_old, system.daction)
+        idx = idxD['idx_for_new']
+        if len(idx)!=0:     
+           
+            for ix in idx:
+                fice = system.particles.fcomp[ix,ic]  #mass fraction in ice
+                fremain = (1-fice)          #remain fraction
 
-        #        if fremain < 1e-15:
-        #            fremain=0 #loss of numbers (!!)
-        #        system.particles.mtotL[ix] *= fremain    #reduce masses accordingly
-        #        system.particles.massL[ix] *= fremain
-        #        system.particles.fcomp[ix,ic] = 0.      #gone is the ice!
+                if fremain < 1e-15:
+                    fremain=0 #loss of numbers (!!)
+                system.particles.mtotL[ix] *= fremain    #reduce masses accordingly
+                system.particles.massL[ix] *= fremain
+                system.particles.fcomp[ix,ic] = 0.      #gone is the ice!
 
-                #renormalize
-        #        system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
+               #renormalize
+                system.particles.fcomp[ix,:] = (system.particles.fcomp[ix,:].T /(system.particles.fcomp[ix,:].sum()+1e-100)).T
         
-        #loc_pv = system.oldstate.icelineL[k].loc
-        #iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
+        loc_pv = system.oldstate.icelineL[k].loc
+        iceline.get_icelines_location(system.gas,system.time,guess=loc_pv)
 
 
 
@@ -1373,7 +1392,6 @@ def advance_planets (system):
                 for ip in idxD['idx_for_old']:
 
                     spi = system.oldstate.particles.select_single(ip)
-
                     crossL.append(spi)
 
                 #crossL=np.array(crossL)
@@ -1563,7 +1581,6 @@ class Superparticles (object):
             if compos['name']!= 'gas':
                 self.rhocompos.append(compos['rhoint'])
         
-        self.num = nini
         self.ninit =nini
         self.Nplevel = nini
 
@@ -1605,6 +1622,10 @@ class Superparticles (object):
 
         #this is the desired spacing among the particles in log-space
         self.delta = np.log(rout/rinn) /nini
+
+        #grid used in calculating particle surface density
+        #it should (?) be courser than aimed particle number
+        self.pgrid = 10**np.linspace(np.log10(rinn), np.log10(rout), nini//5)
         
         #divide domain into pieces, as determined by iceline
         locspecL = []
@@ -1615,19 +1636,35 @@ class Superparticles (object):
                 if rinn<locspec<rout:
                     locspecL.append(locspec)
         locspecL.sort()
-        locspecL.insert(0, rinn)
-        locspecL.append(rout)
-
 
         print('[core.Superparticles.init]:initialization superparticles under rule:', initrule)
-        nspecial = len(locspecL) #includes the boundaries
         radL = []
         rmidL = []
         msupL = []
         ncomp = len(pars.composL) #number of refractory +volatile species
         fcompL = []
-        if initrule=='equallogspace':
+
+        if pars.resampleMode=='fixed_resample' and initrule=='equallogspace':
+            
+            radL, locmid = self.loc_init (specL=locspecL)
+
+            r0 = locmid[0]
+            for k,r1 in enumerate(locmid[1:]): #the midpoints
+                msup, err = sciint.quad(f_sample, r0, r1, limit =100)
+                msupL.append(msup) #total mass
+                fcdum = f_arr(np.sqrt(r0*r1))
+                fc = fcdum[:ncomp] /fcdum.sum()
+                fcompL.append(fc) #composition
+                r0 = r1
+
+            msup = np.array(msupL)
+
+        elif initrule=='equallogspace':
             #put sp at equal distances in log space
+
+            locspecL.insert(0, rinn)
+            locspecL.append(rout)
+            nspecial = len(locspecL) #includes the boundaries
 
             #piecewise..
             for iloc in range(nspecial-1):
@@ -1671,6 +1708,7 @@ class Superparticles (object):
         self.locL = np.array(radL)
         self.mtotL = np.array(msup)
         self.fcomp = np.array(fcompL)
+        self.num = len(self.locL) #moved this below...
 
         #TBR
         if False:
@@ -1751,11 +1789,6 @@ class Superparticles (object):
         self.mtot1 = self.mtotL[-1] #for adding new particles
         self.mini = self.massL[-1]   #for adding particles
 
-
-
-            
-        #<-- initialization
-        
         def dm_dr(m,r):
             Rd = physics.mass_to_radius(m,self.rhoint[-1])
             out = gas.get_key_disk_properties(r, 0.0)
@@ -1786,7 +1819,51 @@ class Superparticles (object):
             del dcomposL[i]['mask_icl']
 
 
-    def select_single(self, ix):
+        #<-- initialization (Superparticles)
+
+
+    def loc_init (self, specL=[]):
+        """
+        provides the (initial) locations of particles and midpoints
+        - accounting for refinement near special locations
+
+        [25.01.21]: NOTE it is important to specify the locations first
+                    and then the midpoints!!
+        [25.01.23]: In this scheme it is important that grid points are fixed
+                    so self.rinn and self.rout should remain fixed
+        """
+
+        ## first get the fixed positions
+        xdum = np.log(self.rout/self.rinn)
+        npar = int( xdum/self.delta)
+
+        loc = self.rinn *np.exp((0.5+np.arange(npar))*self.delta)
+
+        #insert the iceline point
+        val = np.sort(specL)[::-1]
+        ixL = list(np.searchsorted(loc, val))
+
+        #this needs to be done in reverse order...
+        #we add the iceline as a midpoint. It's possible that a
+        #very small particle is created interior to it however... 
+
+        if 'Xspecial' not in pars.dresample:
+            nres = 1
+        else:
+            nres = pars.dresample['Xspecial'] #resolution enhancement at specials
+
+        for i,ix in enumerate(ixL):
+            #give finer resolution 
+            locadd = loc[ix-1] *np.exp(self.delta*np.arange(1,2*nres)/nres)
+            loc = np.concatenate((loc[:ix], locadd, loc[ix+1:]))
+
+        locmid = np.concatenate(([self.rinn], 
+                                 np.sqrt(loc[1:]*loc[:-1]), 
+                                 [self.rout]))
+        return loc, locmid
+
+
+    def select_single (self, ix):
 
         kwargs = {}
         # select the properties that are list or numpy.ndarray
@@ -1878,11 +1955,14 @@ class Superparticles (object):
                 sfd = ff.sfd_special (self.mtotL, loc, specloc)
             elif pars.sfdmode=='sfd_chris':
                 sfd = ff.sfd_chris (self.mtotL, loc)
+            elif pars.sfdmode=='sfd_spline':
+                sfd = ff.sfd_spline (self.mtotL, loc)
+            elif pars.sfdmode=='fixed_bin':
+                sfd = ff.sfd_fixedbin (self.mtotL, loc, self.pgrid, specloc)
             elif pars.sfdmode=='steady':
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
                 #import pdb;pdb.set_trace()
-
             else:
                 sfd = None
                 

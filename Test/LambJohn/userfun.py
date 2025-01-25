@@ -87,8 +87,7 @@ def do_stuff (system, init=False, final=False):
             #ax2.semilogx(system.particles.locL/cgs.au, system.particles.sfd/sigana-1, c=colL[iplot], lw=0.5)
 
             fg.savefig(figname, dpi=180)
-            if iplot>=3: 
-                import pdb; pdb.set_trace()
+            #if iplot>=3: import pdb; pdb.set_trace()
 
 
 
