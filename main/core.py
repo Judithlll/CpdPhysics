@@ -1691,7 +1691,7 @@ class Superparticles (object):
         self.get_rhoint()
 
         #if Stokes number is fixed, calculate initial radii
-        if pars.fixed_St is not None:
+        if pars.dragmodel == 'fixed_St': 
             out = gas.get_key_disk_properties(self.locL, 0.0)
             Rdi = pars.fixed_St*2*out[0]/np.pi/self.rhoint
 
@@ -1707,18 +1707,9 @@ class Superparticles (object):
             #if we want the particles to initially reach the fragmentation velocity, then we solve for the initial Rdi with fsolve 
             from scipy.optimize import fsolve 
             def func(Rd,disk,rhoint):
-                St,vr = ff.St_iterate(
-                    disk.eta,
-                    disk.vK,
-                    disk.vth,
-                    disk.lmfp,
-                    disk.rhog,
-                    disk.OmegaK,
-                    Rd,
-                    rhoint,
-                    Sto=0.03
-                )
+                St,vr = ff.Stokes_number(disk, Rd, rhoint, Sto =0.03)
                 return vr 
+
             def func2(Rdi, vfrag,disk,rhoint):
                 rere = func(Rdi,disk,rhoint)+vfrag 
                 return rere

@@ -155,7 +155,7 @@ def Stokes_number (disk, size, rhoint, Sto=0.001, errorX=1e-4, nmax=100):
         #[25.01.01]cwo Stokes number is fixed??
         #just for ism final project
         elif pars.dragmodel=='fixed_St':
-            St = np.ones_like(loc)*pars.fixed_St
+            St = np.ones_like(size)*pars.fixed_St
 
         #user defines
         else:

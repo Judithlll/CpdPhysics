@@ -132,6 +132,31 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
     else:
         return None
 
+def v2mass (vr, loc, sim):
+    """
+    [25.01.20]: get the mass from the velocity
+    """
+    from scipy.optimize import fsolve 
+
+    def func(Rd,disk,rhoint):
+        St,vr = ff.Stokes_number(disk, Rd, rhoint, Sto =0.03)
+        return vr 
+
+    def func2(Rdi, vfrag,disk,rhoint):
+        rere = func(Rdi,disk,rhoint)-vr
+        return rere
+
+    #get the disk object 
+    disk = sim.get_disk(loc=loc, time = sim.time)
+    #get the mass from the velocity 
+    mass = np.zeros_like(vr) 
+    for i, (vri, loci) in enumerate(zip(vr, loc)):
+        Rd = physics.mass_to_radius(1e-3,sim.particles.rhoint[i])
+        mass[i] = fsolve(func2, Rd, args=(vri,disk,sim.particles.rhoint[i]))[0] 
+
+
+
+
 def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
     """
     [25.01.18]: new splitmerge based on cumulative mass function
@@ -270,14 +295,6 @@ def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0
         return locn, mtotn, mphyn, fcompn
     else:
         return None
-
-
-def v2mass (vr, loc, sim):
-    """
-    [25.01.20]: get the mass from the velocity
-    """
-    from scipy.optimize import fsolve 
-    pass
 
 
 
