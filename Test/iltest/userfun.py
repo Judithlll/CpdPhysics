@@ -29,9 +29,9 @@ class PlotObj (object):
 
         axa, axb, axc, axd = self.axL.ravel()
         axa.set_ylim(0.03, 500)
-        axb.set_ylim(1e-3, 1e2)
-        axc.set_ylim(2e26, 1e28)
-        axd.set_ylim(1e-8, 2e2)
+        axb.set_ylim(1e-4, 1e1)
+        axc.set_ylim(2e25, 1e28)
+        axd.set_ylim(1e-8, 2e5)
         axa.set_ylabel('surface density')
         axb.set_ylabel('Stokes number')
         axc.set_ylabel('total mass')
@@ -42,6 +42,7 @@ class PlotObj (object):
 
         for ax in [axa,axb,axc,axd]:
             ax.set_xlim(0.95*pars.dgasgrid['rinn']/cgs.au,pars.dgasgrid['rout']/cgs.au)
+            #ax.set_xlim(1,5)
 
         for ax in [axb,axd]:
             ax.yaxis.set_label_position("right")
@@ -83,12 +84,10 @@ class PlotObj (object):
 
 
 def do_stuff (system, init=False, final=False):
-    # global plotnum, plotobj
-    #
-    # plottimeL = np.array([0, 1e1, 2e1, 5e1, 1e2, 2e2, 3e2, 1e3, 1.5e3, 2e3, 
-    #                       2.1e3, 3e3, 5e3, 6e3, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, np.inf]) *cgs.yr
-    global plotnum 
-    plotnum = 0
+    global plotnum, plotobj
+
+    plottimeL = np.array([0, 1e1, 2e1, 5e1, 1e2, 2e2, 3e2, 1e3, 1.4e3, 2e3, 
+                          2.1e3, 2.2e3, 3e3, 4e3, 5e3, 5.3e3, 6e3, 7e3, 1e4, 2e4, 5e4, 1e5, 1.5e5, 2e5, 5e5, 1e6, 2e6, np.inf]) *cgs.yr
 
     if init:
         plotobj = PlotObj ()
@@ -105,30 +104,11 @@ def do_stuff (system, init=False, final=False):
 
 
         output = sp.run('tail -n1 log/system_evol.log', shell=True)
-        # if system.time > plottimeL[plotnum]: #plot every 1 yr
-        #     #plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time)
-        #     #my_plot(system, plotnum)
-        #     plotobj.add_lines(system, plotnum)
-        #     plotnum += 1
-
-        #check the mphy around the iceline  
-
-        
-        if system.time/cgs.yr > plotnum*1:
-            loc = system.particles.locL 
-            mphy = system.particles.massL 
-            mtot = system.particles.mtotL 
-            locspec = system.icelineL[0].loc
-
-            plt.loglog(loc, mphy/mphy.max(), 'x-', label ='old {:.2f}'.format(system.time/cgs.yr))
-            plt.loglog(loc, mtot/mtot.max(), '.-', label='oldmtot')
-            plt.axvline(locspec, ls='--', lw=1, c = 'gray')
-            plt.xlim(locspec*0.9, locspec*1.1)
-            plt.legend()
-            plt.savefig('/home/lzx/CpdPhysics/Test/iltest/mphy/{:.2f}.jpg'.format(system.time))
-            plt.close()
+        if system.time > plottimeL[plotnum]: #plot every 1 yr
+            #plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time)
+            #my_plot(system, plotnum)
+            plotobj.add_lines(system, plotnum)
             plotnum += 1
-
 
 
 
@@ -184,3 +164,42 @@ def Stokes_number (**kwargs):
 
 #def Stokes_number (**kwargs):
 #    return physics.Stokes_general(**kwargs)
+
+
+#Let's make a function that show the comparison before and after the resample: 
+def ba_resample(loc,locn, mphy, mphyn, mtot, mtotn, isL, imL, time):
+    plt.close()
+    fig, axL = plt.subplots(2, max(len(isL),len(imL)), figsize=(8,6)) 
+
+    if len(axL.shape)==1: 
+        axL = axL.reshape(2,1)
+
+    #make the size of ticks smaller for all the subplots 
+    for ax in axL.ravel():
+        ax.tick_params(axis='both', which='major', labelsize=6)
+
+    baloc =  loc.copy()/cgs.au 
+    balocn = locn.copy()/cgs.au 
+    
+    #plot the particles around the split and merge locations 
+    for id, iss in enumerate(isL):
+        sidx = np.arange(max(iss-3,0),min(iss+3,len(loc)-1))
+        axL[0, id].scatter(baloc[sidx], mphy[sidx], color='b', s=1)
+        axL[0, id].set_xlim(baloc[sidx[0]], baloc[sidx[-1]])
+        axL[0, id].set_ylim(0.8*min(mphy[sidx]), 1.1*max(mphy[sidx])) 
+
+        sidx = np.append(sidx, sidx[-1]+1)
+        axL[0, id].scatter(balocn[sidx], mphyn[sidx]-mphy[iss]/10, color='r', s=1) 
+
+    for id, imm in enumerate(imL): 
+        midx = np.arange(max(imm-3,0),min(imm+3,len(loc)-1)) 
+        axL[1, id].scatter(baloc[midx], mphy[midx], color='b', s=1)
+        axL[1, id].set_xlim(baloc[midx[0]], baloc[midx[-1]])
+        axL[1, id].set_ylim(0.8*min(mphy[midx]), 1.1*max(mphy[midx]))
+
+        midx = midx[:-1]
+        axL[1, id].scatter(balocn[midx], mphyn[midx]-mphy[imm]/10, color='r', s=1)
+
+    plt.savefig('./bc_rasample/'+'{:.2f}'.format(time/cgs.yr)+'.jpg')
+
+    return

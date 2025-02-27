@@ -218,44 +218,105 @@ def new_splitmerge_chris (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
 def v2mass (vr, loc, sim):
     """
     [25.01.20]: get the mass from the velocity
+    vr: float
+    loc: float
     """
     from scipy.optimize import fsolve 
 
     def func(Rd,disk,rhoint):
-        St,vr = ff.Stokes_number(disk, Rd, rhoint, Sto =0.03)
-        return vr 
+        St,v = ff.Stokes_number(disk, Rd, rhoint, Sto =0.03)
+        return v 
 
-    def func2(Rdi, vfrag,disk,rhoint):
-        rere = func(Rdi,disk,rhoint)-vr
+    def func2(Rdi, vgive, disk, rhoint):
+        rere = func(Rdi,disk,rhoint)-vgive
         return rere
 
     #get the disk object 
     disk = sim.get_disk(loc=loc, time = sim.time)
     #get the mass from the velocity 
-    mass = np.zeros_like(vr) 
-    for i, (vri, loci) in enumerate(zip(vr, loc)):
-        Rd = physics.mass_to_radius(1e-3,sim.particles.rhoint[i])
-        mass[i] = fsolve(func2, Rd, args=(vri,disk,sim.particles.rhoint[i]))[0] 
+    idx = np.searchsorted(sim.particles.locL,loc)
+    rhoint = sim.particles.rhoint[idx]
+
+    #use the mass of nearest particle as a initial guess
+    Rd = physics.mass_to_radius(sim.particles.massL[idx],rhoint)
+    rd = fsolve(func2, Rd, args=(vr,disk,rhoint))[0] 
+    mass = physics.radius_to_mass(rd,rhoint)
+
+    return mass
+
+def hd2mass (hd, loc, sim):
+    """
+    [25.01.20]: get the mass from the dust scale height
+    hd: float
+    loc: float
+    """
+    from scipy.optimize import fsolve 
+
+    def func(Rd,disk,rhoint, hg):
+        St = ff.Stokes_number(disk, Rd, rhoint, Sto =0.03)[0]
+        hdd = physics.H_d(hg, St, sim.particles.alpha)
+        return hdd 
+
+    def func2(Rdi, hdgive, disk, rhoint, hg):
+        rere = func(Rdi, disk, rhoint, hg) - hdgive
+        return rere
+
+    #get the disk object 
+    disk = sim.get_disk(loc=loc, time = sim.time)
+    #get the mass from the velocity 
+    idx = np.searchsorted(sim.particles.locL,loc)
+    rhoint = sim.particles.rhoint[idx]
+
+    #use the mass of nearest particle as a initial guess
+    Rd = physics.mass_to_radius(sim.particles.massL[idx],rhoint)
+    #if the iteration cannot be converged, stop here to check 
+    rd, info, ier, msg = fsolve(func2, Rd, args=(hd,disk,rhoint,disk.Hg), full_output=True)
+    rd = rd[0] 
+    if ier != 1:
+        print(f'fsolve error: {msg}')
+        import pdb; pdb.set_trace()
+
+    mass = physics.radius_to_mass(rd,rhoint)
+
+    return mass 
 
 
+def get_addmphy(iL, addloc, sim, loc, prop='rv'):
+    """
+    prop: the properties you want to get the mass from 
+        'rv': radial velocity. 
+        'hd': dust scale height.
+    """
+    addmphy = []
+    if prop == 'rv':
+        for i, idx in enumerate(iL):
+            v1 = sim.particles.v_r[idx] 
+            v2 = sim.particles.v_r[idx+1]
+            r1 = loc[idx]
+            r2 = loc[idx+1]
+            vnew = (r1*v2+r2*v1)/2/addloc[i]
 
+            addmphy.append(v2mass(vnew, addloc[i], sim))
+    elif prop == 'hd':
+        for i, idx in enumerate(iL):
+            #we use interpolation to get the hd at the new location 
+            hd = physics.H_d(sim.particles.Hg, sim.particles.St, sim.particles.alpha)
+            hdnew = np.interp(addloc[i], loc, hd) 
 
-def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
+            addmphy.append(hd2mass(hdnew, addloc[i], sim))
+    return addmphy
+
+def new_splitmerge_zxl (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, fdelDM=0.0001, full_output = False, **args):
     """
     [25.01.18]: new splitmerge based on cumulative mass function
                 for the moment w/o special locations functionality
     """
     loc = spN.locL 
-    mtot = spN.mtotL
-    mphy = spN.massL
-    fcomp = spN.fcomp #composition fraction
 
-    ncomp = len(fcomp[0])
     xdel = np.diff(np.log(loc))
 
-    #midpoint locations elligible for splitting (isL)
-    #don't split 1st/last particles (i.e., around special locations; TBD)
-    #fdelXarr[0] = np.inf; fdelXarr[-1] = np.inf
+    fdelS = sim.particles.delta*2 
+    fdelM = sim.particles.delta/2
 
 
     #now the masses
@@ -264,56 +325,43 @@ def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0
     #isL = np.union1d(isL1, isL2)
 
     #merging
-    #fdelXarr[0] = 0; fdelXarr[-1] = 0
     fdelXarr = np.ones_like(xdel)
-    imL, = np.nonzero(xdel<fdelXarr*sim.particles.delta*2/3)
+    #don't merge 1st/last particles 
+    #fdelXarr[0] = 0; fdelXarr[-1] = 0
+    #don't merge particles around special locations (TBD)
+
+    imL, = np.nonzero(xdel<fdelXarr*fdelM)
 
 
     fdelXarr[imL] = np.inf #dont split where we merge
     fdelXarr[imL+1] = np.inf
     fdelXarr[imL-1] = np.inf
+    fdelXarr[0] = np.inf; fdelXarr[-1] = np.inf #don't split 1st/last particles
+    #don't split particles around special locations (TBD)
 
-    fdelS = 2*sim.particles.delta
+    #fdelS = 2*sim.particles.delta
     isL, = np.nonzero(xdel>fdelS*fdelXarr)
-
-    #splitting: add the locations
-    addlocS = np.sqrt(loc[isL]*loc[isL+1])
-    addlocM = np.sqrt(loc[imL]*loc[imL+1])
 
     if len(isL)>0 or len(imL)>0:
         doResample = True
     else:
         doResample = False
 
+    if len(imL)>0:
+        print('Merge happens')
 
-    if False and len(imL)>0:
-        addloc = np.sqrt(loc[imL]*loc[imL+1])
-        addmtot = mtot[imL]+mtot[imL+1]
-        addmphy = np.sqrt(mphy[imL]*mphy[imL+1])
+    if doResample :#or len(imL)>0:
+        print('Resample happens') 
 
-        #addmphy = (mphy[imL]*mtot[imL] +mphy[imL+1]*mtot[imL+1]) /addmtot
-        #addmloc = (loc[imL]*mtot[imL] +loc[imL+1]*mtot[imL+1]) /addmtot
+        mtot = spN.mtotL
+        mphy = spN.massL
+        fcomp = spN.fcomp #composition fraction
+        ncomp = len(fcomp[0])
 
-        locn = loc.copy()
-        locn[imL] = addloc
-        locn = np.delete(locn,imL+1)
-        npar = len(locn)
+        #splitting: add the locations
+        addlocS = np.sqrt(loc[isL]*loc[isL+1])
+        addlocM = np.sqrt(loc[imL]*loc[imL+1])
 
-        mtotn = mtot.copy()
-        mtotn[imL] = addmtot
-        mtotn = np.delete(mtotn,imL+1)
-
-        mphyn = mphy.copy()
-        mphyn[imL] = addmphy
-        mphyn = np.delete(mphyn,imL+1)
-
-        fcompn = np.ones((npar,ncomp))
-
-        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
-        return locn, mtotn, mphyn, fcompn
-
-
-    if doResample:#or len(imL)>0:
         locmidext = locmid_ext (loc)
         cummtot = np.concatenate(([0],np.cumsum(mtot)))
 
@@ -322,9 +370,14 @@ def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0
         locn[imL] = addlocM
         locn = np.delete(locn,imL+1)
 
+        #find the index the mphy should be inserted
+        idxS = np.searchsorted(locn, addlocS)
+
         #a bit weird
         locn = np.concatenate((locn,addlocS))
         locn.sort()
+
+
         npar = len(locn) #new number of particles
 
         locmidnext = locmid_ext (locn)
@@ -338,35 +391,32 @@ def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0
             print('mflux not in order')
             import pdb; pdb.set_trace()
 
-        pm = 0.5
-        dum = interp_mtot_weighted (locmidnext, locmidext, mphy**pm, mtot, mtotn)
-        mphyn = dum**(1/pm)
-
         ##[25.01.20]lzx: now from the velocity to get the mass 
         #first get the velocity in the geometrical average point 
-        addloc = np.append(addlocS, addlocM)
-        for i, idx in enumerate(np.append(isL, imL)):
-            v1 = sim.particles.v_r[idx] 
-            v2 = sim.particles.v_r[idx+1]
-            r1 = loc[idx]
-            r2 = loc[idx+1]
-            vnew = (r1*v2+r2*v1)/2/addloc[i]
+        addmphyS = get_addmphy(isL, addlocS, sim, loc, prop='rv') 
+        addmphyM = get_addmphy(imL, addlocM, sim, loc, prop='rv')
 
-            #get the mass from the velocity
+        #insert the phycical mass into massL 
+        mphyn = mphy.copy()
+        mphyn[imL] = addmphyM 
+        mphyn = np.delete(mphyn, imL+1)
 
-        import pdb;pdb.set_trace()
+        mphyn = np.insert(mphyn, idxS, addmphyS) 
+
+        #if len(imL)>0:
+        #    import userfun
+        #    userfun.ba_resample(loc, locn, mphy, mphyn, mtot, mtotn, isL, imL,sim.time)
+
         #logmphyn = interp_mtot_weighted (locmidnext, locmidext, np.log(mphy))
         #mphyn = np.exp(logmphyn)
         #import pdb; pdb.set_trace()
 
         #mphyn[isL+1] = (0.5*(mphy[isL]**(1/3)+mphy[isL+2]**(1/3)))**3
 
-       #if np.all(np.diff(np.log10(mphyn[:100]))<0)==False:
-       #    print('physical mass not in order')
+        #if np.all(np.diff(np.log10(mphyn[:100]))<0)==False:
+        #    print('physical mass not in order')
 
         sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
-
-        #if len(imL)>0: import pdb; pdb.set_trace()
 
         #composition... to be tested
         fcompn = np.empty((npar,ncomp))
@@ -375,44 +425,23 @@ def new_splitmerge_zxl (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0
             cummassn = np.interp(locmidnext, locmidext, cummass)
             fcompn[:,k] = np.diff(cummassn) /mtotn
 
-        return locn, mtotn, mphyn, fcompn
+        #to make sure there are only once resample 
+        import userfun
+        userfun.ba_resample(loc, locn, mphy, mphyn, mtot, mtotn, isL, imL, sim.time)
+
+
+        if full_output: 
+            return locn, mtotn, mphyn, fcompn, isL, imL
+        else:
+            return locn, mtotn, mphyn, fcompn
     else:
         return None
 
 
 
-def resamplr_spiltmerge_zxl(sim, fchange, *args):
-    """
-    do the split and merge by the cumulative total mass distrbution
-    """
-    loco = sim.particles.locL 
-    mtoto = sim.particles.mtotL 
-    masso = sim.particles.massL 
-    fcompo = sim.particles.fcomp 
-
-    #let's forget about the special locations for now [25.01.18]lzx 
-    xdel = np.log(loco[1:]/loco[:-1])
-
-    fdelS = sim.particles.delta/fchange
-    fdelM = sim.particles.delta*fchange
-
-    isL = np.where(xdel>fdelS)[0] 
-    imL = np.where(xdel<fdelM)[0]
-
-    if len(isL)>0: 
-        for id in isL:
-            if id>0 and id<len(loco)-2:
-                locn = np.insert(loco, id+1, np.sqrt(loco[id]*loco[id+1]))
-
-                #do the cumulative mass distribution to find the total mass 
-                cummasso = np.cumsum(mtoto)
-                cummassn = np.interp(locn, loco, cummasso) 
-                mtotn = np.diff(cummassn)
 
 
-
-
-def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001):
+def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM=0.0001, full_output=False):
     """
     [22.04.10]: mmid picked through midpoints
     [22.07.28]: also added the "simple merge" (splitsimplemerge) algorithm
@@ -655,7 +684,11 @@ def re_sample_splitmerge (sim, spN, fdelS, fdelM=0., fdelX=1, nsampleX=0, fdelDM
         except:
             print('[resample.splitmerge]:mass conservation violated')
             import pdb; pdb.set_trace()
-        newarr = (locI, msupI, mphyI, fcomI)
+
+        if full_output:
+            newarr = (locI, msupI, mphyI, fcomI, isL, imL)
+        else:
+            newarr = (locI, msupI, mphyI, fcomI)
 
 
     #neither merging or splitting has occurred
@@ -1140,6 +1173,17 @@ def fixed_resample (sim, spN, specloc, fchange=0.9, Xspecial=1, **kwargs):
             for k in range(ncomp):
                 fcompn[iin,k] = interp_mtot_weighted (locmidnext[ss], locmidext, fcomp[ii,k], mtot[ii], mtotn[iin])
 
+            #check the mphy around the iceline  
+            # import cgs
+            # plt.loglog(loc, mphy/mphy.max(), 'x-', label ='old')
+            # plt.loglog(locn, mphyn/mphy.max(), 'x-', label = str(sim.time/cgs.yr))
+            # plt.loglog(loc, mtot/mtot.max(), '.-', label='oldmtot')
+            # plt.loglog(locn, mtotn/mtot.max(), '.-', label='newmtot')
+            # plt.axvline(sim.specloc[0], ls='--', lw=1, c = 'gray')
+            # plt.xlim(sim.specloc[0]*0.9, sim.specloc[0]*1.1)
+            # plt.legend()
+            # plt.savefig('mphy/{:.2f}.jpg'.format(sim.time))
+            # plt.close()
             #The Problem particle -- that would be created at the location interior to the special
             #This represents mass overflow.
             if imn0>0 and problem: 
@@ -1795,6 +1839,17 @@ def global_resample (sim, spN, fchange=0.9, fdelX=1, nsampleX =0, nspec = 1,**ar
             fcompn[idxn[i]:idxn[i+1]] = sim.particles.fcomp[idxo[i]] 
 
 
+        # import cgs
+        # plt.loglog(loc, mphyo/mphyo.max(), 'x-', label ='old')
+        # plt.loglog(locn, massn/massn.max(), 'x-', label = str(sim.time/cgs.yr))
+        # plt.loglog(loc, marr/marr.max(), '.-', label='oldmtot')
+        # plt.loglog(locn, mtotn/mtotn.max(), '.-', label='newmtot')
+        # plt.axvline(locspecL[1], ls='--', lw=1, c = 'gray')
+        # plt.xlim(locspecL[1]*0.9, locspecL[1]*1.1)
+        # plt.legend()
+        # plt.savefig('/home/lzx/CpdPhysics/Test/zxl_test/mphy/{:.2f}.jpg'.format(sim.time))
+        # plt.close()
+        #
         #check the mass conservation every slices
         merr = np.abs(cum_mtotn[-1] - cum_mtoto[-1])
         if merr>1e-10:

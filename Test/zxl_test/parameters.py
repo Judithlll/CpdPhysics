@@ -51,8 +51,8 @@ vc={'icy': 1.e2,
     }
 
 sfdmode = 'simple'
-resampleMode = 'new_splitmerge_zxl' #'Nplevel'
-deresample = {'fchange':0.9,'fdelDM':1e-3}
+resampleMode = 'fixed_resample'#'new_splitmerge_zxl' #'Nplevel'
+dresample = {'fchange':0.9,'fdelDM':1e-3, 'Xspecial':10}
 #dresample = {'fdelS':1.,'fdelM':0.001,'fdelDM':1e-7, 'fspec':0.002}
 doJump = False
 doPlanets = True

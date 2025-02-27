@@ -24,5 +24,5 @@ doIcelines = False
 
 sfdmode =  'special' #'fixed_bin'# 'sfd_spline'# 'simple'#
 
-resampleMode = 'fixed_resample'# 'local_splitmerge'#  'global_resample'# 'global_resample4'#  'splitmerge'#
+resampleMode =  'new_splitmerge_zxl'# 'local_splitmerge'#  'global_resample'# 'global_resample4'#  'splitmerge'#
 dresample = {'fdelS':0.05, 'fdelM':0.01, 'fdelDM':1e-7}

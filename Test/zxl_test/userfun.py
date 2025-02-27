@@ -268,7 +268,8 @@ def do_stuff (system, init=False, final= False):
 
         #plot the surface density profile
         if system.time/cgs.yr > plotnum: #plot every 1 yr
-            y2d = system.particles.dY2d_dt(system.particles.Y2d, system.time)
+            Y2d = system.particles.make_Y2d()
+            y2d = system.particles.dY2d_dt(Y2d, system.time)
             delv = del_v(system.particles.St, system.particles)
             plot_sfd(system.particles.locL, system.particles.sfd, system.time, system.minTimes.dpart['imin'], system.deltaT, system.timeL, system.resam_time, y2d, delv, system.particles.St, 
                      system.particles.massL)

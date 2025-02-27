@@ -17,6 +17,9 @@ dgasgrid = {'rinn':0.1*cgs.au,'rout':100*cgs.au}
 gasmodel = 'prescribed'
 
 
+vc = {'icy':1.e2,
+      'silicates':5.e2}
+
 tmax = 1e6 *cgs.yr
 
 doJump = False

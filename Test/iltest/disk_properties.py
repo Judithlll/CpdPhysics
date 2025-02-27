@@ -1,17 +1,16 @@
 import cgs
 import numpy as np
-import parameters as pars
 
-## A very simple CPD...
+## A very simple PPD...
 
-rinn = pars.dgasgrid['rinn'] 
+rinn = 0.1 *cgs.au
 #rout = 100 *cgs.au
 
 #this is necessary apparently...
 sigmol=2e-15
 
 def r_out (t):
-    return pars.dgasgrid['rout']
+    return 100*cgs.au 
 
 def Mcp_t (t):
     return cgs.Msun

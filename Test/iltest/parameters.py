@@ -16,7 +16,9 @@ dtimesteppars = {'deltaTfraction':0.2, 'itgmethod':'Heun'}
 dgasgrid = {'rinn':0.1*cgs.au,'rout':100*cgs.au}
 gasmodel = 'prescribed'
 
-sfdmode = 'special'
+
+vc = {'icy':1.e2,
+      'silicates':5.e2}
 
 tmax = 1e6 *cgs.yr
 
@@ -24,5 +26,6 @@ doJump = False
 doPlanets = False
 doIcelines = True
 
-resampleMode = 'global_resample4'# None#
-dresample = {'fdelS':0.04, 'fdelM':0.01}
+sfdmode = 'special'
+resampleMode = 'fixed_resample' #'global_resample4'# None#
+dresample = {'Xspecial':10}

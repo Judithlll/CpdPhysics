@@ -150,6 +150,8 @@ class System(object):
 
         self.con_Jump =[]
 
+        self.remidx = None
+
 
     def add_message (self, mtype, message):
         """
@@ -188,7 +190,7 @@ class System(object):
             #    print('[core.re_sample]: Particles are crossing, please check')
             #    import pdb;pdb.set_trace()
 
-            newarr = resample.re_sample_splitmerge(self,self.particles,nsampleX=2,**pars.dresample)
+            newarr = resample.re_sample_splitmerge(self,self.particles,nsampleX=2,full_output=True, **pars.dresample)
         elif pars.resampleMode == 'dropmerge':
             newarr = resample.re_sample_dropmerge(self,self.particles,nsampleX=2,**pars.dresample)
         
@@ -219,7 +221,7 @@ class System(object):
         elif pars.resampleMode == 'new_splitmerge_chris':
             newarr = resample.new_splitmerge_chris(self, self.particles, **pars.dresample)
         elif pars.resampleMode == 'new_splitmerge_zxl':
-            newarr = resample.new_splitmerge_zxl(self, self.particles, **pars.dresample)
+            newarr = resample.new_splitmerge_zxl(self, self.particles, full_output=True, **pars.dresample)
 
         else:
             newarr = None
@@ -260,8 +262,9 @@ class System(object):
                 #     plt.close()
                 #     import pdb;pdb.set_trace()
 
+
                 #assign the key properties 
-                self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr
+                self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr[0:4]
                 self.particles.num = len(self.particles.locL)
                 #also we need to get other properties of particles 
                 #idea is make an function to get all these auxiliary
@@ -270,17 +273,23 @@ class System(object):
                 if np.isnan(self.particles.locL).any():
                     import pdb; pdb.set_trace()
                 
-                #TBR
-                #self.particles.make_Y2d()
 
-                #mflux = self.particles.v_r *self.particles.sfd *self.particles.locL
-                #import pdb; pdb.set_trace()
+                isL, imL = newarr[4:6]
+                # the index of new particles 
+                self.remidx = isL[0]+1 
+                pars.resampleMode = None
 
             else:
                 print('some crossing caused by resampling')
 
+        if self.remidx is not None: 
+            if 'remove' in self.daction:
+                self.remidx -= len(self.daction['remove']) 
 
-
+            userfun.check_split(self, self.remidx)
+            import pdb;pdb.set_trace()
+            #plot the mphy, vr, sfd, around the new particle 
+                
                 
 
     #ZL-TBD: put this stuff in fileio.py
@@ -865,7 +874,8 @@ class System(object):
 
         McTscale = np.inf
         if self.time > 0:
-            McTscale = self.centralbody.m/ np.abs(self.centralbody.m - self.oldstate.centralbody.m) *self.deltaT
+            with np.errstate(divide='ignore', invalid='ignore'):
+                McTscale = self.centralbody.m/ np.abs(self.centralbody.m - self.oldstate.centralbody.m) *self.deltaT
             mintimeL.append({'name': 'CentralMassGrowth', 'tmin': McTscale})
             # import pdb; pdb.set_trace()
 
@@ -878,7 +888,8 @@ class System(object):
         if self.oldstate is not None:   
             #Mass influx timescale
             #[24.05.12]cwo: I removed the "1e-100" from the denominator b/c when dotMg==0 this timescale should become infinite
-            mdotgTscale = (1e-100 + np.float64(self.dotMg)) / (abs(self.oldstate.dotMg - self.dotMg)) *self.deltaT
+            with np.errstate(divide='ignore', invalid='ignore'):
+                mdotgTscale = (1e-100 + np.float64(self.dotMg)) / (abs(self.oldstate.dotMg - self.dotMg)) *self.deltaT
             mintimeL.append({'name': 'Mass_Influx', 'tmin': mdotgTscale})
             #timescale for the planets 
             # (including migration and mass growth)

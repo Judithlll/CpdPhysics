@@ -194,3 +194,105 @@ else:
     name1 = 'imp'+'+'+str(dp.fraction)
 figname = name1+'+'+str(pars.dresample['fdelS'])+'+'+str(pars.dresample['fdelM'])+'+'+str(pars.dresample['fdelDM'])+'+'+str(pars.dparticleprops['Rdi'])+'.jpg'
 
+#Let's make a function that show the comparison before and after the resample: 
+def ba_resample(loc,locn, mphy, mphyn, mtot, mtotn, isL, imL, time):
+    plt.close()
+    fig, axL = plt.subplots(2, max(len(isL),len(imL)), figsize=(8,6)) 
+
+    if len(axL.shape)==1: 
+        axL = axL.reshape(2,1)
+
+    #make the size of ticks smaller for all the subplots 
+    for ax in axL.ravel():
+        ax.tick_params(axis='both', which='major', labelsize=6)
+
+    baloc =  loc.copy()/cgs.au 
+    balocn = locn.copy()/cgs.au 
+    
+    #plot the particles around the split and merge locations 
+    for id, iss in enumerate(isL):
+        sidx = np.arange(max(iss-3,0),min(iss+3,len(loc)-1))
+        axL[0, id].scatter(baloc[sidx], mphy[sidx], color='b', s=1)
+        axL[0, id].set_xlim(baloc[sidx[0]], baloc[sidx[-1]])
+        axL[0, id].set_ylim(0.8*min(mphy[sidx]), 1.1*max(mphy[sidx])) 
+
+        sidx = np.append(sidx, sidx[-1]+1)
+        axL[0, id].scatter(balocn[sidx], mphyn[sidx]-mphy[iss]/10, color='r', s=1, label='insert particles at {:.4f}'.format(balocn[iss+1])) 
+        axL[0, id].legend(fontsize=6)
+
+    
+
+    for id, imm in enumerate(imL): 
+        midx = np.arange(max(imm-3,0),min(imm+3,len(loc)-1)) 
+        axL[1, id].scatter(baloc[midx], mphy[midx], color='b', s=1)
+        axL[1, id].set_xlim(baloc[midx[0]], baloc[midx[-1]])
+        axL[1, id].set_ylim(0.8*min(mphy[midx]), 1.1*max(mphy[midx]))
+
+        midx = midx[:-1]
+        axL[1, id].scatter(balocn[midx], mphyn[midx]-mphy[imm]/10, color='r', s=1)
+
+    plt.savefig('./bc_rasample/'+'{:.2f}'.format(time/cgs.yr)+'.jpg')
+
+    return
+
+def check_split(sim, idx=None):
+    #here we will make a space-time diagram with iso-mphy lines,to show what's the matter with the split 
+    
+    if idx is None:
+        idxL = np.arange(0, 20)
+    else:
+        idxL = np.arange(max(idx-5,0),min(idx+10,len(sim.particles.locL)-1))
+    loc = sim.particles.locL/cgs.au 
+    mphy = sim.particles.massL 
+    sfd = sim.particles.sfd 
+    vr = sim.particles.v_r
+    mtot = sim.particles.mtotL
+
+    plt.close()
+    fig, axL = plt.subplots(1,4, figsize=(16,4)) 
+
+    #make the size of ticks smaller for all the subplots and set the limits 
+    titles = ['mphy', 'sfd', 'vr', 'mtot']
+    for ax in axL.ravel():
+        ax.tick_params(axis='both', which='major', labelsize=6) 
+        ax.set_xlim(loc[idxL[0]]*0.8, loc[idxL[-1]]*1.2) 
+        ax.set_title(titles.pop(0))
+        ax.axvline(sim.rinn/cgs.au, linestyle='dashed', color='black', linewidth = 1)
+
+        for id in idxL:
+            ax.axvline(loc[id], linestyle='dotted', color='gray', linewidth = 0.5)
+        
+
+    #plot the mphy with scatters 
+    axL[0].scatter(loc[idxL], mphy[idxL], color='b', s=3) 
+    axL[0].set_ylim(0.8*min(mphy[idxL]), 1.1*max(mphy[idxL])) 
+    if idx is not None:
+        axL[0].scatter(loc[idx], mphy[idx], color='r', s=5) 
+
+    #plot the sfd with scatters 
+    axL[1].scatter(loc[idxL], sfd[idxL], color='b', s=3) 
+    axL[1].set_ylim(0.8*min(sfd[idxL]), 1.1*max(sfd[idxL])) 
+    if idx is not None:
+        axL[1].scatter(loc[idx], sfd[idx], color='r', s=5)
+
+
+    #plot the vr with scatters 
+    axL[2].scatter(loc[idxL], vr[idxL], color='b', s=3)
+    axL[2].set_ylim(1.1*min(vr), 0.8*max(vr)) 
+    if idx is not None:
+        axL[2].scatter(loc[idx], vr[idx], color='r', s=5)
+
+    #plot the mtot with scatters 
+    axL[3].scatter(loc[idxL], mtot[idxL], color='b', s=3)
+    axL[3].set_ylim(0.8*min(mtot[idxL]), 1.1*max(mtot[idxL]))
+    if idx is not None:
+        axL[3].scatter(loc[idx], mtot[idx], color='r', s=5)
+
+    #remove the blank space 
+    plt.tight_layout()
+
+    plt.savefig('./split_check/'+'{:.2f}'.format(sim.time/cgs.yr)+'.jpg')
+    plt.close()
+    #plot the particles before and after the split around the split location 
+
+    return
