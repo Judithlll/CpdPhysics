@@ -8,6 +8,59 @@ import physics
 from scipy.optimize import fsolve 
 
 
+def brand_new_splitmerge (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, fdelDM=0.0001, full_output = False, **args):
+    """
+    got the inspiration from Arepo and Chengzhe 
+    """
+
+    #the criteria now should be related the width of particles
+    loc = spN.locL 
+    
+    #get the width of particles' space 
+    fwdel = ff.get_width(loc, sim.specloc, sim.rinn, sim.rout)
+
+    fdelS = sim.particles.fdelS /fchange
+    fdelM = sim.particles.fdelM *fchange 
+
+    fdelXarr = np.ones_like(fwdel)
+    # judge whether the particles need to be resampled 
+    imL, = np.nonzero(fwdel<fdelM*fdelXarr) 
+
+    #dont split where we merge 
+    fdelXarr[imL] = np.inf 
+    fdelXarr[imL+1] = np.inf 
+    fdelXarr[imL-1] = np.inf 
+    fdelXarr[0] = np.inf; fdelXarr[-1] = np.inf #don't split 1st/last particles 
+    
+    isL, = np.nonzero(fwdel>fdelS*fdelXarr) 
+
+    if len(isL)>0 or len(imL)>0: 
+        doResample = True 
+    else:
+        doResample = False
+
+    if doResample: 
+        print('Resample happens') 
+
+        mtot = spN.mtotL 
+        mphy = spN.massL 
+        fcomp = spN.fcomp #composition fraction 
+        ncomp = len(fcomp[0]) 
+
+        locmidext = locmid_ext(loc)
+
+        addlocS = 2*locmidext[isL+1]/loc[isL+1] 
+
+        #how to merge? 
+        addlocM = 2*locmidext[imL+1]/loc[imL+1] 
+        #do the split: 
+        #just split 1 particles to 2 particles
+
+
+
+
+
+
 def v_rad (marr,disk,rhoint,Stg=None,vaim=0):
     """
     obtain radial velocity of particles

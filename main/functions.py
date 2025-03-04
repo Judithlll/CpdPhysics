@@ -311,6 +311,29 @@ def sfd_simple (msup, loc, specloc):
     sfd = msup /(2*np.pi *loc) /wdel
     return sfd
 
+def get_fwidth(loc, specloc, rinn, rout):
+    """
+    the specloc should also include the inner and outer boundaries 
+    """
+    locmid = np.sqrt(loc[1:]*loc[:-1]) 
+
+    fwidth = np.diff(locmid)
+    
+    winn = max(2*(locmid[0]-loc[0]), locmid[0] - rinn)
+    wout = max(2*(loc[-1]-locmid[-1]), rout - locmid[-1]) 
+
+    fwidth = np.concatenate(([winn], width, [wout]))
+    fwidth /= loc
+    return fwidth
+
+def sfd_zxl(msup, loc, specloc, pgrid):
+    """
+    this one will be very artificial in the special locations and boundaries
+    """
+    wdel = get_fwidth(loc, specloc, pgrid[0], pgrid[-1]) 
+
+    sfd = msup /(2*np.pi *loc**2) /wdel
+    return sfd
 
 def sfd_chris (msup, loc):
     """

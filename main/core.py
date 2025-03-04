@@ -82,7 +82,7 @@ class Messages (object):
                     line = sfmt.format(dmsg['ntime'],dmsg['type'],dmsg['msg'])
                     file.write(line+'\n')
 
-            self.msgL = []#reset
+            self.msgL = []#reset 
 
 
 class System(object):
@@ -1634,6 +1634,7 @@ class Superparticles (object):
         #this is the desired spacing among the particles in log-space
         self.delta = np.log(rout/rinn) /nini
 
+
         #grid used in calculating particle surface density
         #it should (?) be courser than aimed particle number
         self.pgrid = 10**np.linspace(np.log10(rinn), np.log10(rout), nini//5)
@@ -1720,6 +1721,9 @@ class Superparticles (object):
         self.mtotL = np.array(msup)
         self.fcomp = np.array(fcompL)
         self.num = len(self.locL) #moved this below...
+
+        #the initial width of particles 
+        self.fwdel = ff.get_fwidth (radL, [], rinn, rout)
 
         #TBR
         if False:
@@ -1974,6 +1978,8 @@ class Superparticles (object):
                 sfd = disk.dot_Md(time) /(-2*loc*np.pi*v_r)/len(self.fcompini)*np.count_nonzero(self.fcomp, axis=1) #v_r<0
                 #sfd1= disk.dot_Md(time) /(-2*self.locL*np.pi*v_r)
                 #import pdb;pdb.set_trace()
+            elif pars.sfdmode=='sfd_zxl':
+                sfd = ff.sfd_zxl (self.mtotL, loc, specloc, self.pgrid)
             else:
                 sfd = None
                 
