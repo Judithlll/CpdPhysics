@@ -223,6 +223,9 @@ class System(object):
         elif pars.resampleMode == 'new_splitmerge_zxl':
             newarr = resample.new_splitmerge_zxl(self, self.particles, full_output=True, **pars.dresample)
 
+        elif pars.resampleMode == 'face_splitmerge':
+            newarr = resample.face_splitmerge(self, self.particles, **pars.dresample)
+
         else:
             newarr = None
 
@@ -264,7 +267,11 @@ class System(object):
 
 
                 #assign the key properties 
-                self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr[0:4]
+                if pars.resampleMode == 'face_splitmerge':
+                    face, self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr[0:5]
+                    self.particles.fface, self.particles.fface0, self.particles.fface1 = self.particles.get_fface(face)
+                else:
+                    self.particles.locL,self.particles.mtotL,self.particles.massL, self.particles.fcomp = newarr[0:4]
                 self.particles.num = len(self.particles.locL)
                 #also we need to get other properties of particles 
                 #idea is make an function to get all these auxiliary
@@ -274,10 +281,10 @@ class System(object):
                     import pdb; pdb.set_trace()
                 
 
-                isL, imL = newarr[4:6]
+                #isL, imL = newarr[4:6]
                 # the index of new particles 
-                self.remidx = isL[0]+1 
-                pars.resampleMode = None
+                #self.remidx = isL[0]+1 
+                #pars.resampleMode = None
 
             else:
                 print('some crossing caused by resampling')
@@ -594,6 +601,15 @@ class System(object):
         self.particles.locL = Yn[0]
         self.particles.massL = Yn[1]
 
+        part = self.particles 
+        face = part.get_face()
+        #userfun.loc_face(part.locL[:10], face[:11], part.mtotL[:10], self.time, mode='zi')
+
+        #userfun.loc_face(part.locL[:10], face[:11], part.sfd[:10], self.time, mode='sfdzi')
+        userfun.loc_face(part.locL, face, part.sfd, self.time, mode='sfd')
+        #userfun.loc_face(part.locL[:10], face[:11], part.massL[:10], self.time, mode='mphy')
+
+
         #Yt = self.particles.update(self.time,self.time+self.deltaT,self.disk,timestepn)
 
         if self.time==np.nan or self.deltaT==np.nan:
@@ -715,7 +731,7 @@ class System(object):
                 self.Minflux -= mtot1
         elif pars.resampleMode=='splitmerge' or pars.resampleMode == 'dropmerge' or\
              pars.resampleMode in ['new_splitmerge_chris','fixed_resample','local_splitmerge'] or\
-             pars.resampleMode in ['new_splitmerge_zxl'] or\
+             pars.resampleMode in ['new_splitmerge_zxl', 'face_splitmerge'] or\
              pars.resampleMode in ['global_resample','global_resample2', 'global_resample3', 'global_resample4'] and self.rout is not None:
             mtot1 = self.particles.mtot1
             while self.Minflux> mtot1:
@@ -1650,8 +1666,7 @@ class Superparticles (object):
         locspecL.sort()
 
         print('[core.Superparticles.init]:initialization superparticles under rule:', initrule)
-        radL = []
-        rmidL = []
+        radL = np.array([])
         msupL = []
         ncomp = len(pars.composL) #number of refractory +volatile species
         fcompL = []
@@ -1677,6 +1692,7 @@ class Superparticles (object):
             locspecL.insert(0, rinn)
             locspecL.append(rout)
             nspecial = len(locspecL) #includes the boundaries
+            face = np.array([])
 
             #piecewise..
             for iloc in range(nspecial-1):
@@ -1685,8 +1701,10 @@ class Superparticles (object):
                 Nadd = round(xdum /self.delta)
                 #[25.01.01]cwo: put particles at half-distance near boundaries
                 rmid = r0 *np.exp(np.linspace(0,1,Nadd+1)*xdum)
-                radL.append(np.sqrt(rmid[1:]*rmid[:-1]))
+                radL= np.append(radL, np.sqrt(rmid[1:]*rmid[:-1]))
 
+                face = np.append(face, rmid)
+                
                 for k,r1 in enumerate(rmid[1:]): #the midpoints
                     msup, err = sciint.quad(f_sample, r0, r1, limit =100)
                    #print('{:11.3e} {:11.3e} {:11.3e} {:11.3e}'.format(f_sample(r0), f_sample(r1), r1, msup))
@@ -1696,7 +1714,7 @@ class Superparticles (object):
                     fcompL.append(fc) #composition
                     r0 = r1
 
-            radL = np.concatenate(radL) #single array
+            #radL = np.concatenate(radL) #single array
             msup = np.array(msupL)
 
         elif initrule=='equalmass':
@@ -1722,8 +1740,17 @@ class Superparticles (object):
         self.fcomp = np.array(fcompL)
         self.num = len(self.locL) #moved this below...
 
-        #the initial width of particles 
-        self.fwdel = ff.get_fwidth (radL, [], rinn, rout)
+        self.fface, self.fface0, self.fface1 = self.get_fface(face, radL)
+        self.fwdeli = (face[1]-face[0])/face[0]
+
+
+        # #the distance to the face of the innermost one, only change in the remove/add and split/merge 
+        # self.fface0 = radL[0] - rinn 
+        # #the distance to the face of the outermost one, only change in the remove/add and split/merge
+        # self.fface1 = rout - radL[-1]
+
+        # the newest idea is that also keep the relative distant of first and last one
+
 
         #TBR
         if False:
@@ -1835,6 +1862,32 @@ class Superparticles (object):
 
 
         #<-- initialization (Superparticles)
+
+    def get_face(self):
+        # face = np.array([self.locL[0]-self.dface0])
+        # face = np.append(face, self.locL[1:]-self.fface*(self.locL[1:]-self.locL[:-1]) )
+        # face = np.append(face, self.locL[-1]+self.dface1)
+
+        facemid = self.locL[1:]- self.fface*(self.locL[1:] - self.locL[:-1]) 
+
+        face0 = self.locL[0] - self.fface0*(facemid[0]-self.locL[0])/(1-self.fface0)
+
+        face1 = self.locL[-1] + self.fface1*(self.locL[-1]-facemid[-1])/(1-self.fface1)
+
+        face = np.concatenate(([face0], facemid, [face1]))
+
+        return face
+
+    def get_fface(self, face, loc = None):
+        if loc is None: 
+            loc = self.locL 
+
+        fface0 = (loc[1]-face[1])/(face[2]-face[1])
+        fface1 = (face[-2]-loc[-2])/(face[-2]-face[-3])
+        # dface1 = face[-1] - loc[-1] 
+        fface = (loc[1:]-face[1:-1])/(loc[1:]-loc[:-1]) 
+
+        return fface, fface0, fface1
 
 
     def loc_init (self, specL=[]):
@@ -1980,6 +2033,9 @@ class Superparticles (object):
                 #import pdb;pdb.set_trace()
             elif pars.sfdmode=='sfd_zxl':
                 sfd = ff.sfd_zxl (self.mtotL, loc, specloc, self.pgrid)
+            elif pars.sfdmode=='sfd_face':
+                face = self.get_face()
+                sfd = ff.sfd_face (self.mtotL, loc, face)
             else:
                 sfd = None
                 
@@ -2036,11 +2092,18 @@ class Superparticles (object):
     
     def remove_particles (self,remove_idx):
         
+        face = self.get_face()
+
         mrem = np.sum(self.mtotL[remove_idx])
         self.locL = np.delete(self.locL, remove_idx)
         self.massL = np.delete(self.massL, remove_idx)
         self.mtotL = np.delete(self.mtotL, remove_idx)
         self.fcomp = np.delete(self.fcomp, remove_idx, axis = 0)
+
+        #figure out the face 
+        face = np.delete(face, remove_idx) 
+        self.fface, self.fface0, self.fface1 = self.get_fface(face, self.locL)
+
         #for prop in self.propL:
         #    pL = getattr(self, prop)
         #    if len(pL)==self.num:
@@ -2057,10 +2120,15 @@ class Superparticles (object):
 
     def add_particles (self,Nadd):
 
-        self.locL = np.append(self.locL, self.rout)
+        newloc = np.sqrt(self.rout*self.locL[-1])
+        #deal with the face [250313]zxl: this need to be cosistent in the post_process 
+        self.fface = np.append(self.fface, self.rout)
+
+        self.locL = np.append(self.locL, newloc)
         self.massL = np.append(self.massL, self.mini)
         self.mtotL = np.append(self.mtotL, self.mtot1)  #mtot1 is needed here
         self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
+
         # because we need to use these properties somewhere, so these properties also needed to be postprocess, but for now this is very crude
         #self.Rd = np.append(self.Rd, self.Rdi)
         #self.St = np.append(self.St, self.St[-1])

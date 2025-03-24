@@ -6,21 +6,22 @@ from scipy.interpolate import interp1d
 import functions as ff
 import physics
 from scipy.optimize import fsolve 
+import userfun
 
-
-def brand_new_splitmerge (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, fdelDM=0.0001, full_output = False, **args):
+def face_splitmerge (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, fdelDM=0.0001, full_output = False, **args):
     """
     got the inspiration from Arepo and Chengzhe 
     """
 
     #the criteria now should be related the width of particles
     loc = spN.locL 
+    face = spN.get_face()
     
     #get the width of particles' space 
-    fwdel = ff.get_width(loc, sim.specloc, sim.rinn, sim.rout)
+    fwdel = np.diff(face)/face[:-1]
 
-    fdelS = sim.particles.fdelS /fchange
-    fdelM = sim.particles.fdelM *fchange 
+    fdelS = sim.particles.fwdeli /fchange
+    fdelM = sim.particles.fwdeli *fchange
 
     fdelXarr = np.ones_like(fwdel)
     # judge whether the particles need to be resampled 
@@ -39,24 +40,170 @@ def brand_new_splitmerge (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, fdelDM=0.0
     else:
         doResample = False
 
-    if doResample: 
+    if len(isL)>0: 
         print('Resample happens') 
 
         mtot = spN.mtotL 
         mphy = spN.massL 
+
+        locn = loc.copy() 
+
+        #only consider split now 
+        facen = face.copy()
+        #facen = np.insert(facen, isL+1, loc[isL])
+        #add face at the center 
+        faceaddS = np.sqrt(face[isL]*face[isL+1])
+        facen = np.insert(facen, isL+1, faceaddS)
+
+
+        cglocS = np.sqrt(face[isL]*faceaddS)
+        locn[isL] = cglocS 
+        addlocS = np.sqrt(faceaddS*face[isL+1])
+        locn = np.insert(locn, isL+1, addlocS)
+
+        # sevaral ideas for mtot: 
+        mtotn = mtot.copy() 
+
+        # 1. split the mass equally 
+        #mtotn[isL] = mtot[isL]/2 
+        #mtotn = np.insert(mtotn, isL+1, mtot[isL]/2)
+
+        # 2. split the mass according to the width 
+        #frac = (loc[isL]-face[isL])/(face[isL+1]-face[isL])
+        #mtotn[isL] = mtot[isL]*frac 
+        #mtotn = np.insert(mtotn, isL+1, mtot[isL]*(1-frac))
+
+        # 3. conserve the center of mass 
+        #mtotn[isL] = mtot[isL]*(addlocS-face[isL])/(addlocS-cglocS)
+        #mtotn = np.insert(mtotn, isL+1, mtot[isL]-mtotn[isL])
+
+        # 4. keep the eom simply 
+        # the location should be euqally around the original particle
+        # locn = loc.copy()
+        # sinterv = np.array([])
+        # for i in isL:
+        #     if loc[isL]-face[isL]>face[isL+1]-loc[isL]:
+        #         sinterv =np.append(sinterv, np.sqrt(face[isL+1]*loc[isL])-loc[isL])
+        #     else:
+        #         sinterv =np.append(sinterv, loc[isL]-np.sqrt(face[isL]*loc[isL]))
+        # locn[isL] = loc[isL] - sinterv 
+        # locn = np.insert(locn, isL+1, loc[isL] + sinterv)
+        #
+        # mtotn[isL] = mtot[isL]/2 
+        # mtotn = np.insert(mtotn, isL+1, mtot[isL]/2)
+
+        # 4. according to the sfd 
+        newlocs = np.concatenate((cglocS, addlocS))
+        sfdn = np.interp(newlocs, loc, spN.sfd)
+        
+        #mtotn[isL] = sfdn[:len(isL)]*2*np.pi*cglocS*(loc[isL] - face[isL])
+        #mtotn = np.insert(mtotn, isL+1, sfdn[len(isL):]*2*np.pi*addlocS*(face[isL+1]-loc[isL]))
+
+        # cgmtotS = sfdn[:len(isL)]*2*np.pi*cglocS*(loc[isL] - face[isL])
+        # addmtotS = sfdn[len(isL):]*2*np.pi*addlocS*(face[isL+1]-loc[isL])
+        # frac = cgmtotS/(cgmtotS+addmtotS)
+        # mtotn[isL] = mtot[isL]*frac 
+        # mtotn = np.insert(mtotn, isL+1, mtot[isL]*(1-frac))
+
+        # new idea
+        cgmtotS = sfdn[:len(isL)]*2*np.pi*cglocS*(faceaddS - face[isL])
+        addmtotS = sfdn[len(isL):]*2*np.pi*addlocS*(face[isL+1]-faceaddS)
+        frac = cgmtotS/(cgmtotS+addmtotS)
+        mtotn[isL] = mtot[isL]*frac 
+        mtotn = np.insert(mtotn, isL+1, mtot[isL]*(1-frac))
+        # mphyn = mphy.copy() 
+        # mphyn[isL] = mphy[isL] 
+        # mphyn = np.insert(mphyn, isL+1, mphy[isL])
+
+        #interpolate the mphyn 
+        mphyn = np.interp(locn, loc, mphy)
+        # import cgs
+        # plt.close()
+        # plt.plot(loc[:5]/cgs.au, mtot[:5], 'x-', label='old')
+        #
+        # sfdnm = ff.sfd_face(mtotn[:6], locn[:6], facen[:7])
+        # plt.plot(locn[:6]/cgs.au, mtotn[:6], 'o-', label='new')
+        # plt.xlabel('loc')
+        # plt.ylabel('sfd')
+        #
+        # plt.legend()
+        # plt.show()
+        # import pdb;pdb.set_trace()
+
+        #userfun.ba_resample(loc, locn, mtot, mtotn, mtot, mtotn, isL, imL, sim.time)
+    else:
+        facen = face.copy() 
+        locn = loc.copy()
+        mtotn = spN.mtotL.copy() 
+        mphyn = spN.massL.copy() 
+
+    if len(imL)>0:
+        print('Merge happens')
+
+        #get a new imL from ...n things 
+        fwdel = np.diff(facen)/facen[:-1]
+        imL = np.argwhere(fwdel<fdelM)[0]
+
+        facenm = facen.copy()
+        locnm = locn.copy()
+        mtotnm = mtotn.copy()
+        mphynm = mphyn.copy()
+
+        #get the cloest particle index 
+        imcL = np.array([]).astype(int)
+        for im in imL:
+            if abs(locn[im]-locn[im+1])<abs(locn[im-1]-locn[im]):
+                imcL = np.append(imcL, im+1)
+                facenm = np.delete(facenm, im+1)
+            else:
+                imcL = np.append(imcL, im-1)
+                facenm = np.delete(facenm, im)
+
+        locnm[imL] = np.sqrt(locn[imL]*locn[imcL])
+        locnm = np.delete(locnm, imcL)
+
+        #deal with the mtot 
+        mtotnm[imL] = mtotn[imL] + mtotn[imcL]
+        mtotnm = np.delete(mtotnm, imcL) 
+
+        #deal with the mphynm: get the weighted mean mass
+        mphynm[imL] = (mphyn[imL]*mtotn[imL] + mphyn[imcL]*mtotn[imcL])/mtotnm[imL] 
+        mphynm = np.delete(mphynm, imcL)
+
+
+
+    else: 
+        facenm = facen.copy()
+        locnm = locn.copy()
+        mtotnm = mtotn.copy()
+        mphynm = mphyn.copy()
+        
+
+    if doResample:
+        npar = len(locnm)
+
         fcomp = spN.fcomp #composition fraction 
         ncomp = len(fcomp[0]) 
 
-        locmidext = locmid_ext(loc)
-
-        addlocS = 2*locmidext[isL+1]/loc[isL+1] 
-
-        #how to merge? 
-        addlocM = 2*locmidext[imL+1]/loc[imL+1] 
-        #do the split: 
-        #just split 1 particles to 2 particles
+        #now treat the fcomp 
+        fcompnm = np.empty((npar,ncomp))  
+        if len(sim.specloc) ==0: 
+            fcompnm[:] = fcomp[0]
 
 
+        #check the mass conservation 
+        delm = (np.sum(mtotnm) - np.sum(spN.mtotL))/np.sum(spN.mtotL)
+        if np.abs(delm)>1e-15:
+            print(f'mass conservation error: {delm}')
+            import pdb;pdb.set_trace()
+
+
+        if full_output: 
+            return facenm, locnm, mtotnm, mphynm, fcompnm, isL, imL 
+        else:
+            return facenm, locnm, mtotnm, mphynm, fcompnm
+    else: 
+        return None
 
 
 

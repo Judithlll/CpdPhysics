@@ -117,6 +117,14 @@ def load_dict_from_file (fname):
             line = f.readline()
     return dout
 
+def sfd_face (msup, loc, face):
+    """
+    This would be very simple in case we have faces
+    """
+    wdel = np.diff(face) 
+
+    sfd = msup /(2*np.pi *loc) /wdel
+    return sfd
 
 def Stokes_number (disk, size, rhoint, Sto=0.001, errorX=1e-4, nmax=100):
     """

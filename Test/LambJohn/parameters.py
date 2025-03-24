@@ -22,7 +22,7 @@ doJump = False
 doPlanets = False
 doIcelines = False
 
-sfdmode =  'sfd_zxl'#'special' #'fixed_bin'# 'sfd_spline'# 'simple'#
+sfdmode =  'sfd_face'#'sfd_zxl'#'special' #'fixed_bin'# 'sfd_spline'# 'simple'#
 
-resampleMode =  'new_splitmerge_zxl'# 'local_splitmerge'#  'global_resample'# 'global_resample4'#  'splitmerge'#
+resampleMode =  'face_splitmerge'#'new_splitmerge_zxl'# 'local_splitmerge'#  'global_resample'# 'global_resample4'#  'splitmerge'#
 dresample = {'fdelS':0.05, 'fdelM':0.01, 'fdelDM':1e-7}

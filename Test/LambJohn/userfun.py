@@ -60,8 +60,7 @@ def do_stuff (system, init=False, final=False):
                                             tminarr.argmin(), imin[0],imin[1], system.time/cgs.yr)
 
         #output = sp.run('tail -n1 log/system_evol.log', shell=True)
-        if system.ntime%10==0:
-            print(line)
+        print(line)
 
         #sfmt = '{:10.3e} {:10.3e} {:10.3e}'        
         #line = sfmt.format(system.time, system.particles.v_r[-1], system.particles.locL[-1]/cgs.au)
@@ -214,10 +213,10 @@ def ba_resample(loc,locn, mphy, mphyn, mtot, mtotn, isL, imL, time):
         sidx = np.arange(max(iss-3,0),min(iss+3,len(loc)-1))
         axL[0, id].scatter(baloc[sidx], mphy[sidx], color='b', s=1)
         axL[0, id].set_xlim(baloc[sidx[0]], baloc[sidx[-1]])
-        axL[0, id].set_ylim(0.8*min(mphy[sidx]), 1.1*max(mphy[sidx])) 
+        axL[0, id].set_ylim(0.3*min(mphy[sidx]), 1.1*max(mphy[sidx])) 
 
         sidx = np.append(sidx, sidx[-1]+1)
-        axL[0, id].scatter(balocn[sidx], mphyn[sidx]-mphy[iss]/10, color='r', s=1, label='insert particles at {:.4f}'.format(balocn[iss+1])) 
+        axL[0, id].plot(balocn[sidx], mphyn[sidx],'x', color='r', label='insert particles at {:.4f}'.format(balocn[iss+1])) 
         axL[0, id].legend(fontsize=6)
 
     
@@ -229,9 +228,9 @@ def ba_resample(loc,locn, mphy, mphyn, mtot, mtotn, isL, imL, time):
         axL[1, id].set_ylim(0.8*min(mphy[midx]), 1.1*max(mphy[midx]))
 
         midx = midx[:-1]
-        axL[1, id].scatter(balocn[midx], mphyn[midx]-mphy[imm]/10, color='r', s=1)
+        axL[1, id].plot(balocn[midx], mphyn[midx], 'x', color='r')
 
-    plt.savefig('./bc_rasample/'+'{:.2f}'.format(time/cgs.yr)+'.jpg')
+    plt.savefig('./ba_resample/'+'{:.2f}'.format(time/cgs.yr)+'.jpg')
 
     return
 
@@ -295,4 +294,62 @@ def check_split(sim, idx=None):
     plt.close()
     #plot the particles before and after the split around the split location 
 
+    return
+
+def loc_face(loc, face, msup,time ,mode='zi'): 
+    plt.close() 
+    fig, ax = plt.subplots(1,1, figsize=(5,2)) 
+    ax.scatter(loc/cgs.au, msup, color='b', s=1) 
+    ax.set_xscale('log')
+
+    #set the fontsize of all ticks 
+    ax.tick_params(axis='both', which='both', labelsize=6)
+
+    if mode=='zi':
+        ax.set_xlim(0.095, 0.125)
+        ax.set_ylim(1e24,2e25)
+    elif mode =='z':
+        ax.set_xlim(0.095, 200)
+        ax.set_ylim(1e23, 1e26)
+    elif mode =='sfd':
+        ax.set_xlim(0.095, 10)
+        ax.set_ylim(1e-1, 100)
+        ax.set_yscale('log')
+    elif mode =='sfdzi':
+        ax.set_xlim(0.095, 0.125) 
+        ax.set_ylim(1e-1, 100)
+        ax.set_yscale('log')
+    elif mode == 'mphy':
+        ax.set_xlim(0.095, 0.125)
+        ax.set_ylim(1e-1, 1e8)
+        ax.set_yscale('log')
+    elif mode == 'normal':
+        pass
+
+    #for f in face: 
+    #    ax.axvline(f/cgs.au,linestyle='dashed', color='black', linewidth = 0.1)
+
+    ax.vlines(face/cgs.au, 0, 1e28, colors='gray', linestyles='dashed', linewidth=0.1)
+    
+    plt.tight_layout()
+    plt.savefig('./face_loc/'+'{:.2f}'.format(time/cgs.yr)+'.jpg')
+    plt.close()
+
+    return
+
+def make_animation(mp4name, path='./plot/satepart_splitmerge'):
+    import cv2
+    pic_list = []
+    pics=os.listdir(path)
+    pics_sorted=sorted(pics, key=lambda x: float(x[:-4]))
+    frame = cv2.imread(os.path.join(path,pics_sorted[0]))
+    height, width, layers = frame.shape
+    video_name =  mp4name
+    fps=10
+    video_codec = cv2.VideoWriter_fourcc(*'mp4v')
+    video = cv2.VideoWriter(video_name, video_codec, fps, (width, height))
+    for pic in pics_sorted:
+        video.write(cv2.imread(os.path.join(path,pic)))
+
+    cv2.destroyAllWindows()
     return
