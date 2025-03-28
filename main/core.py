@@ -605,8 +605,8 @@ class System(object):
         face = part.get_face()
         #userfun.loc_face(part.locL[:10], face[:11], part.mtotL[:10], self.time, mode='zi')
 
-        #userfun.loc_face(part.locL[:10], face[:11], part.sfd[:10], self.time, mode='sfdzi')
-        userfun.loc_face(part.locL, face, part.sfd, self.time, mode='sfd')
+        userfun.loc_face(part.locL[:10], face[:11], part.sfd[:10], self.time, mode='sfdzi')
+        #userfun.loc_face(part.locL, face, part.sfd, self.time, mode='sfd')
         #userfun.loc_face(part.locL[:10], face[:11], part.massL[:10], self.time, mode='mphy')
 
 

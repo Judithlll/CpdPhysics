@@ -10,7 +10,7 @@ import core
 import userfun
 
 
-userfun.make_animation('sfdevol_revise.mp4','./face_loc/')
+userfun.make_animation('sfdevolzi.mp4','./face_loc/')
 import pdb;pdb.set_trace()
 argL = sys.argv
 data=[]
