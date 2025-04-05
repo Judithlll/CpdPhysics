@@ -10,6 +10,7 @@ import shutil
 import userfun
 import physics
 import subprocess as sp
+import newkernel
 
 def clear_dir(directory):
     """
@@ -350,6 +351,14 @@ def sfd_chris (msup, loc):
     wdel = np.diff(loc)
     wdel = np.concatenate((wdel, [wdel[-1]]))
     sfd = msup /(2*np.pi *loc) /wdel
+    return sfd
+
+
+def sfd_kernel(particle, face):
+    particle.hsoft, wM = newkernel.get_weight(particle.locL, face, hguess=particle.hsoft)
+    frhoarr = (wM*particle.mtotL).sum(1) /particle.hsoft
+    particle.frhoarr = frhoarr
+    sfd = frhoarr /(2*np.pi*particle.locL)
     return sfd
 
 

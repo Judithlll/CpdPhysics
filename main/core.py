@@ -1860,6 +1860,10 @@ class Superparticles (object):
             del dcomposL[i]['Z_init']
             del dcomposL[i]['mask_icl']
 
+        import newkernel
+        self.hsoft, wM= newkernel.get_weight(radL, face)
+        self.frhoarr = (wM*msup).sum(1) / self.hsoft
+
 
         #<-- initialization (Superparticles)
 
@@ -2036,6 +2040,9 @@ class Superparticles (object):
             elif pars.sfdmode=='sfd_face':
                 face = self.get_face()
                 sfd = ff.sfd_face (self.mtotL, loc, face)
+            elif pars.sfdmode =='sfd_kernel':
+                face = self.get_face()
+                sfd = ff.sfd_kernel (self, face)
             else:
                 sfd = None
                 
