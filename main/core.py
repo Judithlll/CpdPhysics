@@ -289,12 +289,12 @@ class System(object):
             else:
                 print('some crossing caused by resampling')
 
-        if self.remidx is not None: 
-            if 'remove' in self.daction:
-                self.remidx -= len(self.daction['remove']) 
-
-            userfun.check_split(self, self.remidx)
-            import pdb;pdb.set_trace()
+        # if self.remidx is not None: 
+        #     if 'remove' in self.daction:
+        #         self.remidx -= len(self.daction['remove']) 
+        #
+        #     userfun.check_split(self, self.remidx)
+        #     import pdb;pdb.set_trace()
             #plot the mphy, vr, sfd, around the new particle 
                 
                 
@@ -605,8 +605,8 @@ class System(object):
         face = part.get_face()
         #userfun.loc_face(part.locL[:10], face[:11], part.mtotL[:10], self.time, mode='zi')
 
-        userfun.loc_face(part.locL[:10], face[:11], part.sfd[:10], self.time, mode='sfdzi')
-        #userfun.loc_face(part.locL, face, part.sfd, self.time, mode='sfd')
+        #userfun.loc_face(part.locL[:10], face[:11], part.sfd[:10], self.time, mode='sfdzi')
+        # userfun.loc_face(part.locL[:200], face[:201], part.sfd[:200], self.time, mode='sfd')
         #userfun.loc_face(part.locL[:10], face[:11], part.massL[:10], self.time, mode='mphy')
 
 
@@ -1743,6 +1743,9 @@ class Superparticles (object):
         self.fface, self.fface0, self.fface1 = self.get_fface(face, radL)
         self.fwdeli = (face[1]-face[0])/face[0]
 
+        #mainly used for direct merge
+        self.fdeli = (radL[1]-radL[0])/radL[0]
+
 
         # #the distance to the face of the innermost one, only change in the remove/add and split/merge 
         # self.fface0 = radL[0] - rinn 
@@ -2042,6 +2045,10 @@ class Superparticles (object):
                 sfd = ff.sfd_face (self.mtotL, loc, face)
             elif pars.sfdmode =='sfd_kernel':
                 face = self.get_face()
+                if np.any(np.diff(loc)<0):
+                    print('[Superparticles.get_auxiliary] WARNING: the locL is not sorted')
+                    import pdb;pdb.set_trace()
+
                 sfd = ff.sfd_kernel (self, face)
             else:
                 sfd = None

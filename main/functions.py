@@ -359,6 +359,8 @@ def sfd_kernel(particle, face):
     frhoarr = (wM*particle.mtotL).sum(1) /particle.hsoft
     particle.frhoarr = frhoarr
     sfd = frhoarr /(2*np.pi*particle.locL)
+    if sfd[0]>1e28:
+        import pdb;pdb.set_trace()
     return sfd
 
 

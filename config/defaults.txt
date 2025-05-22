@@ -8,7 +8,7 @@ dragmodel = None
 initrule = equalmass
 
 #[24.08.27]LZX:add the time fraction factor of collision time between particles
-dtimesteppars = {itgmethod:Euler;coltimefrac:1.0}
+dtimesteppars = {itgmethod:Euler;coltimefrac:0.2}
 
 ## jumpfrac dictionary
 jumpfracD = {general:0.2;PlanetsRes:0.5;thre_jump_max:0.001}

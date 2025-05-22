@@ -35,11 +35,6 @@ def face_splitmerge (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, fdelDM=0.0001, 
     
     isL, = np.nonzero(fwdel>fdelS*fdelXarr) 
 
-    if len(isL)>0 or len(imL)>0: 
-        doResample = True 
-    else:
-        doResample = False
-
     if len(isL)>0: 
         print('Resample happens') 
 
@@ -177,31 +172,66 @@ def face_splitmerge (sim, spN, fchange=0.5, fdelX=1, nsampleX=0, fdelDM=0.0001, 
         locnm = locn.copy()
         mtotnm = mtotn.copy()
         mphynm = mphyn.copy()
+
+    #then do the direct merge 
+    #direct merge is decided by the distance b/w particles
+    fdelDM = spN.fdeli*fchange/3 
+    fdel = np.diff(locnm)/locnm[:-1]
+    idmL = np.argwhere(fdel<fdelDM)
+
+    if len(idmL)>0: 
+        print('Direct merge happens')
+
+        locnmd = locnm.copy() 
+
+        locnmd[idmL] = np.sqrt(locnm[idmL]*locnm[idmL+1]) 
+        locnmd = np.delete(locnmd, idmL+1) 
+
+        facenmd = facenm.copy()
+        facenmd = np.delete(facenmd, idmL+1) 
+
+        mtotnmd = mtotnm.copy() 
+        mtotnmd[idmL] = mtotnm[idmL] + mtotnm[idmL+1]
+        mtotnmd = np.delete(mtotnmd, idmL+1) 
+
+        mphynmd = mphynm.copy()
+        mphynmd[idmL] = (mphynm[idmL]*mtotnm[idmL] + mphynm[idmL+1]*mtotnm[idmL+1])/mtotnmd[idmL]
+        mphynmd = np.delete(mphynmd, idmL+1)
         
+    else:
+        locnmd = locnm.copy() 
+        facenmd = facenm.copy()
+        mtotnmd = mtotnm.copy() 
+        mphynmd = mphynm.copy()
+
+    if len(isL)>0 or len(imL)>0 or len(idmL)>0: 
+        doResample = True 
+    else:
+        doResample = False       
 
     if doResample:
-        npar = len(locnm)
+        npar = len(locnmd)
 
         fcomp = spN.fcomp #composition fraction 
         ncomp = len(fcomp[0]) 
 
         #now treat the fcomp 
-        fcompnm = np.empty((npar,ncomp))  
+        fcompnmd = np.empty((npar,ncomp))  
         if len(sim.specloc) ==0: 
-            fcompnm[:] = fcomp[0]
+            fcompnmd[:] = fcomp[0]
 
 
         #check the mass conservation 
-        delm = (np.sum(mtotnm) - np.sum(spN.mtotL))/np.sum(spN.mtotL)
+        delm = (np.sum(mtotnmd) - np.sum(spN.mtotL))/np.sum(spN.mtotL)
         if np.abs(delm)>1e-15:
             print(f'mass conservation error: {delm}')
             import pdb;pdb.set_trace()
 
 
         if full_output: 
-            return facenm, locnm, mtotnm, mphynm, fcompnm, isL, imL 
+            return facenmd, locnmd, mtotnmd, mphynmd, fcompnmd, isL, imL 
         else:
-            return facenm, locnm, mtotnm, mphynm, fcompnm
+            return facenmd, locnmd, mtotnmd, mphynmd, fcompnmd
     else: 
         return None
 
