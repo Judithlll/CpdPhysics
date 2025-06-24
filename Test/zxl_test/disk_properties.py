@@ -15,6 +15,7 @@ ratio = pars.dgasprop['dgratio']
 sigmol= pars.dgasprop['sigmol']#
 rgg= pars.dgasprop['rgg']
 Mcp0= pars.dgasprop['Mcp0']
+Rcp0= pars.dgasprop['Rcp0']
 meanmol = pars.dgasprop['meanmol']
 
 tdep= pars.dgasprop['tdep']  #depletion tiescale of gas (constant: 3e6 yr)

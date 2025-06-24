@@ -536,7 +536,7 @@ def get_addmphy(iL, addloc, sim, loc, prop='rv'):
             addmphy.append(hd2mass(hdnew, addloc[i], sim))
     return addmphy
 
-def new_splitmerge_zxl (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, fdelDM=0.0001, full_output = False, **args):
+def new_splitmerge_zxl (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, fdelDM=0.0001, full_output = False,specloc=None, **args):
     """
     [25.01.18]: new splitmerge based on cumulative mass function
                 for the moment w/o special locations functionality
@@ -554,10 +554,17 @@ def new_splitmerge_zxl (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, fdelDM=0.000
     #isL2, = np.nonzero(np.abs(ydel)>0.5*fdelXarr)
     #isL = np.union1d(isL1, isL2)
 
-    #merging
     fdelXarr = np.ones_like(xdel)
+    #don't resample the particles around the special locations
+    if specloc is not None: 
+        specidx = np.searchsorted(loc, specloc) 
+        fdelXarr[specidx] = np.nan
+        fdelXarr[specidx-1] = np.nan 
+
+    #merging
     #don't merge 1st/last particles 
-    #fdelXarr[0] = 0; fdelXarr[-1] = 0
+    #fdelXarr[0] = 0; 
+    fdelXarr[-1] = 0
     #don't merge particles around special locations (TBD)
 
     imL, = np.nonzero(xdel<fdelXarr*fdelM)
@@ -646,7 +653,15 @@ def new_splitmerge_zxl (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, fdelDM=0.000
         #if np.all(np.diff(np.log10(mphyn[:100]))<0)==False:
         #    print('physical mass not in order')
 
-        sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+        #sfdnew = ff.sfd_special (mtotn, locn, sim.specloc)
+
+        #[25.06.05]: don;t know how to treat softening length yet, now just crudely treat here. 
+        if pars.sfdmode == 'sfd_kernel':
+            hsoft = sim.particles.hsoft 
+            hsoftn = hsoft.copy()
+            hsoftn[imL] = np.sqrt(hsoft[imL]*hsoft[imL+1]) 
+            hsoftn = np.delete(hsoftn, imL+1) 
+            hsoftn = np.insert(hsoftn, idxS, np.sqrt(hsoft[isL]*hsoft[isL+1]))
 
         #composition... to be tested
         fcompn = np.empty((npar,ncomp))
@@ -656,12 +671,14 @@ def new_splitmerge_zxl (sim, spN, fchange=0.9, fdelX=1, nsampleX=0, fdelDM=0.000
             fcompn[:,k] = np.diff(cummassn) /mtotn
 
         #to make sure there are only once resample 
-        import userfun
-        userfun.ba_resample(loc, locn, mphy, mphyn, mtot, mtotn, isL, imL, sim.time)
+        #import userfun
+        #userfun.ba_resample(loc, locn, mphy, mphyn, mtot, mtotn, isL, imL, sim.time)
 
 
         if full_output: 
             return locn, mtotn, mphyn, fcompn, isL, imL
+        elif pars.sfdmode == 'sfd_kernel':
+            return locn, mtotn, mphyn, fcompn, hsoftn
         else:
             return locn, mtotn, mphyn, fcompn
     else:

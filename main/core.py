@@ -221,7 +221,7 @@ class System(object):
         elif pars.resampleMode == 'new_splitmerge_chris':
             newarr = resample.new_splitmerge_chris(self, self.particles, **pars.dresample)
         elif pars.resampleMode == 'new_splitmerge_zxl':
-            newarr = resample.new_splitmerge_zxl(self, self.particles, full_output=True, **pars.dresample)
+            newarr = resample.new_splitmerge_zxl(self, self.particles, specloc = self.specloc,**pars.dresample)
 
         elif pars.resampleMode == 'face_splitmerge':
             newarr = resample.face_splitmerge(self, self.particles, **pars.dresample)
@@ -270,6 +270,8 @@ class System(object):
                 if pars.resampleMode == 'face_splitmerge':
                     face, self.particles.locL,self.particles.mtotL,self.particles.massL,self.particles.fcomp = newarr[0:5]
                     self.particles.fface, self.particles.fface0, self.particles.fface1 = self.particles.get_fface(face)
+                elif pars.sfdmode == 'sfd_kernel':
+                    self.particles.locL,self.particles.mtotL,self.particles.massL, self.particles.fcomp,self.particles.hsoft = newarr[0:5]
                 else:
                     self.particles.locL,self.particles.mtotL,self.particles.massL, self.particles.fcomp = newarr[0:4]
                 self.particles.num = len(self.particles.locL)
@@ -452,7 +454,7 @@ class System(object):
             planetE.resS = -1    #-1: not yet in resonance
 
     def init_centralbody(self):
-        self.centralbody = CentralBody(self.time, dp.Mcp_t(0.0), cgs.rhoRJ)
+        self.centralbody = CentralBody(self.time, dp.Mcp_t(0.0), dp.Rcp0)
 
     def init_particles (self, dparticleprops={}):
         """
@@ -601,8 +603,8 @@ class System(object):
         self.particles.locL = Yn[0]
         self.particles.massL = Yn[1]
 
-        part = self.particles 
-        face = part.get_face()
+        #part = self.particles 
+        #   face = part.get_face()
         #userfun.loc_face(part.locL[:10], face[:11], part.mtotL[:10], self.time, mode='zi')
 
         #userfun.loc_face(part.locL[:10], face[:11], part.sfd[:10], self.time, mode='sfdzi')
@@ -1685,6 +1687,7 @@ class Superparticles (object):
                 r0 = r1
 
             msup = np.array(msupL)
+            face = np.ones_like(msup)
 
         elif initrule=='equallogspace':
             #put sp at equal distances in log space
@@ -1692,7 +1695,7 @@ class Superparticles (object):
             locspecL.insert(0, rinn)
             locspecL.append(rout)
             nspecial = len(locspecL) #includes the boundaries
-            face = np.array([])
+            faceini = np.array([])
 
             #piecewise..
             for iloc in range(nspecial-1):
@@ -1703,7 +1706,7 @@ class Superparticles (object):
                 rmid = r0 *np.exp(np.linspace(0,1,Nadd+1)*xdum)
                 radL= np.append(radL, np.sqrt(rmid[1:]*rmid[:-1]))
 
-                face = np.append(face, rmid)
+                faceini = np.append(faceini, rmid)
                 
                 for k,r1 in enumerate(rmid[1:]): #the midpoints
                     msup, err = sciint.quad(f_sample, r0, r1, limit =100)
@@ -1713,6 +1716,10 @@ class Superparticles (object):
                     fc = fcdum[:ncomp] /fcdum.sum()
                     fcompL.append(fc) #composition
                     r0 = r1
+
+            #remove the duplicated values (relative difference <1e-15) in face 
+            diff_face = np.append(np.diff(faceini)/faceini[:-1],1)
+            face = faceini[diff_face>1e-15]
 
             #radL = np.concatenate(radL) #single array
             msup = np.array(msupL)
@@ -1875,13 +1882,20 @@ class Superparticles (object):
         # face = np.append(face, self.locL[1:]-self.fface*(self.locL[1:]-self.locL[:-1]) )
         # face = np.append(face, self.locL[-1]+self.dface1)
 
-        facemid = self.locL[1:]- self.fface*(self.locL[1:] - self.locL[:-1]) 
+        try:
+            facemid = self.locL[1:]- self.fface*(self.locL[1:] - self.locL[:-1]) 
 
-        face0 = self.locL[0] - self.fface0*(facemid[0]-self.locL[0])/(1-self.fface0)
+            face0 = self.locL[0] - self.fface0*(facemid[0]-self.locL[0])/(1-self.fface0)
 
-        face1 = self.locL[-1] + self.fface1*(self.locL[-1]-facemid[-1])/(1-self.fface1)
+            face1 = self.locL[-1] + self.fface1*(self.locL[-1]-facemid[-1])/(1-self.fface1)
 
-        face = np.concatenate(([face0], facemid, [face1]))
+            face = np.concatenate(([face0], facemid, [face1]))
+
+        except:
+            print('[core.Superparticles.get_face]: face cannot get normally, but mostly b/c of we do not use face')
+            face0 = self.locL[0] - self.fface0*(self.locL[1]-self.locL[0])/(1-self.fface0)
+            face1 = self.locL[-1] + self.fface1*(self.locL[-1]-self.locL[-2])/(1-self.fface1)
+            face = np.concatenate(([face0], self.locL[1:-1], [face1]))
 
         return face
 
@@ -1889,10 +1903,17 @@ class Superparticles (object):
         if loc is None: 
             loc = self.locL 
 
-        fface0 = (loc[1]-face[1])/(face[2]-face[1])
-        fface1 = (face[-2]-loc[-2])/(face[-2]-face[-3])
-        # dface1 = face[-1] - loc[-1] 
-        fface = (loc[1:]-face[1:-1])/(loc[1:]-loc[:-1]) 
+
+        try:
+            fface0 = (loc[1]-face[1])/(face[2]-face[1])
+            fface1 = (face[-2]-loc[-2])/(face[-2]-face[-3])
+            # dface1 = face[-1] - loc[-1] 
+            fface = (loc[1:]-face[1:-1])/(loc[1:]-loc[:-1]) 
+        except:
+            print('[core.Superparticles.get_fface]: fractional face location cannot get normally, but mostly b/c of we do not use face')
+            fface0 = 0.0
+            fface1 = 0.0
+            fface = np.zeros_like(loc[1:])
 
         return fface, fface0, fface1
 
@@ -2018,6 +2039,10 @@ class Superparticles (object):
                                          Rd,
                                          rhoint,
                                          Sto=self.stokesOld)
+        #check the crossing
+        if np.any(np.diff(loc)<0):
+            print('[Superparticles.get_auxiliary] WARNING: the locL is not sorted')
+            import pdb;pdb.set_trace()
 
         if mode=='individual':
             sfd = disk.dot_Md(time)/(-2*loc*np.pi*v_r)
@@ -2044,13 +2069,10 @@ class Superparticles (object):
                 face = self.get_face()
                 sfd = ff.sfd_face (self.mtotL, loc, face)
             elif pars.sfdmode =='sfd_kernel':
-                face = self.get_face()
-                if np.any(np.diff(loc)<0):
-                    print('[Superparticles.get_auxiliary] WARNING: the locL is not sorted')
-                    import pdb;pdb.set_trace()
-
-                sfd = ff.sfd_kernel (self, face)
+                # face = self.get_face()
+                sfd = ff.sfd_kernel (self, specloc)
             else:
+                print('[Superparticles.get_auxiliary] WARNING: sfdmode not recognized')
                 sfd = None
                 
 
@@ -2118,6 +2140,9 @@ class Superparticles (object):
         face = np.delete(face, remove_idx) 
         self.fface, self.fface0, self.fface1 = self.get_fface(face, self.locL)
 
+        # the softening length should also be treated here 
+        self.hsoft = np.delete(self.hsoft, remove_idx, axis=0)
+
         #for prop in self.propL:
         #    pL = getattr(self, prop)
         #    if len(pL)==self.num:
@@ -2142,6 +2167,9 @@ class Superparticles (object):
         self.massL = np.append(self.massL, self.mini)
         self.mtotL = np.append(self.mtotL, self.mtot1)  #mtot1 is needed here
         self.fcomp = np.append(self.fcomp, [self.fcompini], axis=0) #[24.01.01] added
+
+        #add an initial guess of softening length 
+        self.hsoft = np.append(self.hsoft, 2*(newloc-self.locL[-2]))
 
         # because we need to use these properties somewhere, so these properties also needed to be postprocess, but for now this is very crude
         #self.Rd = np.append(self.Rd, self.Rdi)
@@ -2319,13 +2347,19 @@ class CentralBody (object):
     """
     Get properties of central body, star for PPD or planet for CPD
     """
-    def __init__(self, time, mcp0, rho=cgs.rhoRJ):
+    def __init__(self, time, mcp0, R0):
         self.m = mcp0 
         #TBD: Getting radius should be user-defined, in the userfun.py.
         #If it's missing in the userfun, the radius should be None
-        self.rho = rho 
-        self.r = physics.mass_to_radius(mcp0,rho)
+        # self.rho = rho 
+        # self.r = physics.mass_to_radius(mcp0,rho)
         self.time = time 
+
+        #[25.06.20]zxl: cause it's widely agreed that the radius of the Protojupiter is 2*current Jupiter
+        self.r = R0 
+
+        self.rho = mcp0 / (4/3 * np.pi * R0**3) #density of central body
+
 
         #make here a function to be more general
         try:

@@ -354,13 +354,61 @@ def sfd_chris (msup, loc):
     return sfd
 
 
-def sfd_kernel(particle, face):
-    particle.hsoft, wM = newkernel.get_weight(particle.locL, face, hguess=particle.hsoft)
-    frhoarr = (wM*particle.mtotL).sum(1) /particle.hsoft
-    particle.frhoarr = frhoarr
-    sfd = frhoarr /(2*np.pi*particle.locL)
-    if sfd[0]>1e28:
-        import pdb;pdb.set_trace()
+def sfd_kernel(particle, specloc):
+
+    """
+    get the sfd piecewise from the kernel 
+    """
+
+    sfd = [] 
+    particle.frhoarr =[]
+
+    if len(specloc) !=0:
+        specloc = np.concatenate(([particle.locL[0]], specloc, [particle.locL[-1]]))
+        for i in range(len(specloc)-1):
+            #get the index of the particles in the piece 
+            idx = (particle.locL>=specloc[i]) *(particle.locL<=specloc[i+1])
+            print(i, len(idx))
+
+            #inspect the piece 
+            if len(particle.locL[idx])<10: #not sure if 10 is a good number 
+                #combine this piece with the next one 
+                if i+1<len(specloc)-1:
+                    specloc[i+1] = specloc[i] 
+                else: 
+                    print('[functions.sfd_kernel]WARNING: not enough particles in the piece', specloc[i], specloc[i+1])
+                    import pdb; pdb.set_trace() 
+                continue 
+            else:
+                try:
+                    particle.hsoft[idx], wM = newkernel.get_weight(particle.locL[idx], hguess=particle.hsoft[idx])
+                    frhoarr = (wM*particle.mtotL[idx]).sum(1) /particle.hsoft[idx]
+                    particle.frhoarr += list(frhoarr)
+                    sfd += list(frhoarr /(2*np.pi*particle.locL[idx]))
+                except Exception as e:
+                    print('[functions.sfd_kernel]ERROR:', e)
+                    import pdb;pdb.set_trace()
+
+        particle.frhoarr = np.array(particle.frhoarr)
+        sfd = np.array(sfd)
+    else:
+        particle.hsoft, wM = newkernel.get_weight(particle.locL, hguess=particle.hsoft)
+        frhoarr = (wM*particle.mtotL).sum(1) /particle.hsoft
+        particle.frhoarr = frhoarr
+        sfd =  frhoarr /(2*np.pi*particle.locL)
+    #
+    # #compare the sfdtest and sfd 
+    # import matplotlib.pyplot as plt 
+    # plt.close()
+    # plt.loglog(particle.locL, sfd, '.-', linewidth=1, c='k', label='piecewise')
+    # plt.loglog(particle.locL, sfdtest, '.-', linewidth=1, c='gray')
+    # plt.axvline(specloc[1], c='r', linestyle='--', linewidth= 0.5, label='specloc')
+    # plt.legend()
+    # plt.xlabel('loc')
+    # plt.ylabel('sfd')
+    # plt.savefig('./test_plots/sfd_piecewise.png')
+    # import pdb; pdb.set_trace()
+
     return sfd
 
 

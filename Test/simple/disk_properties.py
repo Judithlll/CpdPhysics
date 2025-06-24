@@ -9,6 +9,8 @@ rinn = 0.1 *cgs.au
 #this is necessary apparently...
 sigmol=2e-15
 
+Rcp0 = cgs.Rsun
+
 def r_out (t):
     return 100*cgs.au 
 

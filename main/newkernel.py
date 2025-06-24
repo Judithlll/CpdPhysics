@@ -94,7 +94,7 @@ def kernel_fill_M6 (qM):
 
 
 
-def get_weight (loc, face, hguess=None, eta=eta_default):
+def get_weight (loc, hguess=None, eta=eta_default):
     """
     we use an initial guess h0 and solve for x
         h = h0*x
@@ -122,10 +122,10 @@ def get_weight (loc, face, hguess=None, eta=eta_default):
 
     #initial guess (if not given)
     if hguess is None or len(hguess)!=len(loc):
-        h0 = np.diff(face)
-        # h0 = np.concatenate(( [2*(loc[1]-loc[0])], 
-        #                         loc[2:] -loc[:-2],
-        #                     [2*(loc[-1]-loc[-2])] ))
+        #h0 = np.diff(face)
+        h0 = np.concatenate(( [2*(loc[1]-loc[0])], 
+                                loc[2:] -loc[:-2],
+                            [2*(loc[-1]-loc[-2])] ))
     else:
         h0 = hguess.copy()
 
@@ -183,6 +183,36 @@ def get_weight (loc, face, hguess=None, eta=eta_default):
     if iloop>=20:
         print('[newkernel.py]warning:iloop=10 reached!')
         import pdb; pdb.set_trace()
+
+    #for the particles that cannot reach the convergence, find the root from initial guess and bisecting
+    if ii.sum()>0:
+        print('[newkernel.py]warning: some particles did not converge, using bisection')
+        for i in np.where(ii)[0]:
+
+            #get the solution from initial guess
+
+            x0 = 0
+            x1 = 1e6  #not sure
+            y0 = (wM[i,:]).sum() -eta
+            y1 = (wM[i,:]/(1+x1)).sum() -eta
+
+            if y0*y1>0:
+                print('[newkernel.py]warning: bisection failed, using initial guess')
+                xarr[i] = x0
+                continue
+
+            while abs(x1-x0)>1e-6:
+                xmid = 0.5*(x0+x1)
+                ymid = (wM[i,:]/(1+xmid)).sum() -eta
+
+                if ymid*y0<0:
+                    x1 = xmid
+                    y1 = ymid
+                else:
+                    x0 = xmid
+                    y0 = ymid
+
+            xarr[i] = xmid 
 
     #finally, the softening lengths..
     hsoftarr = h0 *(1+xarr)

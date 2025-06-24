@@ -62,7 +62,7 @@ class PlotObj (object):
                 line.remove()
 
         self.lineL = []
-        self.linea = axa.loglog(locL/cgs.au, system.particles.sfd, 'b.', ms=1, color='b')
+        self.linea = axa.loglog(locL/cgs.au, system.particles.sfd, 'b.', ms=1)
         self.lineb = axb.loglog(locL/cgs.au, system.particles.St, color='r')
         self.lined = axc.loglog(locL/cgs.au, mtotL, '.', ms=1, color='k')
         self.linec = axd.loglog(locL/cgs.au, massL, '.', ms=1, color='k')
@@ -108,7 +108,6 @@ def do_stuff (system, init=False, final=False):
             #my_plot(system, plotnum)
             plotobj.add_lines(system, plotnum)
             plotnum += 1
-
 
 
 

@@ -52,7 +52,7 @@ def magneto_radius (B_mag, rho, dotMg, gas, r, m, t=0.0):
 
     Tinn = gas.get_key_disk_properties(r_cav, t)[1]
 
-    if Tinn <= T_crit:
+    if Tinn <= T_crit and False:
         r_cav = r 
         print('''The inner disk is not hot enough, the r_cav is now set to 
               radius of central body ''')
@@ -250,6 +250,7 @@ def do_stuff (system, init=False, final= False):
         data.gas = system.gas
         global plotnum 
         plotnum =0 
+        import pdb; pdb.set_trace()
         #initialize your data class
     elif final:
         data.data_process(system)

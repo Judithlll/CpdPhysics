@@ -8,7 +8,7 @@ intrhoL = [3.0, 1.0]
 #parameters fed into System
 dsystempars = {}
 dparticleprops = {'Rdi':0.01,  #initial size pf particles
-                'nini':200,  #initial number of particles
+                'nini':1000,  #initial number of particles
                 'initrule':'equallogspace'} #how particles are distributed
 
 dtimesteppars = {'deltaTfraction':0.2, 'itgmethod':'Heun'}
@@ -26,6 +26,7 @@ doJump = False
 doPlanets = False
 doIcelines = True
 
-sfdmode = 'special'
-resampleMode = 'fixed_resample' #'global_resample4'# None#
+sfdmode = 'sfd_kernel'
+#resampleMode = 'face_splitmerge' #'global_resample4'# None#
+resampleMode = 'new_splitmerge_zxl'
 dresample = {'Xspecial':10}

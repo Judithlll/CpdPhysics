@@ -35,7 +35,8 @@ dgasprop = {'alpha':5e-05,
             'frac': 0.2/1.5, # the accretion mass with unit: M_J/Myr
             'dgratio': 0.0016,
             'rgg': 0.88e-7,
-            'Mcp0':0.4*cgs.MJ,
+            'Mcp0':cgs.MJ,
+            'Rcp0': 2.*cgs.RJ,
             'meanmol': 2.34,
             'sigmol':2e-15,
             'tdep': 3.e6*cgs.yr,
@@ -51,7 +52,7 @@ vc={'icy': 1.e2,
     }
 
 sfdmode = 'simple'
-resampleMode = 'fixed_resample'#'new_splitmerge_zxl' #'Nplevel'
+resampleMode = 'new_splitmerge_zxl' #'Nplevel'
 dresample = {'fchange':0.9,'fdelDM':1e-3, 'Xspecial':10}
 #dresample = {'fdelS':1.,'fdelM':0.001,'fdelDM':1e-7, 'fspec':0.002}
 doJump = False
